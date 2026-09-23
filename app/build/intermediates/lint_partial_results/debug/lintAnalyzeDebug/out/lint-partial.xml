@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 9.0.1" type="partial_results">
+    <map id="NotificationPermission">
+        <location id="class"
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/302c2aacd1bfc1352061e61a318a1a2c/transformed/library-4.1.0/jars/classes.jar"/>
+        <entry
+            name="className"
+            string="com/chuckerteam/chucker/internal/support/NotificationHelper"/>
+    </map>
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.ledger.personal.MainActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <entry
+            name="model"
+            string="xml[data_extraction_rules(U),backup_rules(U)];;;;"/>
+    </map>
+
+</incidents>

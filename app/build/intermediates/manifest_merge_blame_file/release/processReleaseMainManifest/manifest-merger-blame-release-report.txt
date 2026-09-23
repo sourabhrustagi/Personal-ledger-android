@@ -1,0 +1,199 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.ledger.personal"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="36" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:4:5-67
+11-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:4:22-64
+12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+12-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:5:5-79
+12-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:5:22-76
+13
+14    <permission
+14-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+15        android:name="com.ledger.personal.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+15-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+16        android:protectionLevel="signature" />
+16-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+17
+18    <uses-permission android:name="com.ledger.personal.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+18-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+18-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+19
+20    <application
+20-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:7:5-48:19
+21        android:name="com.ledger.personal.LedgerApplication"
+21-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:8:9-42
+22        android:allowBackup="false"
+22-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:9:9-36
+23        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+23-->[androidx.core:core:1.18.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
+24        android:dataExtractionRules="@xml/data_extraction_rules"
+24-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:10:9-65
+25        android:extractNativeLibs="false"
+26        android:fullBackupContent="@xml/backup_rules"
+26-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:11:9-54
+27        android:icon="@android:drawable/sym_def_app_icon"
+27-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:12:9-58
+28        android:label="Personal Ledger"
+28-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:13:9-40
+29        android:roundIcon="@android:drawable/sym_def_app_icon"
+29-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:14:9-63
+30        android:supportsRtl="true"
+30-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:15:9-35
+31        android:theme="@android:style/Theme.Material.Light.NoActionBar" >
+31-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:16:9-72
+32        <activity
+32-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:18:9-47:20
+33            android:name="com.ledger.personal.MainActivity"
+33-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:19:13-41
+34            android:exported="true"
+34-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:20:13-36
+35            android:windowSoftInputMode="adjustResize" >
+35-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:21:13-55
+36            <intent-filter>
+36-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:22:13-25:29
+37                <action android:name="android.intent.action.MAIN" />
+37-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:23:17-69
+37-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:23:25-66
+38
+39                <category android:name="android.intent.category.LAUNCHER" />
+39-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:24:17-77
+39-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:24:27-74
+40            </intent-filter>
+41
+42            <!-- Deep Link: ledger://transactions/{id} -->
+43            <intent-filter>
+43-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:28:13-35:29
+44                <action android:name="android.intent.action.VIEW" />
+44-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:29:17-69
+44-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:29:25-66
+45
+46                <category android:name="android.intent.category.DEFAULT" />
+46-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:30:17-76
+46-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:30:27-73
+47                <category android:name="android.intent.category.BROWSABLE" />
+47-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:31:17-78
+47-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:31:27-75
+48
+49                <data
+49-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:32:17-34:51
+50                    android:host="transactions"
+50-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:34:21-48
+51                    android:scheme="ledger" />
+51-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:33:21-44
+52            </intent-filter>
+53
+54            <!-- Web Deep Link: https://app.personal-ledger.com/transactions/{id} -->
+55            <intent-filter android:autoVerify="true" >
+55-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:38:13-46:29
+55-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:38:28-53
+56                <action android:name="android.intent.action.VIEW" />
+56-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:29:17-69
+56-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:29:25-66
+57
+58                <category android:name="android.intent.category.DEFAULT" />
+58-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:30:17-76
+58-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:30:27-73
+59                <category android:name="android.intent.category.BROWSABLE" />
+59-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:31:17-78
+59-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:31:27-75
+60
+61                <data
+61-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:32:17-34:51
+62                    android:host="app.personal-ledger.com"
+62-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:34:21-48
+63                    android:pathPrefix="/transactions"
+63-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:45:21-55
+64                    android:scheme="https" />
+64-->/Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/AndroidManifest.xml:33:21-44
+65            </intent-filter>
+66        </activity>
+67
+68        <uses-library
+68-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+69            android:name="androidx.window.extensions"
+69-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+70            android:required="false" />
+70-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+71        <uses-library
+71-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+72            android:name="androidx.window.sidecar"
+72-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+73            android:required="false" />
+73-->[androidx.window:window:1.5.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+74
+75        <provider
+75-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+76            android:name="androidx.startup.InitializationProvider"
+76-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+77            android:authorities="com.ledger.personal.androidx-startup"
+77-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+78            android:exported="false" >
+78-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+79            <meta-data
+79-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+80                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+80-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+81                android:value="androidx.startup" />
+81-->[androidx.emoji2:emoji2:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+82            <meta-data
+82-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/8c9b7d56adcc077fb84a6582800eb1e3/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+83                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+83-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/8c9b7d56adcc077fb84a6582800eb1e3/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+84                android:value="androidx.startup" />
+84-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/8c9b7d56adcc077fb84a6582800eb1e3/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+85            <meta-data
+85-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+86                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+86-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+87                android:value="androidx.startup" />
+87-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+88        </provider>
+89
+90        <receiver
+90-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+91            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+91-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+92            android:directBootAware="false"
+92-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+93            android:enabled="true"
+93-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+94            android:exported="true"
+94-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+95            android:permission="android.permission.DUMP" >
+95-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+96            <intent-filter>
+96-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+97                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+97-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+97-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+98            </intent-filter>
+99            <intent-filter>
+99-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+100                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+100-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+100-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+101            </intent-filter>
+102            <intent-filter>
+102-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+103                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+103-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+103-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+104            </intent-filter>
+105            <intent-filter>
+105-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+106                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+106-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+106-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+107            </intent-filter>
+108        </receiver>
+109    </application>
+110
+111</manifest>

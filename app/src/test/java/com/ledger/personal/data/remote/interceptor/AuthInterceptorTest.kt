@@ -1,0 +1,58 @@
+package com.ledger.personal.data.remote.interceptor
+
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class AuthInterceptorTest {
+
+    @Test
+    fun attachesJsonAndBearerHeadersByDefault() {
+        val interceptor = AuthInterceptor()
+        val request = intercept(interceptor, Request.Builder().url("http://localhost/transactions").build())
+        assertEquals("application/json", request.header("Accept"))
+        assertEquals("application/json", request.header("Content-Type"))
+        assertEquals("Bearer mock-ledger-jwt-token-2026", request.header("Authorization"))
+    }
+
+    @Test
+    fun omitsAuthorizationWhenTokenCleared() {
+        val interceptor = AuthInterceptor()
+        interceptor.updateToken(null)
+        val request = intercept(interceptor, Request.Builder().url("http://localhost/transactions").build())
+        assertNull(request.header("Authorization"))
+        assertEquals("application/json", request.header("Accept"))
+    }
+
+    @Test
+    fun usesUpdatedToken() {
+        val interceptor = AuthInterceptor()
+        interceptor.updateToken("rotated-token")
+        val request = intercept(interceptor, Request.Builder().url("http://localhost/transactions").build())
+        assertEquals("Bearer rotated-token", request.header("Authorization"))
+    }
+
+    private fun intercept(interceptor: AuthInterceptor, original: Request): Request {
+        var captured: Request? = null
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .addInterceptor { chain ->
+                captured = chain.request()
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body("ok".toResponseBody(null))
+                    .build()
+            }
+            .build()
+        client.newCall(original).execute().close()
+        return captured!!
+    }
+}

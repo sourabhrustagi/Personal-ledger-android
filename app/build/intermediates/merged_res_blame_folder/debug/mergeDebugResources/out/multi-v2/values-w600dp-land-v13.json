@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.ledger.personal.app-mergeDebugResources-67:/values-w600dp-land-v13/values-w600dp-land-v13.xml",
+            "map": [
+                {
+                    "source": "/Users/sourabh/.gradle/caches/9.1.0/transforms/37d7399023763e587ad721a91d6d78a9/transformed/material-1.12.0/res/values-w600dp-land-v13/values-w600dp-land-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "54",
+                        "endOffsets": "105"
+                    }
+                }
+            ]
+        }
+    ]
+}

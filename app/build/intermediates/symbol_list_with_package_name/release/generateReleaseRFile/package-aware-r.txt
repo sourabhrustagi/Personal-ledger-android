@@ -1,0 +1,3 @@
+com.ledger.personal
+xml backup_rules
+xml data_extraction_rules

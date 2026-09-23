@@ -1,0 +1,49 @@
+com.ledger.personal.app-lifecycle-livedata-core-ktx-2.10.0-0 /Users/sourabh/.gradle/caches/9.1.0/transforms/0a44fb424c759388ce6243bb78f65a7e/transformed/lifecycle-livedata-core-ktx-2.10.0/res
+com.ledger.personal.app-core-1.18.0-1 /Users/sourabh/.gradle/caches/9.1.0/transforms/0b4f16dc6a3289a0c20c46927f62866e/transformed/core-1.18.0/res
+com.ledger.personal.app-savedstate-2 /Users/sourabh/.gradle/caches/9.1.0/transforms/0cad662fb6a76a2562bffd0d16ebccb0/transformed/savedstate/res
+com.ledger.personal.app-hilt-navigation-compose-1.2.0-3 /Users/sourabh/.gradle/caches/9.1.0/transforms/0cca7acbd9612454deb2881271dacb14/transformed/hilt-navigation-compose-1.2.0/res
+com.ledger.personal.app-navigation-compose-2.8.8-4 /Users/sourabh/.gradle/caches/9.1.0/transforms/14750f4f9649e6e36d86859e732842a5/transformed/navigation-compose-2.8.8/res
+com.ledger.personal.app-navigation-common-2.8.8-5 /Users/sourabh/.gradle/caches/9.1.0/transforms/1487b0ead429430e2c63b2e56b455c03/transformed/navigation-common-2.8.8/res
+com.ledger.personal.app-navigation-common-ktx-2.8.8-6 /Users/sourabh/.gradle/caches/9.1.0/transforms/195737e8e24c5a6ae09880bd948281b2/transformed/navigation-common-ktx-2.8.8/res
+com.ledger.personal.app-startup-runtime-1.1.1-7 /Users/sourabh/.gradle/caches/9.1.0/transforms/19963702fbcea4ac06d03c87e6cdd1d1/transformed/startup-runtime-1.1.1/res
+com.ledger.personal.app-activity-compose-1.13.0-8 /Users/sourabh/.gradle/caches/9.1.0/transforms/265f59a74723700a3964c0c165c39a45/transformed/activity-compose-1.13.0/res
+com.ledger.personal.app-navigation-runtime-ktx-2.8.8-9 /Users/sourabh/.gradle/caches/9.1.0/transforms/31cdd21b398aa56ef935e551f37ec08b/transformed/navigation-runtime-ktx-2.8.8/res
+com.ledger.personal.app-runtime-saveable-10 /Users/sourabh/.gradle/caches/9.1.0/transforms/322d0ca713cef4cf63e69f89f9554a1a/transformed/runtime-saveable/res
+com.ledger.personal.app-navigation-runtime-2.8.8-11 /Users/sourabh/.gradle/caches/9.1.0/transforms/336ab47cc867d8bb7a08c15749a820b4/transformed/navigation-runtime-2.8.8/res
+com.ledger.personal.app-emoji2-1.4.0-12 /Users/sourabh/.gradle/caches/9.1.0/transforms/40a2ed887234b0d388e7f6944e1fb666/transformed/emoji2-1.4.0/res
+com.ledger.personal.app-material-icons-extended-release-13 /Users/sourabh/.gradle/caches/9.1.0/transforms/4d6257f30fda872547884a16c788ed84/transformed/material-icons-extended-release/res
+com.ledger.personal.app-material-icons-core-release-14 /Users/sourabh/.gradle/caches/9.1.0/transforms/4f62e8e4459612fe5e683f90042f7195/transformed/material-icons-core-release/res
+com.ledger.personal.app-savedstate-ktx-1.4.0-15 /Users/sourabh/.gradle/caches/9.1.0/transforms/521f93cd0b7aaebb0654bcb7ed530a2b/transformed/savedstate-ktx-1.4.0/res
+com.ledger.personal.app-material3-16 /Users/sourabh/.gradle/caches/9.1.0/transforms/5458d7e928dcb554b5fc13203c839aec/transformed/material3/res
+com.ledger.personal.app-fragment-1.5.1-17 /Users/sourabh/.gradle/caches/9.1.0/transforms/57dccbd54129e9b05ac8ed1c1f7091ea/transformed/fragment-1.5.1/res
+com.ledger.personal.app-foundation-18 /Users/sourabh/.gradle/caches/9.1.0/transforms/5c3b8391782e58e65c73b911c1de48d6/transformed/foundation/res
+com.ledger.personal.app-lifecycle-viewmodel-19 /Users/sourabh/.gradle/caches/9.1.0/transforms/60d2ec5b8d6f331d7eed061ab0259f76/transformed/lifecycle-viewmodel/res
+com.ledger.personal.app-graphics-path-1.0.1-20 /Users/sourabh/.gradle/caches/9.1.0/transforms/68713a4f81b34268e1a7134af0a900e3/transformed/graphics-path-1.0.1/res
+com.ledger.personal.app-transition-1.6.0-21 /Users/sourabh/.gradle/caches/9.1.0/transforms/6ca3b6c4fe3d754223e1daf6cf1b3a55/transformed/transition-1.6.0/res
+com.ledger.personal.app-navigationevent-22 /Users/sourabh/.gradle/caches/9.1.0/transforms/6d8d73a3baf591d9e2b544256d214d59/transformed/navigationevent/res
+com.ledger.personal.app-activity-1.13.0-23 /Users/sourabh/.gradle/caches/9.1.0/transforms/6f3fd46f7904fa435d95dd335cc8d7f7/transformed/activity-1.13.0/res
+com.ledger.personal.app-profileinstaller-1.4.0-24 /Users/sourabh/.gradle/caches/9.1.0/transforms/75d413760ecc9ef3b770cd8fbdbfe23d/transformed/profileinstaller-1.4.0/res
+com.ledger.personal.app-tracing-1.2.0-25 /Users/sourabh/.gradle/caches/9.1.0/transforms/81aada5627249d405602d2cc11bf58df/transformed/tracing-1.2.0/res
+com.ledger.personal.app-annotation-experimental-1.4.1-26 /Users/sourabh/.gradle/caches/9.1.0/transforms/83ed1678511f5bcafddd629f83a4680d/transformed/annotation-experimental-1.4.1/res
+com.ledger.personal.app-lifecycle-process-2.10.0-27 /Users/sourabh/.gradle/caches/9.1.0/transforms/8c9b7d56adcc077fb84a6582800eb1e3/transformed/lifecycle-process-2.10.0/res
+com.ledger.personal.app-core-viewtree-1.0.0-28 /Users/sourabh/.gradle/caches/9.1.0/transforms/8e77d139a9c12927ea25b8fe47453154/transformed/core-viewtree-1.0.0/res
+com.ledger.personal.app-customview-poolingcontainer-1.0.0-29 /Users/sourabh/.gradle/caches/9.1.0/transforms/982ba4a7c1c095fec71c9376133ff650/transformed/customview-poolingcontainer-1.0.0/res
+com.ledger.personal.app-lifecycle-viewmodel-ktx-2.10.0-30 /Users/sourabh/.gradle/caches/9.1.0/transforms/a173c2a8f47f3377ea3f60dbabaf1458/transformed/lifecycle-viewmodel-ktx-2.10.0/res
+com.ledger.personal.app-ui-text-31 /Users/sourabh/.gradle/caches/9.1.0/transforms/abaf29eacf8e7f595076aabd2a015e14/transformed/ui-text/res
+com.ledger.personal.app-core-ktx-1.18.0-32 /Users/sourabh/.gradle/caches/9.1.0/transforms/abe79bc76bd83e04283d157053c1b1f7/transformed/core-ktx-1.18.0/res
+com.ledger.personal.app-hilt-navigation-1.2.0-33 /Users/sourabh/.gradle/caches/9.1.0/transforms/afaff59c6a68deb1fa09f26b777271da/transformed/hilt-navigation-1.2.0/res
+com.ledger.personal.app-ui-34 /Users/sourabh/.gradle/caches/9.1.0/transforms/cab98ccdc2008d484aaf59fb11dd6fcb/transformed/ui/res
+com.ledger.personal.app-lifecycle-livedata-core-2.10.0-35 /Users/sourabh/.gradle/caches/9.1.0/transforms/cc361651da38b34bf19d3fef9732cc16/transformed/lifecycle-livedata-core-2.10.0/res
+com.ledger.personal.app-lifecycle-livedata-2.10.0-36 /Users/sourabh/.gradle/caches/9.1.0/transforms/cf822224a641bf60e876d9d29b18f78f/transformed/lifecycle-livedata-2.10.0/res
+com.ledger.personal.app-ui-graphics-37 /Users/sourabh/.gradle/caches/9.1.0/transforms/e1a30962316ca52d0cc7c9671e1a5fe9/transformed/ui-graphics/res
+com.ledger.personal.app-lifecycle-runtime-38 /Users/sourabh/.gradle/caches/9.1.0/transforms/e31215938802758116641298744395b0/transformed/lifecycle-runtime/res
+com.ledger.personal.app-activity-ktx-1.13.0-39 /Users/sourabh/.gradle/caches/9.1.0/transforms/e783be9ef52ba4fb12945c78a6c578a8/transformed/activity-ktx-1.13.0/res
+com.ledger.personal.app-core-runtime-2.2.0-40 /Users/sourabh/.gradle/caches/9.1.0/transforms/f172ccddc8758394c8dfbb7abfaf5c47/transformed/core-runtime-2.2.0/res
+com.ledger.personal.app-window-1.5.0-41 /Users/sourabh/.gradle/caches/9.1.0/transforms/f24a637a4d3b227da604208d1b52a593/transformed/window-1.5.0/res
+com.ledger.personal.app-updated_navigation_xml-42 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/build/generated/updated_navigation_xml/release
+com.ledger.personal.app-packageReleaseResources-43 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+com.ledger.personal.app-packageReleaseResources-44 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+com.ledger.personal.app-merged-not-compiled-resources-45 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/build/intermediates/merged-not-compiled-resources/release
+com.ledger.personal.app-release-46 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/build/intermediates/merged_res/release/mergeReleaseResources
+com.ledger.personal.app-main-47 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/main/res
+com.ledger.personal.app-release-48 /Users/sourabh/Documents/ai architect/week 1/Personal ledger/app/src/release/res

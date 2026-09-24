@@ -4,10 +4,10 @@ import com.ledger.personal.data.remote.api.TransactionApiService
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.toDomain
+import com.ledger.personal.di.IoDispatcher
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,7 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class RetrofitTransactionRepository @Inject constructor(
     private val apiService: TransactionApiService,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : TransactionRepository {
 
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> =

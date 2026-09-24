@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.ledger.personal.ui.screens.list.TransactionListViewModel

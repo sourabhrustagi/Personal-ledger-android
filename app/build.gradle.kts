@@ -32,7 +32,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            buildConfigField("String", "API_BASE_URL", "\"https://api.dev.personal-ledger.local/v1/\"")
+            // Android emulator loopback to the LedgerOne API running on the host.
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/retail/v1/\"")
             buildConfigField("Boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {

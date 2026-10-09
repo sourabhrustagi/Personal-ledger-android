@@ -1,0 +1,161 @@
+package com.ledger.personal.ui.app
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.CurrencyExchange
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ledger.personal.mock.MockCatalog
+import com.ledger.personal.mock.SeedAccount
+import com.ledger.personal.ui.feature.EmptyState
+import com.ledger.personal.ui.feature.FeatureScaffold
+import com.ledger.personal.ui.feature.ListRow
+import com.ledger.personal.ui.feature.MaskedAmount
+import com.ledger.personal.ui.feature.PaymentsOfflineNotice
+import com.ledger.personal.ui.feature.ProtectedBadge
+import com.ledger.personal.ui.feature.SectionCard
+import com.ledger.personal.ui.feature.mask
+import com.ledger.personal.ui.navigation.Screen
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+
+@Composable
+private fun ProfileAction(onProfile: () -> Unit) {
+    IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
+}
+
+@Composable
+private fun HubLink(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    ListRow(
+        icon,
+        title,
+        subtitle = if (enabled) subtitle else "Unavailable offline",
+        iconTint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        onClick = onClick.takeIf { enabled },
+    )
+}
+
+@Composable
+fun MoneyHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
+    val accounts = if (flags.empty) emptyList() else MockCatalog.bankAccounts
+    val asOf = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
+    FeatureScaffold("Money", onBack = null, subtitle = "Balances as of $asOf", actions = {
+        ProtectedBadge(Modifier.padding(end = 4.dp))
+        ProfileAction(onProfile)
+    }) {
+        if (accounts.isEmpty()) {
+            EmptyState(Icons.Outlined.AccountBalance, "No accounts linked", "Link a bank account to see balances here.")
+        } else {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(accounts) { AccountTile(it, flags) }
+            }
+        }
+        SectionCard(title = "Accounts and products") {
+            HubLink(Icons.Outlined.AccountBalance, "Accounts", "Statements, UPI and bills") { onOpen(Screen.Banking) }
+            HubLink(Icons.Outlined.AccountBalanceWallet, "Wallet", "Balance and transfers") { onOpen(Screen.Wallet) }
+            HubLink(Icons.Outlined.CreditCard, "Cards", "Freeze, limits and controls") { onOpen(Screen.Cards) }
+            HubLink(Icons.Outlined.RequestQuote, "Loans", "EMI calculator and prepay") { onOpen(Screen.Loans) }
+            HubLink(Icons.Outlined.Savings, "Deposits", "Fixed deposits at 7.25% p.a.") { onOpen(Screen.Deposits) }
+            HubLink(Icons.Outlined.History, "All transactions", "Full paged history") { onOpen(Screen.LedgerHistory) }
+            HubLink(Icons.Outlined.Description, "Statements", "Monthly PDF for Savings") { onOpen(Screen.Statements) }
+        }
+    }
+}
+
+@Composable
+private fun AccountTile(account: SeedAccount, flags: HubFlags) {
+    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primary) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+            Text("${account.name} ${mask(account.lastFour)}", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Medium)
+            MaskedAmount(
+                account.balanceMinor,
+                flags.reveal,
+                flags.onToggleReveal,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
+@Composable
+fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
+    FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
+        if (flags.offline) PaymentsOfflineNotice()
+        val online = !flags.offline
+        SectionCard(title = "Send and request") {
+            HubLink(Icons.Outlined.QrCodeScanner, "Scan and pay", "Any UPI QR code", online) { onOpen(Screen.Scan) }
+            HubLink(Icons.AutoMirrored.Outlined.Send, "Send money", "To a contact or bank account", online) { onOpen(Screen.Wallet) }
+            HubLink(Icons.AutoMirrored.Outlined.CallSplit, "Split a bill", "Request equal shares by UPI", online) {
+                onOpen(Screen.SplitBill())
+            }
+            HubLink(Icons.Outlined.QrCode2, "UPI", "Request with QR or UPI ID", online) { onOpen(Screen.Banking) }
+            HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
+        }
+        SectionCard(title = "Bills and recharges") {
+            HubLink(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", "${MockCatalog.billers.size} billers due this month", online) {
+                onOpen(Screen.Banking)
+            }
+        }
+        SectionCard(title = "Recent people") {
+            MockCatalog.contacts.forEach { contact ->
+                ListRow(
+                    Icons.Outlined.AccountCircle,
+                    contact.name,
+                    subtitle = contact.handle,
+                    onClick = { onOpen(Screen.Wallet) }.takeIf { online },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InsightsHub(onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
+    FeatureScaffold("Insights", onBack = null, actions = { ProfileAction(onProfile) }) {
+        SectionCard(title = "Spending") {
+            HubLink(Icons.Outlined.PieChart, "Budgets", "Monthly limits by category") { onOpen(Screen.Budgets) }
+            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Charts", "By category and by month") { onOpen(Screen.Charts) }
+        }
+        SectionCard(title = "Markets") {
+            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Watchlist", "Live USD/INR ticker") { onOpen(Screen.Ticker) }
+            HubLink(Icons.Outlined.CurrencyExchange, "FX alerts", "Notify me when a rate crosses my target") { onOpen(Screen.FxAlerts) }
+            HubLink(Icons.Outlined.NotificationsActive, "Notification centre", "Alerts, payments and security") {
+                onOpen(Screen.Notifications)
+            }
+        }
+    }
+}

@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.dto
 
+import com.ledger.personal.data.repository.conflictOrNull
 import com.ledger.personal.testing.sampleDto
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -22,6 +23,14 @@ class TransactionDtoTest {
     }
 
     @Test
+    fun http409BodyBecomesAConflict() {
+        val body = json.encodeToString(TransactionDto.serializer(), sampleDto())
+        assertEquals("tx-1", conflictOrNull(409, body)?.server?.id)
+        assertNull(conflictOrNull(500, body))
+        assertNull(conflictOrNull(409, "{"))
+    }
+
+    @Test
     fun serializesTransactionWithSnakeCaseKeys() {
         val encoded = json.encodeToString(TransactionDto.serializer(), sampleDto())
         assertEquals(true, encoded.contains("\"amount_in_cents\""))
@@ -36,13 +45,13 @@ class TransactionDtoTest {
             items = listOf(sampleDto()),
             page = 1,
             pageSize = 15,
-            totalItems = 1
+            totalItems = 1L
         )
         val encoded = json.encodeToString(TransactionListResponseDto.serializer(), payload)
         val decoded = json.decodeFromString(TransactionListResponseDto.serializer(), encoded)
         assertEquals(1, decoded.page)
         assertEquals(15, decoded.pageSize)
-        assertEquals(1, decoded.totalItems)
+        assertEquals(1L, decoded.totalItems)
         assertEquals("tx-1", decoded.items.single().id)
     }
 

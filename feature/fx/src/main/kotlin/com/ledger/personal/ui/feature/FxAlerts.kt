@@ -1,0 +1,73 @@
+package com.ledger.personal.ui.feature
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ledger.personal.core.ThresholdWatch
+import com.ledger.personal.data.local.FakeTickerSocket
+import com.ledger.personal.data.local.TickerSocket
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class FxUiState(
+    val isLoading: Boolean = false,
+    val permissionDenied: Boolean = false,
+    val firedCount: Int = 0,
+    val status: String = "Watching",
+    val pair: String = "USD/INR",
+    val rateMinor: Long? = null,
+    val thresholdMinor: Long = DEFAULT_THRESHOLD,
+    val triggered: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+const val DEFAULT_THRESHOLD = 8_350L
+
+@HiltViewModel
+class FxAlertsViewModel @Inject constructor(private val socket: TickerSocket) : ViewModel() {
+    constructor() : this(FakeTickerSocket())
+
+    private var watch = ThresholdWatch(DEFAULT_THRESHOLD)
+    private val state = MutableStateFlow(FxUiState())
+    val uiState: StateFlow<FxUiState> = state.asStateFlow()
+
+    fun startWatching() {
+        viewModelScope.launch {
+            socket.prices()
+                .catch { state.update { it.copy(errorMessage = "Rate feed unavailable") } }
+                .collect { check(it) }
+        }
+    }
+
+    fun onPermission(granted: Boolean) {
+        if (granted) {
+            state.update { it.copy(permissionDenied = false) }
+        } else {
+            state.update { it.copy(permissionDenied = true, status = "Notifications off") }
+        }
+    }
+
+    fun setThreshold(minor: Long) {
+        if (minor <= 0L) return
+        watch = ThresholdWatch(minor)
+        state.update { it.copy(thresholdMinor = minor, triggered = false, status = "Watching") }
+    }
+
+    fun check(rate: Long) {
+        state.update { it.copy(rateMinor = rate, errorMessage = null) }
+        if (state.value.permissionDenied) return
+        val fired = watch.onRate(rate)
+        state.update {
+            it.copy(
+                firedCount = it.firedCount + if (fired) 1 else 0,
+                triggered = it.triggered || fired,
+                status = if (fired) "Alert fired" else "No new crossing",
+            )
+        }
+    }
+}

@@ -5,14 +5,32 @@ build:
 complexity:
   LongMethod:
     threshold: 60
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    functionThreshold: 8
+    ignoreAnnotated: ['Composable']
   LargeClass:
     threshold: 600
+  TooManyFunctions:
+    thresholdInClasses: 20
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable', 'Test']
 
 style:
   MaxLineLength:
     maxLineLength: 140
   WildcardImport:
     active: true
+  MagicNumber:
+    active: false
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview', 'PreviewLightDark']
+  ReturnCount:
+    max: 6
 
 potential-bugs:
   UnsafeCallOnNullableType:

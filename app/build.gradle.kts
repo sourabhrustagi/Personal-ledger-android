@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -21,11 +23,26 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("String", "PIN_SHA256", "\"\"")
+        buildConfigField("String", "PIN_SHA256_BACKUP", "\"\"")
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    flavorDimensions += "backend"
+    productFlavors {
+        create("mock") {
+            dimension = "backend"
+            isDefault = true
+            buildConfigField("Boolean", "USE_FAKE_REPOSITORY", "true")
+        }
+        create("live") {
+            dimension = "backend"
+            buildConfigField("Boolean", "USE_FAKE_REPOSITORY", "false")
+        }
     }
 
     buildTypes {
@@ -34,6 +51,7 @@ android {
             isDebuggable = true
             // Android emulator loopback to the LedgerOne API running on the host.
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
             buildConfigField("Boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {
@@ -41,9 +59,10 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://api.personal-ledger.com/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.personal-ledger.com/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
             buildConfigField("Boolean", "ENABLE_HTTP_LOGGING", "false")
         }
     }
@@ -65,13 +84,38 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$rootDir/core/database/schemas")
+    }
 }
 
 kotlin {
     jvmToolchain(17)
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$rootDir/detekt.yml"))
+}
+
 dependencies {
+    implementation(project(":core:model"))
+    implementation(project(":core:network"))
+    implementation(project(":core:database"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":core:mock"))
+    implementation(project(":feature:ledger"))
+    implementation(project(":feature:budgets"))
+    implementation(project(":feature:fx"))
+    implementation(project(":feature:kyc"))
+    implementation(project(":feature:wallet"))
+    implementation(project(":feature:ticker"))
+    implementation(project(":feature:assistant"))
+    implementation(project(":feature:pos"))
+    implementation(project(":feature:fraud"))
+    implementation(project(":feature:banking"))
+
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -99,6 +143,21 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.paging)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode)
+    implementation(libs.androidx.biometric)
 
     // Networking: Retrofit & OkHttp
     implementation(libs.retrofit.core)
@@ -118,10 +177,15 @@ dependencies {
 
     // Unit Testing
     testImplementation(libs.junit)
+    testImplementation(project(":core:testing"))
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.paging.testing)
 
     // Instrumented Testing
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(project(":core:testing"))
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.work.testing)
 }

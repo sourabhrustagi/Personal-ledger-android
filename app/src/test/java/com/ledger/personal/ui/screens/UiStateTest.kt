@@ -13,7 +13,7 @@ class UiStateTest {
 
     @Test
     fun listIsEmptyOnlyWhenIdleWithNoItemsOrError() {
-        assertTrue(TransactionListUiState().isEmpty)
+        assertTrue(TransactionListUiState(isLoading = false).isEmpty)
         assertFalse(TransactionListUiState(isLoading = true).isEmpty)
         assertFalse(TransactionListUiState(errorMessage = "boom").isEmpty)
         assertFalse(TransactionListUiState(items = listOf(sampleTransaction())).isEmpty)

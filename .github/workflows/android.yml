@@ -24,11 +24,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Check formatting and static analysis
+        run: ./gradlew ktlintCheck detekt lintMockDebug --stacktrace
+
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+        run: ./gradlew testMockDebugUnitTest --stacktrace
 
-      - name: Run Android Lint
-        run: ./gradlew lintDebug
-
-      - name: Assemble Debug and Release APK
-        run: ./gradlew assembleDebug assembleRelease
+      - name: Assemble mock Debug and Release APK
+        run: ./gradlew assembleMockDebug assembleMockRelease

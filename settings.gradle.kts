@@ -14,4 +14,22 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PersonalLedger"
-include(":app")
+include(
+    ":app",
+    ":core:model",
+    ":core:network",
+    ":core:database",
+    ":core:designsystem",
+    ":core:testing",
+    ":core:mock",
+    ":feature:ledger",
+    ":feature:budgets",
+    ":feature:fx",
+    ":feature:kyc",
+    ":feature:wallet",
+    ":feature:ticker",
+    ":feature:assistant",
+    ":feature:pos",
+    ":feature:fraud",
+    ":feature:banking",
+)

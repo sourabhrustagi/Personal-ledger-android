@@ -1,16 +1,31 @@
 package com.ledger.personal
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
+import com.ledger.personal.domain.sync.SyncCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
+import javax.inject.Inject
 
 @HiltAndroidApp
-class LedgerApplication : Application() {
+class LedgerApplication : Application(), Configuration.Provider {
+
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject lateinit var syncCoordinator: SyncCoordinator
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
             Timber.d("Personal Ledger Application initialized in DEBUG mode")
         }
+        syncCoordinator.enqueue()
     }
 }

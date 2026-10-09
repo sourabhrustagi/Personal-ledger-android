@@ -1,7 +1,10 @@
 package com.ledger.personal.ui.screens.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.paging.testing.asSnapshot
 import com.ledger.personal.data.repository.FakeTransactionRepository
+import com.ledger.personal.testing.FakeSyncCoordinator
+import com.ledger.personal.testing.FakeUserSettings
 import com.ledger.personal.testing.ScriptedTransactionRepository
 import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.screens.create.CreateTransactionViewModel
@@ -11,6 +14,8 @@ import com.ledger.personal.ui.screens.list.TransactionListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,11 +34,13 @@ class TransactionViewModelsTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var fakeRepository: FakeTransactionRepository
+    private lateinit var sync: FakeSyncCoordinator
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeTransactionRepository()
+        sync = FakeSyncCoordinator()
     }
 
     @After
@@ -43,21 +50,17 @@ class TransactionViewModelsTest {
 
     @Test
     fun listViewModel_loadsInitialTransactionsSuccessfully() = runTest {
-        val viewModel = TransactionListViewModel(fakeRepository)
-        advanceUntilIdle()
+        val viewModel = listViewModel(fakeRepository)
+        val items = viewModel.pages.asSnapshot()
 
-        val state = viewModel.uiState.value
-        assertFalse(state.isLoading)
-        assertEquals(15, state.items.size)
-        assertEquals(1, state.currentPage)
-        assertFalse(state.isEndReached)
-        assertNull(state.errorMessage)
+        assertEquals(25, items.size)
+        assertNull(viewModel.uiState.value.errorMessage)
     }
 
     @Test
     fun listViewModel_showsEmptyStateWhenRepositoryIsEmpty() = runTest {
         fakeRepository.clear()
-        val viewModel = TransactionListViewModel(fakeRepository)
+        val viewModel = listViewModel(fakeRepository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -68,36 +71,31 @@ class TransactionViewModelsTest {
     }
 
     @Test
-    fun listViewModel_appendsNextPageAndStopsAtEnd() = runTest {
-        val viewModel = TransactionListViewModel(fakeRepository)
+    fun listViewModel_showsEveryLocalRowAndIgnoresExtraPageRequests() = runTest {
+        val viewModel = listViewModel(fakeRepository)
         advanceUntilIdle()
 
         viewModel.loadNextPage()
-        advanceUntilIdle()
+        val items = viewModel.pages.asSnapshot()
 
-        val afterSecond = viewModel.uiState.value
-        assertEquals(25, afterSecond.items.size)
-        assertEquals(2, afterSecond.currentPage)
-        assertTrue(afterSecond.isEndReached)
-        assertEquals(25, afterSecond.items.map { it.id }.distinct().size)
-
-        viewModel.loadNextPage()
-        advanceUntilIdle()
-        assertEquals(25, viewModel.uiState.value.items.size)
+        assertEquals(25, items.size)
+        assertEquals(25, items.map { it.id }.distinct().size)
     }
 
     @Test
-    fun listViewModel_refreshReloadsFirstPage() = runTest {
+    fun listViewModel_refreshEnqueuesSyncAndKeepsNewLocalRows() = runTest {
         fakeRepository.clear()
         fakeRepository.insertDirect(sampleTransaction(id = "only"))
-        val viewModel = TransactionListViewModel(fakeRepository)
+        val viewModel = listViewModel(fakeRepository)
         advanceUntilIdle()
 
         fakeRepository.insertDirect(sampleTransaction(id = "newer", timestampEpochMs = 9_000_000_000_000L))
+        val enqueuedBefore = sync.enqueued
         viewModel.refresh()
-        advanceUntilIdle()
+        val items = viewModel.pages.asSnapshot()
 
-        assertEquals("newer", viewModel.uiState.value.items.first().id)
+        assertEquals("newer", items.first().id)
+        assertTrue(sync.enqueued > enqueuedBefore)
         assertFalse(viewModel.uiState.value.isRefreshing)
     }
 
@@ -106,32 +104,24 @@ class TransactionViewModelsTest {
         val repo = ScriptedTransactionRepository().apply {
             getTransactionsResult = Result.failure(IllegalStateException("timeout"))
         }
-        val viewModel = TransactionListViewModel(repo)
-        advanceUntilIdle()
-        assertEquals("timeout", viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isLoading)
+        val viewModel = listViewModel(repo)
+        val failure = runCatching { viewModel.pages.asSnapshot() }
+        assertTrue(failure.isFailure)
     }
 
-    @Test
-    fun listViewModel_surfacesRefreshAndNextPageErrors() = runTest {
-        val repo = ScriptedTransactionRepository().apply {
-            getTransactionsResult = Result.success(
-                List(15) { sampleTransaction(id = "tx-$it") }
-            )
-        }
-        val viewModel = TransactionListViewModel(repo)
-        advanceUntilIdle()
+    private fun TestScope.listViewModel(repository: com.ledger.personal.domain.repository.TransactionRepository): TransactionListViewModel {
+        val viewModel = TransactionListViewModel(repository, sync, FakeUserSettings())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        return viewModel
+    }
 
-        repo.getTransactionsResult = Result.failure(IllegalStateException("refresh failed"))
-        viewModel.refresh()
-        advanceUntilIdle()
-        assertEquals("refresh failed", viewModel.uiState.value.errorMessage)
-
-        repo.getTransactionsResult = Result.failure(IllegalStateException("page failed"))
-        viewModel.loadNextPage()
-        advanceUntilIdle()
-        assertEquals("page failed", viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isLoadingNextPage)
+    private fun TestScope.detailViewModel(
+        repository: com.ledger.personal.domain.repository.TransactionRepository,
+        savedStateHandle: androidx.lifecycle.SavedStateHandle,
+    ): TransactionDetailViewModel {
+        val viewModel = TransactionDetailViewModel(repository, savedStateHandle)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        return viewModel
     }
 
     @Test
@@ -289,12 +279,13 @@ class TransactionViewModelsTest {
         fakeRepository.insertDirect(tx)
 
         val savedStateHandle = SavedStateHandle(mapOf("transactionId" to tx.id))
-        val viewModel = TransactionDetailViewModel(fakeRepository, savedStateHandle)
+        val viewModel = detailViewModel(fakeRepository, savedStateHandle)
         advanceUntilIdle()
 
         assertEquals(tx.id, viewModel.uiState.value.transaction?.id)
 
         viewModel.setDeleteDialogVisible(true)
+        advanceUntilIdle()
         assertTrue(viewModel.uiState.value.showDeleteConfirmation)
 
         viewModel.confirmDelete()
@@ -306,7 +297,8 @@ class TransactionViewModelsTest {
 
     @Test
     fun detailViewModel_missingIdSetsError() = runTest {
-        val viewModel = TransactionDetailViewModel(fakeRepository, SavedStateHandle())
+        val viewModel = detailViewModel(fakeRepository, SavedStateHandle())
+        advanceUntilIdle()
         assertEquals("Missing transaction ID", viewModel.uiState.value.errorMessage)
         assertFalse(viewModel.uiState.value.isLoading)
     }
@@ -316,7 +308,7 @@ class TransactionViewModelsTest {
         val repo = ScriptedTransactionRepository().apply {
             getByIdResult = Result.failure(NoSuchElementException("gone"))
         }
-        val viewModel = TransactionDetailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "gone")))
+        val viewModel = detailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "gone")))
         advanceUntilIdle()
         assertEquals("gone", viewModel.uiState.value.errorMessage)
 
@@ -336,7 +328,7 @@ class TransactionViewModelsTest {
         val repo = ScriptedTransactionRepository().apply {
             getByIdResult = Result.failure(NoSuchElementException("missing"))
         }
-        val viewModel = TransactionDetailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "missing")))
+        val viewModel = detailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "missing")))
         advanceUntilIdle()
         viewModel.confirmDelete()
         advanceUntilIdle()

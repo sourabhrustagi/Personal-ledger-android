@@ -1,0 +1,2 @@
+Lcom/ledger/personal/MainActivity;
+Lcom/ledger/personal/ui/screens/list/TransactionListScreenKt;

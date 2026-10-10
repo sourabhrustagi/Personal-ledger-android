@@ -23,20 +23,29 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.mock.MockCatalog
+import com.ledger.personal.domain.board.PayShortcut
+import com.ledger.personal.domain.board.PromoTab
+import com.ledger.personal.domain.board.SpendHighlight
 import com.ledger.personal.mock.SeedAccount
 import com.ledger.personal.ui.feature.EmptyState
 import com.ledger.personal.ui.feature.FeatureScaffold
+import com.ledger.personal.ui.feature.AmountText
+import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.ListRow
+import com.ledger.personal.ui.feature.MoneyDirection
+import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.MaskedAmount
 import com.ledger.personal.ui.feature.PaymentsOfflineNotice
 import com.ledger.personal.ui.feature.ProtectedBadge
@@ -48,7 +57,7 @@ import java.time.format.DateTimeFormatter
 
 /** Shows profile action. */
 @Composable
-private fun ProfileAction(onProfile: () -> Unit) {
+internal fun ProfileAction(onProfile: () -> Unit) {
     IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
 }
 
@@ -73,7 +82,7 @@ private fun HubLink(
 /** Shows money hub. */
 @Composable
 fun MoneyHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
-    val accounts = if (flags.empty) emptyList() else MockCatalog.bankAccounts
+    val accounts = if (flags.empty) emptyList() else com.ledger.personal.mock.MockCatalog.bankAccounts
     val asOf = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
     FeatureScaffold("Money", onBack = null, subtitle = "Balances as of $asOf", actions = {
         ProtectedBadge(Modifier.padding(end = 4.dp))
@@ -117,7 +126,12 @@ private fun AccountTile(account: SeedAccount, flags: HubFlags) {
 
 /** Shows pay hub. */
 @Composable
-fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
+fun PayHub(
+    flags: HubFlags,
+    shortcuts: Result<List<PayShortcut>>?,
+    onProfile: () -> Unit,
+    onOpen: (Screen) -> Unit,
+) {
     FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
         if (flags.offline) PaymentsOfflineNotice()
         val online = !flags.offline
@@ -131,18 +145,23 @@ fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
             HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
         }
         SectionCard(title = "Bills and recharges") {
-            HubLink(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", "${MockCatalog.billers.size} billers due this month", online) {
+            HubLink(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", "Bills due this month", online) {
                 onOpen(Screen.Banking)
             }
         }
         SectionCard(title = "Recent people") {
-            MockCatalog.contacts.forEach { contact ->
-                ListRow(
-                    Icons.Outlined.AccountCircle,
-                    contact.name,
-                    subtitle = contact.handle,
-                    onClick = { onOpen(Screen.Wallet) }.takeIf { online },
-                )
+            when {
+                shortcuts == null -> Text("Loading people from payments…")
+                shortcuts.isFailure -> StatusBanner("Payments couldn't load.", BannerTone.WARNING)
+                shortcuts.getOrThrow().isEmpty() -> Text("No recent people.")
+                else -> shortcuts.getOrThrow().forEach { person ->
+                    ListRow(
+                        Icons.Outlined.AccountCircle,
+                        person.name,
+                        subtitle = person.handle,
+                        onClick = { onOpen(Screen.PayTo(person.handle, 0L)) }.takeIf { online },
+                    )
+                }
             }
         }
     }
@@ -150,8 +169,26 @@ fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
 
 /** Shows insights hub. */
 @Composable
-fun InsightsHub(onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
+fun InsightsHub(
+    highlights: Result<List<SpendHighlight>>?,
+    onProfile: () -> Unit,
+    onOpen: (Screen) -> Unit,
+) {
     FeatureScaffold("Insights", onBack = null, actions = { ProfileAction(onProfile) }) {
+        SectionCard(title = "This month") {
+            when {
+                highlights == null -> Text("Loading insights…")
+                highlights.isFailure -> StatusBanner("Insights couldn't load.", BannerTone.WARNING)
+                highlights.getOrThrow().isEmpty() -> Text("No spending highlights.")
+                else -> highlights.getOrThrow().forEach { line ->
+                    ListRow(
+                        Icons.Outlined.PieChart,
+                        line.label,
+                        trailingContent = { AmountText(line.spentMinor, MoneyDirection.DEBIT, label = line.label) },
+                    )
+                }
+            }
+        }
         SectionCard(title = "Spending") {
             HubLink(Icons.Outlined.PieChart, "Budgets", "Monthly limits by category") { onOpen(Screen.Budgets) }
             HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Charts", "By category and by month") { onOpen(Screen.Charts) }
@@ -161,6 +198,35 @@ fun InsightsHub(onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
             HubLink(Icons.Outlined.CurrencyExchange, "FX alerts", "Notify me when a rate crosses my target") { onOpen(Screen.FxAlerts) }
             HubLink(Icons.Outlined.NotificationsActive, "Notification centre", "Alerts, payments and security") {
                 onOpen(Screen.Notifications)
+            }
+        }
+    }
+}
+
+/** Shows the promotions shelves. Tabs and deals are whatever that team returned. */
+@Composable
+fun PromotionsHub(shelves: Result<List<PromoTab>>?, selected: String, onSelect: (String) -> Unit, onProfile: () -> Unit) {
+    FeatureScaffold("Offers", onBack = null, actions = { ProfileAction(onProfile) }) {
+        when {
+            shelves == null -> Text("Loading offers…")
+            shelves.isFailure -> StatusBanner("Promotions couldn't load.", BannerTone.WARNING)
+            shelves.getOrThrow().isEmpty() -> Text("No promotions right now.")
+            else -> {
+                val tabs = shelves.getOrThrow()
+                val index = tabs.indexOfFirst { it.id == selected }.coerceAtLeast(0)
+                PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 16.dp) {
+                    tabs.forEachIndexed { i, shelf ->
+                        Tab(selected = i == index, onClick = { onSelect(shelf.id) }, text = { Text(shelf.title) })
+                    }
+                }
+                val offers = tabs[index].offers
+                if (offers.isEmpty()) {
+                    Text("Nothing in this tab.")
+                } else {
+                    offers.forEach { offer ->
+                        ListRow(Icons.Outlined.LocalOffer, offer.pitch, subtitle = offer.until.ifBlank { null })
+                    }
+                }
             }
         }
     }

@@ -9,6 +9,10 @@ data class ApiConfig(
     val debuggable: Boolean,
     val pinSha256: String,
     val pinBackup: String,
+    val paymentsBaseUrl: String,
+    val insightsBaseUrl: String,
+    val assistantBaseUrl: String,
+    val promotionsBaseUrl: String,
 )
 
 /** Ktor client that sends the current session token. */
@@ -20,3 +24,8 @@ annotation class AuthenticatedClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class StaticClient
+
+/** Authenticated client with no default host, so each team is called at its own base URL. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class TeamClient

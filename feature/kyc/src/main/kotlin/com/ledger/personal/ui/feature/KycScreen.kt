@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 private val documents = listOf("PAN card", "Aadhaar", "Passport")
 private val stepTitles = listOf("Your details", "Scan document", "Review")
 
+/** Shows the kyc screen. */
 @Composable
 fun KycScreen(onBack: () -> Unit, liveCapture: Boolean = false, viewModel: KycViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -78,6 +79,7 @@ fun KycScreen(onBack: () -> Unit, liveCapture: Boolean = false, viewModel: KycVi
     }
 }
 
+/** Shows details step. */
 @Composable
 private fun DetailsStep(name: String, onName: (String) -> Unit, document: String, onDocument: (String) -> Unit, onNext: () -> Unit) {
     SectionCard(title = "Tell us about you") {
@@ -107,6 +109,7 @@ private fun DetailsStep(name: String, onName: (String) -> Unit, document: String
     PrimaryButton("Continue", onClick = onNext, enabled = name.trim().length >= 3)
 }
 
+/** Shows document step. */
 @Composable
 private fun DocumentStep(
     state: KycUiState,
@@ -157,6 +160,7 @@ private fun DocumentStep(
     TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
 }
 
+/** Shows review step. */
 @Composable
 private fun ReviewStep(state: KycUiState, document: String, onEdit: () -> Unit, onSubmit: () -> Unit) {
     SectionCard(title = "Check your details") {
@@ -176,6 +180,7 @@ private fun ReviewStep(state: KycUiState, document: String, onEdit: () -> Unit, 
     PrimaryButton("Submit for verification", onClick = onSubmit, enabled = state.captureUri != null && state.name.isNotBlank())
 }
 
+/** Shows submitted. */
 @Composable
 private fun Submitted(humanReview: Boolean, onDone: () -> Unit) {
     Column(

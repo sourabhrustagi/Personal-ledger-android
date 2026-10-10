@@ -24,10 +24,13 @@ import javax.inject.Inject
 
 const val INCOME_CATEGORY = "Salary"
 
+/** Reports whether this is credit. */
 fun Transaction.isCredit(): Boolean = category == INCOME_CATEGORY
 
+/** Day group. */
 data class DayGroup(val label: String, val items: List<Transaction>)
 
+/** Values rendered by the home screen. */
 data class HomeUiState(
     val loading: Boolean = true,
     val query: String = "",
@@ -44,6 +47,7 @@ data class HomeUiState(
 private const val RECENT_LIMIT = 30
 const val UNDO_WINDOW_MS = 4_000L
 
+/** State and actions for the home screen. */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: TransactionRepository,
@@ -82,16 +86,20 @@ class HomeViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
+    /** Reacts to query. */
     fun onQuery(text: String) {
         query.value = text
     }
 
+    /** Reacts to category. */
     fun onCategory(name: String?) {
         category.value = if (category.value == name) null else name
     }
 
+    /** Refresh. */
     fun refresh() = sync.enqueue()
 
+    /** Delete. */
     fun delete(tx: Transaction) {
         deleteJob?.cancel()
         pending.value?.let { previous -> viewModelScope.launch { repository.deleteTransaction(previous.id) } }
@@ -102,11 +110,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** Undo delete. */
     fun undoDelete() {
         deleteJob?.cancel()
         pending.value = null
     }
 
+    /** Commit delete. */
     fun commitDelete() {
         val tx = pending.value ?: return
         deleteJob?.cancel()
@@ -117,10 +127,12 @@ class HomeViewModel @Inject constructor(
     }
 }
 
+/** Date. */
 private fun Transaction.date(): LocalDate = Instant.ofEpochMilli(timestampEpochMs).atZone(ZoneId.systemDefault()).toLocalDate()
 
 private val dayFormat = DateTimeFormatter.ofPattern("EEE, d MMM")
 
+/** Day label. */
 fun dayLabel(date: LocalDate, today: LocalDate = LocalDate.now()): String = when (date) {
     today -> "Today"
     today.minusDays(1) -> "Yesterday"

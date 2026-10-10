@@ -8,10 +8,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+/** Allowed values of transfer step. */
 enum class TransferStep { FORM, REVIEW, RECEIPT }
 
+/** Allowed values of transfer status. */
 enum class TransferStatus { IDLE, INSUFFICIENT, STEP_UP, PENDING, DONE }
 
+/** Values rendered by the wallet screen. */
 data class WalletUiState(
     val isLoading: Boolean = false,
     val balanceMinor: Long = 0L,
@@ -25,6 +28,7 @@ data class WalletUiState(
     val errorMessage: String? = null,
 )
 
+/** State and actions for the wallet screen. */
 class WalletViewModel : ViewModel() {
     private val book = TransferBook()
     private val state = MutableStateFlow(
@@ -33,12 +37,16 @@ class WalletViewModel : ViewModel() {
     val uiState: StateFlow<WalletUiState> = state.asStateFlow()
     private var transfers = 1
 
+    /** Reacts to amount. */
     fun onAmount(minor: Long) = state.update { it.copy(amountMinor = minor, status = TransferStatus.IDLE, errorMessage = null) }
 
+    /** Reacts to recipient. */
     fun onRecipient(handle: String) = state.update { it.copy(recipient = handle, errorMessage = null) }
 
+    /** Reacts to note. */
     fun onNote(note: String) = state.update { it.copy(note = note) }
 
+    /** Review. */
     fun review() {
         val amount = state.value.amountMinor
         if (amount <= 0L) {
@@ -52,8 +60,10 @@ class WalletViewModel : ViewModel() {
         state.update { it.copy(step = TransferStep.REVIEW, status = TransferStatus.STEP_UP, errorMessage = null) }
     }
 
+    /** Edit. */
     fun edit() = state.update { it.copy(step = TransferStep.FORM, status = TransferStatus.IDLE) }
 
+    /** Reacts to step up. */
     fun onStepUp(success: Boolean) {
         if (!success || state.value.status != TransferStatus.STEP_UP && state.value.status != TransferStatus.PENDING) return
         state.update { it.copy(status = TransferStatus.PENDING) }
@@ -70,11 +80,13 @@ class WalletViewModel : ViewModel() {
         }
     }
 
+    /** Retry. */
     fun retry() {
         state.update { it.copy(status = TransferStatus.STEP_UP, step = TransferStep.REVIEW) }
         onStepUp(true)
     }
 
+    /** New transfer. */
     fun newTransfer() {
         transfers += 1
         state.update {
@@ -82,5 +94,6 @@ class WalletViewModel : ViewModel() {
         }
     }
 
+    /** Posted count. */
     fun postedCount(): Int = book.size()
 }

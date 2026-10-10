@@ -27,6 +27,7 @@ const val MY_VPA = "me@ledgerone"
 fun splitShares(totalMinor: Long, people: List<String>): List<Pair<String, Long>> =
     people.zip(splitEvenly(totalMinor, people.size))
 
+/** Shows the split bill screen. */
 @Composable
 fun SplitBillScreen(onBack: () -> Unit, initialMinor: Long = 0L, note: String = "") {
     var amount by rememberSaveable {
@@ -81,4 +82,5 @@ fun SplitBillScreen(onBack: () -> Unit, initialMinor: Long = 0L, note: String = 
     }
 }
 
+/** Name for. */
 private fun nameFor(handle: String): String = MockCatalog.contacts.firstOrNull { it.handle == handle }?.name ?: handle

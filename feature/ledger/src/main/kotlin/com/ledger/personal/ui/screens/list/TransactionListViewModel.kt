@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+/** State and actions for the transaction list screen. */
 @HiltViewModel
 class TransactionListViewModel @Inject constructor(
     repository: TransactionRepository,
@@ -43,13 +44,16 @@ class TransactionListViewModel @Inject constructor(
         syncCoordinator.enqueue()
     }
 
+    /** Loads initial page. */
     fun loadInitialPage() {
         syncCoordinator.enqueue()
     }
 
+    /** Refresh. */
     fun refresh() {
         syncCoordinator.enqueue()
     }
 
+    /** Loads next page. */
     fun loadNextPage() = Unit
 }

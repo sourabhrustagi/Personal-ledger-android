@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+/** Shows the ticker screen. */
 @Composable
 fun TickerScreen(onBack: () -> Unit, viewModel: TickerViewModel = hiltViewModel()) {
     val tick by viewModel.ticks.collectAsStateWithLifecycle()
@@ -77,6 +78,7 @@ fun TickerScreen(onBack: () -> Unit, viewModel: TickerViewModel = hiltViewModel(
     }
 }
 
+/** Shows converter. */
 @Composable
 private fun Converter(rateMinor: Long) {
     var usdText by rememberSaveable { mutableStateOf("100") }
@@ -88,6 +90,7 @@ private fun Converter(rateMinor: Long) {
     }
 }
 
+/** Shows stat. */
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
@@ -96,6 +99,7 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
+/** Shows sparkline. */
 @Composable
 private fun Sparkline(points: List<Long>) {
     val line = MaterialTheme.colorScheme.primary
@@ -119,6 +123,7 @@ private fun Sparkline(points: List<Long>) {
     }
 }
 
+/** Changes label. */
 private fun changeLabel(open: Long, now: Long): String {
     val diff = now - open
     val percent = if (open == 0L) BigDecimal.ZERO else BigDecimal(diff * 100).divide(BigDecimal(open), 2, RoundingMode.HALF_UP)

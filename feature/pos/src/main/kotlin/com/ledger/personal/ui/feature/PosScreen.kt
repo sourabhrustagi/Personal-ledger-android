@@ -40,6 +40,7 @@ import com.ledger.personal.core.PayEvent
 import com.ledger.personal.core.PayState
 import kotlinx.coroutines.delay
 
+/** Shows the pos screen. */
 @Composable
 fun PosScreen(onBack: () -> Unit, viewModel: PosViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,6 +88,7 @@ fun PosScreen(onBack: () -> Unit, viewModel: PosViewModel = hiltViewModel()) {
     }
 }
 
+/** Shows keypad. */
 @Composable
 private fun Keypad(amountMinor: Long, viewModel: PosViewModel, onCharge: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -118,6 +120,7 @@ private fun Keypad(amountMinor: Long, viewModel: PosViewModel, onCharge: () -> U
     )
 }
 
+/** Shows present card. */
 @Composable
 private fun PresentCard(amountMinor: Long, onCancel: () -> Unit) {
     Column(
@@ -133,6 +136,7 @@ private fun PresentCard(amountMinor: Long, onCancel: () -> Unit) {
     OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
 }
 
+/** Shows card read. */
 @Composable
 private fun CardRead(state: PosUiState, onApprove: () -> Unit) {
     PaymentCard(state.lastFour)
@@ -143,6 +147,7 @@ private fun CardRead(state: PosUiState, onApprove: () -> Unit) {
     PrimaryButton("Authorize payment", onClick = onApprove)
 }
 
+/** Shows approved. */
 @Composable
 private fun Approved(state: PosUiState, onSettle: () -> Unit) {
     StatusBanner("The card issuer approved ${formatMoney(state.amountMinor)}.", BannerTone.SUCCESS, title = "Approved")
@@ -150,6 +155,7 @@ private fun Approved(state: PosUiState, onSettle: () -> Unit) {
     PrimaryButton("Print receipt and finish", onClick = onSettle)
 }
 
+/** Shows receipt. */
 @Composable
 private fun Receipt(state: PosUiState, tender: Tender, onRefund: () -> Unit, onNewSale: () -> Unit) {
     var confirmRefund by rememberSaveable(state.sale) { mutableStateOf(false) }
@@ -192,6 +198,7 @@ private fun Receipt(state: PosUiState, tender: Tender, onRefund: () -> Unit, onN
     }
 }
 
+/** Shows settlement card. */
 @Composable
 private fun SettlementCard(state: PosUiState, onSettle: () -> Unit) {
     SectionCard(title = "End of day") {
@@ -202,6 +209,7 @@ private fun SettlementCard(state: PosUiState, onSettle: () -> Unit) {
     }
 }
 
+/** Shows payment card. */
 @Composable
 private fun PaymentCard(lastFour: String?) {
     HeroCard(label = "Visa · Contactless", value = "•••• •••• •••• ${lastFour ?: "····"}", modifier = Modifier.aspectRatio(1.9f)) {
@@ -211,8 +219,10 @@ private fun PaymentCard(lastFour: String?) {
 
 private const val CARD_WAIT_MS = 1_500L
 
+/** Allowed values of tender. */
 enum class Tender(val label: String) { CHOOSING("Choose"), CARD("Card"), UPI("UPI"), CASH("Cash") }
 
+/** Shows hardware status. */
 @Composable
 private fun HardwareStatus() {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -221,6 +231,7 @@ private fun HardwareStatus() {
     }
 }
 
+/** Shows tender picker. */
 @Composable
 private fun TenderPicker(amountMinor: Long, onPick: (Tender) -> Unit) {
     Text("How is the customer paying?", style = MaterialTheme.typography.titleMedium)
@@ -232,6 +243,7 @@ private fun TenderPicker(amountMinor: Long, onPick: (Tender) -> Unit) {
     }
 }
 
+/** Shows upi tender. */
 @Composable
 private fun UpiTender(amountMinor: Long, onReceived: () -> Unit, onCancel: () -> Unit) {
     SectionCard(title = "Scan to pay") {
@@ -243,6 +255,7 @@ private fun UpiTender(amountMinor: Long, onReceived: () -> Unit, onCancel: () ->
     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Choose another method") }
 }
 
+/** Shows cash tender. */
 @Composable
 private fun CashTender(amountMinor: Long, onDone: () -> Unit, onCancel: () -> Unit) {
     var given by rememberSaveable { mutableStateOf("") }

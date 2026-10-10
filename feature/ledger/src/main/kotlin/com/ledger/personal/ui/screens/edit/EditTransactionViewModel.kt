@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** State and actions for the edit transaction screen. */
 @HiltViewModel
 class EditTransactionViewModel @Inject constructor(
     private val repository: TransactionRepository,
@@ -33,6 +34,7 @@ class EditTransactionViewModel @Inject constructor(
         }
     }
 
+    /** Loads initial. */
     fun loadInitial(id: String = transactionId ?: "") {
         if (id.isBlank()) return
         viewModelScope.launch {
@@ -67,18 +69,22 @@ class EditTransactionViewModel @Inject constructor(
         }
     }
 
+    /** Reacts to amount change. */
     fun onAmountChange(input: String) {
         _uiState.update { it.copy(amountInput = input, amountError = null, errorMessage = null) }
     }
 
+    /** Reacts to category change. */
     fun onCategoryChange(input: String) {
         _uiState.update { it.copy(category = input, categoryError = null, errorMessage = null) }
     }
 
+    /** Reacts to description change. */
     fun onDescriptionChange(input: String) {
         _uiState.update { it.copy(description = input, errorMessage = null) }
     }
 
+    /** Submits patch. */
     fun submitPatch() {
         val state = _uiState.value
         val minorUnits = state.amountInput.toMinorUnits()

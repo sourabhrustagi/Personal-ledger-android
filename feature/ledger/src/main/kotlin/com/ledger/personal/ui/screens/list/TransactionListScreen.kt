@@ -54,6 +54,7 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
 
+/** Shows the transaction list screen. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionListScreen(
@@ -237,6 +238,7 @@ fun TransactionListScreen(
     }
 }
 
+/** Shows transaction list item. */
 @Composable
 fun TransactionListItem(
     transaction: Transaction,
@@ -297,6 +299,7 @@ fun TransactionListItem(
     }
 }
 
+/** Preview transaction. */
 private fun previewTransaction() = Transaction(
     id = "tx-preview-1",
     amountInCents = 4550L,
@@ -306,6 +309,7 @@ private fun previewTransaction() = Transaction(
     timestampEpochMs = 1_715_000_000_000L
 )
 
+/** Shows transaction list item preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionListItemPreview() {
@@ -314,6 +318,7 @@ private fun TransactionListItemPreview() {
     }
 }
 
+/** Shows transaction list loading preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionListLoadingPreview() {
@@ -328,6 +333,7 @@ private fun TransactionListLoadingPreview() {
     }
 }
 
+/** Shows transaction list empty preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionListEmptyPreview() {
@@ -342,6 +348,7 @@ private fun TransactionListEmptyPreview() {
     }
 }
 
+/** Shows transaction list error preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionListErrorPreview() {
@@ -356,6 +363,7 @@ private fun TransactionListErrorPreview() {
     }
 }
 
+/** Shows transaction list populated preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionListPopulatedPreview() {

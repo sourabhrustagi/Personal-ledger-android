@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
+/** Shows the create transaction screen. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateTransactionScreen(
@@ -53,7 +54,8 @@ fun CreateTransactionScreen(
     onDescriptionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onNavigateBack: () -> Unit,
-    quickCategories: List<String> = DEFAULT_CATEGORIES,
+    quickCategories: List<String> = emptyList(),
+    categoriesLoading: Boolean = false,
 ) {
 
     LaunchedEffect(uiState.isSuccess) {
@@ -151,6 +153,9 @@ fun CreateTransactionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    if (categoriesLoading) {
+                        Text("Waiting for categories", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -203,6 +208,7 @@ fun CreateTransactionScreen(
     }
 }
 
+/** Shows create transaction screen preview. */
 @PreviewLightDark
 @Composable
 private fun CreateTransactionScreenPreview() {
@@ -222,6 +228,7 @@ private fun CreateTransactionScreenPreview() {
     }
 }
 
+/** Shows create transaction validation preview. */
 @PreviewLightDark
 @Composable
 private fun CreateTransactionValidationPreview() {
@@ -240,6 +247,7 @@ private fun CreateTransactionValidationPreview() {
     }
 }
 
+/** Shows create transaction submitting preview. */
 @PreviewLightDark
 @Composable
 private fun CreateTransactionSubmittingPreview() {

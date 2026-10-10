@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ledger.personal.mock.SeedAccount
 
+/** Shows the banking screen. */
 @Composable
 fun BankingScreen(onBack: () -> Unit, viewModel: BankingViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,6 +86,7 @@ fun BankingScreen(onBack: () -> Unit, viewModel: BankingViewModel = viewModel())
     }
 }
 
+/** Shows account tile. */
 @Composable
 private fun AccountTile(account: SeedAccount) {
     Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
@@ -96,6 +98,7 @@ private fun AccountTile(account: SeedAccount) {
     }
 }
 
+/** Shows quick action. */
 @Composable
 private fun QuickAction(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     FilledTonalButton(onClick = onClick, shape = RoundedCornerShape(16.dp), modifier = modifier.height(84.dp)) {
@@ -106,6 +109,7 @@ private fun QuickAction(icon: ImageVector, label: String, modifier: Modifier = M
     }
 }
 
+/** Shows loan card. */
 @Composable
 private fun LoanCard(state: BankingUiState) {
     SectionCard(title = "Personal loan") {
@@ -121,6 +125,7 @@ private fun LoanCard(state: BankingUiState) {
     }
 }
 
+/** Shows mpin lock. */
 @Composable
 private fun MpinLock(onBack: () -> Unit, error: String?, onSubmit: (String) -> Unit) {
     var pin by rememberSaveable { mutableStateOf("") }

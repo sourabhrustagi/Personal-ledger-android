@@ -26,12 +26,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
+/** State and actions for the ledger history screen. */
 @HiltViewModel
 class LedgerHistoryViewModel @Inject constructor(dao: TransactionDao) : ViewModel() {
     val pages: Flow<PagingData<TransactionEntity>> =
         Pager(PagingConfig(pageSize = 20)) { dao.pagingSource() }.flow.cachedIn(viewModelScope)
 }
 
+/** Shows the ledger history screen. */
 @Composable
 fun LedgerHistoryScreen(onBack: () -> Unit, viewModel: LedgerHistoryViewModel = hiltViewModel()) {
     val pages = viewModel.pages.collectAsLazyPagingItems()

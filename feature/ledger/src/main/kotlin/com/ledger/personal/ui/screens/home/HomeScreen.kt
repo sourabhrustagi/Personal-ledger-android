@@ -72,6 +72,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/** Quick action. */
 data class QuickAction(val id: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val quickActions = listOf(
@@ -83,6 +84,7 @@ private val quickActions = listOf(
 
 private val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
 
+/** Shows the home screen. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -172,6 +174,7 @@ fun HomeScreen(
     }
 }
 
+/** Transactions section. */
 private fun androidx.compose.foundation.lazy.LazyListScope.transactionsSection(
     state: HomeUiState,
     onOpen: (String) -> Unit,
@@ -208,6 +211,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.transactionsSection(
     }
 }
 
+/** Shows summary card. */
 @Composable
 private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Unit, state: HomeUiState) {
     SectionCard {
@@ -236,6 +240,7 @@ private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Uni
     }
 }
 
+/** Shows quick action tile. */
 @Composable
 private fun QuickActionTile(action: QuickAction, onClick: () -> Unit) {
     androidx.compose.material3.Surface(
@@ -251,6 +256,7 @@ private fun QuickActionTile(action: QuickAction, onClick: () -> Unit) {
     }
 }
 
+/** Shows transaction row. */
 @Composable
 fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
     val credit = tx.isCredit()
@@ -273,6 +279,7 @@ fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
     )
 }
 
+/** Shows swipe to delete. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit) {
@@ -299,6 +306,7 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
     ) { content() }
 }
 
+/** Greeting. */
 private fun greeting(name: String): String {
     val hour = java.time.LocalTime.now().hour
     val part = when (hour) {
@@ -309,6 +317,7 @@ private fun greeting(name: String): String {
     return if (name.isBlank()) part else "$part, ${name.substringBefore(' ')}"
 }
 
+/** Converts this value to ui. */
 private fun SyncPhase.toUi(offline: Boolean): SyncState = when {
     offline -> SyncState.WAITING
     this == SyncPhase.RUNNING -> SyncState.SYNCING

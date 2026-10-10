@@ -1,7 +1,5 @@
 package com.ledger.personal.ui.screens.edit
 
-import com.ledger.personal.ui.screens.create.DEFAULT_CATEGORIES
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +47,7 @@ import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
+/** Shows the edit transaction screen. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditTransactionScreen(
@@ -59,7 +58,8 @@ fun EditTransactionScreen(
     onSubmit: () -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
-    quickCategories: List<String> = DEFAULT_CATEGORIES,
+    quickCategories: List<String> = emptyList(),
+    categoriesLoading: Boolean = false,
 ) {
 
     LaunchedEffect(uiState.isSuccess) {
@@ -180,6 +180,9 @@ fun EditTransactionScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
+                                if (categoriesLoading) {
+                                    Text("Waiting for categories", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -233,6 +236,7 @@ fun EditTransactionScreen(
     }
 }
 
+/** Shows edit transaction loading preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionLoadingPreview() {
@@ -249,6 +253,7 @@ private fun EditTransactionLoadingPreview() {
     }
 }
 
+/** Shows edit transaction error preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionErrorPreview() {
@@ -268,6 +273,7 @@ private fun EditTransactionErrorPreview() {
     }
 }
 
+/** Shows edit transaction empty preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionEmptyPreview() {
@@ -284,6 +290,7 @@ private fun EditTransactionEmptyPreview() {
     }
 }
 
+/** Shows edit transaction form preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionFormPreview() {
@@ -306,6 +313,7 @@ private fun EditTransactionFormPreview() {
     }
 }
 
+/** Shows edit transaction validation preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionValidationPreview() {
@@ -327,6 +335,7 @@ private fun EditTransactionValidationPreview() {
     }
 }
 
+/** Shows edit transaction submitting preview. */
 @PreviewLightDark
 @Composable
 private fun EditTransactionSubmittingPreview() {

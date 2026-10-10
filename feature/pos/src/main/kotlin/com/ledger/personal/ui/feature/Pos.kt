@@ -6,8 +6,8 @@ import com.ledger.personal.core.PayEvent
 import com.ledger.personal.core.PayState
 import com.ledger.personal.core.next
 import com.ledger.personal.data.local.CardReader
-import com.ledger.personal.data.local.FakeCardReader
-import com.ledger.personal.data.local.FakeReceiptPrinter
+import com.ledger.personal.data.local.MockCardReader
+import com.ledger.personal.data.local.MockReceiptPrinter
 import com.ledger.personal.data.local.MemoryPosForward
 import com.ledger.personal.data.local.PosForwardStore
 import com.ledger.personal.data.local.ReceiptPrinter
@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Values rendered by the pos screen. */
 data class PosUiState(
     val isLoading: Boolean = false,
     val pay: PayState = PayState.IDLE,
@@ -35,17 +36,19 @@ data class PosUiState(
     val reference: String get() = "pos-sale-$sale"
 }
 
+/** State and actions for the pos screen. */
 @HiltViewModel
 class PosViewModel @Inject constructor(
     private val forward: PosForwardStore,
     private val reader: CardReader,
     private val printer: ReceiptPrinter,
 ) : ViewModel() {
-    constructor() : this(MemoryPosForward(), FakeCardReader(), FakeReceiptPrinter())
+    constructor() : this(MemoryPosForward(), MockCardReader(), MockReceiptPrinter())
 
     private val state = MutableStateFlow(PosUiState())
     val uiState: StateFlow<PosUiState> = state.asStateFlow()
 
+    /** Reacts to digit. */
     fun onDigit(digit: Char) {
         if (state.value.pay != PayState.IDLE) return
         state.update {
@@ -54,10 +57,12 @@ class PosViewModel @Inject constructor(
         }
     }
 
+    /** Reacts to backspace. */
     fun onBackspace() {
         if (state.value.pay == PayState.IDLE) state.update { it.copy(amountMinor = it.amountMinor / 10) }
     }
 
+    /** Reacts to event. */
     fun onEvent(event: PayEvent) {
         runCatching { state.value.pay.next(event) }
             .onSuccess { next ->
@@ -78,10 +83,12 @@ class PosViewModel @Inject constructor(
             .onFailure { error -> state.update { it.copy(errorMessage = error.message) } }
     }
 
+    /** New sale. */
     fun newSale() = state.update {
         PosUiState(sale = it.sale + 1, forwarded = it.forwarded, pendingCount = it.pendingCount, pendingTotalMinor = it.pendingTotalMinor)
     }
 
+    /** Refund. */
     fun refund() {
         val current = state.value
         if (current.pay != PayState.SETTLED || current.refunded) return
@@ -93,6 +100,7 @@ class PosViewModel @Inject constructor(
         }
     }
 
+    /** Settle. */
     fun settle() {
         viewModelScope.launch {
             val total = forward.unsettled().sum()
@@ -102,6 +110,7 @@ class PosViewModel @Inject constructor(
         }
     }
 
+    /** Reloads pending. */
     fun refreshPending() {
         viewModelScope.launch {
             val open = forward.unsettled()

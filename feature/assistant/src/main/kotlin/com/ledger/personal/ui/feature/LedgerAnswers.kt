@@ -10,6 +10,7 @@ val assistantSuggestions = listOf(
     "What's my loan EMI?",
 )
 
+/** Ledger answer. */
 fun ledgerAnswer(question: String): String {
     val q = question.lowercase()
     val inr = MockCatalog.transactions.filter { it.currency == "INR" }

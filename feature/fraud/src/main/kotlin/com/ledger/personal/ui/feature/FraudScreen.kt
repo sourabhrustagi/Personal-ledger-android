@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ledger.personal.mock.SeedFraudAlert
 
+/** Shows the fraud screen. */
 @Composable
 fun FraudScreen(onBack: () -> Unit, role: String = "ANALYST", viewModel: FraudViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,6 +109,7 @@ fun FraudScreen(onBack: () -> Unit, role: String = "ANALYST", viewModel: FraudVi
     }
 }
 
+/** Severity. */
 private fun severity(score: Int): Pair<String, BannerTone> = when {
     score >= HIGH_RISK -> "High risk" to BannerTone.ERROR
     score >= MEDIUM_RISK -> "Medium risk" to BannerTone.WARNING
@@ -117,6 +119,7 @@ private fun severity(score: Int): Pair<String, BannerTone> = when {
 private const val HIGH_RISK = 80
 private const val MEDIUM_RISK = 50
 
+/** Shows risk scale. */
 @Composable
 private fun RiskScale() {
     SectionCard(title = "Risk score") {
@@ -133,6 +136,7 @@ private fun RiskScale() {
     }
 }
 
+/** Shows audit log. */
 @Composable
 private fun AuditLog(alerts: List<SeedFraudAlert>, blocked: Set<String>, cleared: Set<String>, shadowLog: List<String>) {
     val rows = alerts.mapNotNull { alert ->
@@ -149,6 +153,7 @@ private fun AuditLog(alerts: List<SeedFraudAlert>, blocked: Set<String>, cleared
     }
 }
 
+/** Shows alert card. */
 @Composable
 private fun AlertCard(
     alert: SeedFraudAlert,

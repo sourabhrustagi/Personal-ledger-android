@@ -13,11 +13,13 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 
+/** Background work for fraud commit. */
 @HiltWorker
 class FraudCommitWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+    /** Do work. */
     override suspend fun doWork(): Result {
         val id = inputData.getString(ID) ?: return Result.success()
         FraudBlockQueue.commit(id)
@@ -29,7 +31,9 @@ class FraudCommitWorker @AssistedInject constructor(
     }
 }
 
+/** Shared fraud commit schedule. */
 object FraudCommitSchedule {
+    /** Enqueue. */
     fun enqueue(context: Context, id: String) {
         val request = OneTimeWorkRequestBuilder<FraudCommitWorker>()
             .setInitialDelay(30, TimeUnit.SECONDS)
@@ -38,10 +42,12 @@ object FraudCommitSchedule {
         WorkManager.getInstance(context).enqueueUniqueWork(name(id), ExistingWorkPolicy.KEEP, request)
     }
 
+    /** Cancel. */
     fun cancel(context: Context, id: String) {
         WorkManager.getInstance(context).cancelUniqueWork(name(id))
         FraudBlockQueue.undo(id)
     }
 
+    /** Name. */
     private fun name(id: String) = "ledger-fraud-commit-$id"
 }

@@ -38,6 +38,7 @@ import kotlin.math.roundToLong
 private const val CREDIT_LIMIT_MINOR = 30_000_000L
 private const val CREDIT_USED_MINOR = 8_245_000L
 
+/** Shows the cards screen. */
 @Composable
 fun CardsScreen(onBack: () -> Unit) {
     var frozen by rememberSaveable { mutableStateOf(false) }
@@ -76,6 +77,7 @@ fun CardsScreen(onBack: () -> Unit) {
     }
 }
 
+/** Shows toggle row. */
 @Composable
 private fun ToggleRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, on: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -84,8 +86,10 @@ private fun ToggleRow(icon: androidx.compose.ui.graphics.vector.ImageVector, tit
     }
 }
 
+/** Allowed values of prepay mode. */
 enum class PrepayMode(val label: String) { TENURE("Reduce tenure"), EMI("Reduce EMI") }
 
+/** Shows the loans screen. */
 @Composable
 fun LoansScreen(onBack: () -> Unit) {
     var amountLakh by rememberSaveable { mutableFloatStateOf(5f) }
@@ -114,6 +118,7 @@ fun LoansScreen(onBack: () -> Unit) {
     }
 }
 
+/** Shows prepay section. */
 @Composable
 private fun PrepaySection(text: String, onText: (String) -> Unit, mode: PrepayMode, onMode: (PrepayMode) -> Unit) {
     val outstanding = MockCatalog.loanPrincipalMinor
@@ -147,6 +152,7 @@ private fun PrepaySection(text: String, onText: (String) -> Unit, mode: PrepayMo
     }
 }
 
+/** Shows labeled slider. */
 @Composable
 private fun LabeledSlider(label: String, value: String, current: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
     Column {
@@ -161,9 +167,11 @@ private fun LabeledSlider(label: String, value: String, current: Float, range: C
 private const val FD_RATE = 0.0725
 
 // ponytail: quarterly compounding in Double, rounded to paise; good enough for a preview, the bank quotes the binding figure.
+/** Fd maturity minor. */
 fun fdMaturityMinor(principalMinor: Long, months: Int, annualRate: Double = FD_RATE): Long =
     (principalMinor * (1 + annualRate / 4).pow(months / 3.0)).roundToLong()
 
+/** Shows the deposits screen. */
 @Composable
 fun DepositsScreen(onBack: () -> Unit) {
     val fd = MockCatalog.bankAccounts.last()

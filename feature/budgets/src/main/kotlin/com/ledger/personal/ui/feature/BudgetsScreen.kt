@@ -35,16 +35,19 @@ import com.ledger.personal.ui.theme.LedgerTheme
 private const val NEAR_LIMIT = 0.8f
 private val seedFactors = listOf(1.25, 0.9, 1.5, 1.05)
 
+/** Month spend by category. */
 fun monthSpendByCategory(): Map<String, Long> = MockCatalog.transactions
     .filter { it.currency == "INR" && it.category != "Salary" && it.dayOffset < 30 }
     .groupBy { it.category }
     .mapValues { (_, rows) -> rows.sumOf { it.amountMinor } }
 
+/** Seed limit. */
 private fun seedLimit(spent: Long, index: Int): Long {
     val raw = (spent * seedFactors[index % seedFactors.size]).toLong()
     return ((raw + 99_999) / 1_00_000) * 1_00_000
 }
 
+/** Shows the budgets screen. */
 @Composable
 fun BudgetsScreen(onBack: () -> Unit, onInsights: () -> Unit) {
     val spent = remember { monthSpendByCategory() }
@@ -97,6 +100,7 @@ fun BudgetsScreen(onBack: () -> Unit, onInsights: () -> Unit) {
     }
 }
 
+/** Shows budget row. */
 @Composable
 private fun BudgetRow(category: String, spentMinor: Long, limitMinor: Long) {
     val ratio = if (limitMinor == 0L) 0f else spentMinor.toFloat() / limitMinor

@@ -48,6 +48,7 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
 
+/** Shows the transaction detail screen. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionDetailScreen(
@@ -273,6 +274,7 @@ fun TransactionDetailScreen(
     }
 }
 
+/** Shows detail row. */
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(
@@ -293,6 +295,7 @@ private fun DetailRow(label: String, value: String) {
     }
 }
 
+/** Preview transaction. */
 private fun previewTransaction() = Transaction(
     id = "tx-preview-1",
     amountInCents = 4550L,
@@ -302,6 +305,7 @@ private fun previewTransaction() = Transaction(
     timestampEpochMs = 1_715_000_000_000L
 )
 
+/** Shows transaction detail loading preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionDetailLoadingPreview() {
@@ -317,6 +321,7 @@ private fun TransactionDetailLoadingPreview() {
     }
 }
 
+/** Shows transaction detail error preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionDetailErrorPreview() {
@@ -332,6 +337,7 @@ private fun TransactionDetailErrorPreview() {
     }
 }
 
+/** Shows transaction detail empty preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionDetailEmptyPreview() {
@@ -347,6 +353,7 @@ private fun TransactionDetailEmptyPreview() {
     }
 }
 
+/** Shows transaction detail content preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionDetailContentPreview() {
@@ -362,6 +369,7 @@ private fun TransactionDetailContentPreview() {
     }
 }
 
+/** Shows transaction detail delete dialog preview. */
 @PreviewLightDark
 @Composable
 private fun TransactionDetailDeleteDialogPreview() {

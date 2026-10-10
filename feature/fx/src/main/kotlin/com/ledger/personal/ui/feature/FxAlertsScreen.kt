@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.math.BigDecimal
 
+/** Shows the fx alerts screen. */
 @Composable
 fun FxAlertsScreen(onBack: () -> Unit, viewModel: FxAlertsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -107,6 +108,7 @@ fun FxAlertsScreen(onBack: () -> Unit, viewModel: FxAlertsViewModel = hiltViewMo
     }
 }
 
+/** Notifications allowed. */
 private fun notificationsAllowed(context: Context): Boolean {
     val runtime = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED

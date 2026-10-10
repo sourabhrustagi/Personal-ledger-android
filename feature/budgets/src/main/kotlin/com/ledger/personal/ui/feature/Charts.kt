@@ -10,10 +10,13 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/** Allowed values of chart tab. */
 enum class ChartTab { MONTH, CATEGORY }
 
+/** Slice. */
 data class Slice(val label: String, val amountMinor: Long, val count: Int = 0)
 
+/** Values rendered by the charts screen. */
 data class ChartsUiState(
     val isLoading: Boolean = true,
     val tab: ChartTab = ChartTab.CATEGORY,
@@ -28,6 +31,7 @@ data class ChartsUiState(
     val totalMinor: Long get() = slices.sumOf { it.amountMinor }
 }
 
+/** State and actions for the charts screen. */
 class ChartsViewModel : ViewModel() {
     private val state = MutableStateFlow(ChartsUiState())
     val uiState: StateFlow<ChartsUiState> = state.asStateFlow()
@@ -36,21 +40,25 @@ class ChartsViewModel : ViewModel() {
         publish()
     }
 
+    /** Select tab. */
     fun selectTab(tab: ChartTab) {
         state.update { it.copy(tab = tab) }
         publish()
     }
 
+    /** Select currency. */
     fun selectCurrency(currency: String) {
         state.update { it.copy(currency = currency, category = "All") }
         publish()
     }
 
+    /** Stores category. */
     fun setCategory(category: String) {
         state.update { it.copy(category = category) }
         publish()
     }
 
+    /** Publish. */
     private fun publish() {
         val current = state.value
         val inCurrency = MockCatalog.transactions.filter { it.currency == current.currency }
@@ -74,6 +82,7 @@ class ChartsViewModel : ViewModel() {
         }
     }
 
+    /** Month label. */
     private fun monthLabel(monthsAgo: Int): String =
         YearMonth.now().minusMonths(monthsAgo.toLong()).format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault()))
 

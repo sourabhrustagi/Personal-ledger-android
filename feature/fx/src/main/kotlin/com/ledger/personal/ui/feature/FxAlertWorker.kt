@@ -26,23 +26,28 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 
+/** Allowed values of fx notify. */
 enum class FxNotify { POST, SKIP, QUIET }
 
+/** Fx notify decision. */
 fun fxNotifyDecision(permissionGranted: Boolean, breached: Boolean): FxNotify = when {
     !permissionGranted -> FxNotify.SKIP
     breached -> FxNotify.POST
     else -> FxNotify.QUIET
 }
 
+/** Shared fx alert schedule. */
 object FxAlertSchedule {
     const val PERIODIC = "ledger-fx-alert"
     const val NOW = "ledger-fx-alert-now"
 
+    /** Constraints. */
     private fun constraints() = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .setRequiresBatteryNotLow(true)
         .build()
 
+    /** Queues periodic. */
     fun enqueuePeriodic(context: Context) {
         val request = PeriodicWorkRequestBuilder<FxAlertWorker>(15, TimeUnit.MINUTES)
             .setConstraints(constraints())
@@ -51,6 +56,7 @@ object FxAlertSchedule {
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
     }
 
+    /** Queues now. */
     fun enqueueNow(context: Context) {
         val request = OneTimeWorkRequestBuilder<FxAlertWorker>()
             .setConstraints(constraints())
@@ -62,11 +68,13 @@ object FxAlertSchedule {
     }
 }
 
+/** Background work for fx alert. */
 @HiltWorker
 class FxAlertWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+    /** Do work. */
     override suspend fun doWork(): Result {
         val granted = ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED &&
@@ -82,6 +90,7 @@ class FxAlertWorker @AssistedInject constructor(
         }
     }
 
+    /** Notify breach. */
     private fun notifyBreach() {
         val manager = NotificationManagerCompat.from(applicationContext)
         val channel = NotificationChannel(CHANNEL, "FX alerts", NotificationManager.IMPORTANCE_DEFAULT)

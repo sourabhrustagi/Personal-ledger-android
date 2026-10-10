@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+/** Shows the assistant screen. */
 @Composable
 fun AssistantScreen(
     onBack: (() -> Unit)?,
@@ -109,6 +110,7 @@ fun AssistantScreen(
     }
 }
 
+/** Shows welcome. */
 @Composable
 private fun Welcome(onPick: (String) -> Unit) {
     Column(
@@ -129,6 +131,7 @@ private fun Welcome(onPick: (String) -> Unit) {
     }
 }
 
+/** Shows bubble. */
 @Composable
 private fun Bubble(message: ChatMessage) {
     val mine = message.role == ChatRole.USER
@@ -151,6 +154,7 @@ private fun Bubble(message: ChatMessage) {
 
 private val payRegex = Regex("""(?i)\b(send|pay|transfer)\b\s*(?:rs\.?|₹)?\s*([\d,]+(?:\.\d{1,2})?)\s*(?:to\s+(.+))?""")
 
+/** Payment intent. */
 fun paymentIntent(text: String): String? {
     val match = payRegex.find(text) ?: return null
     val minor = parseMinor(match.groupValues[2].replace(",", "")) ?: return null
@@ -158,6 +162,7 @@ fun paymentIntent(text: String): String? {
     return "Send ${formatMoney(minor)} to ${who.replaceFirstChar { it.uppercase() }}"
 }
 
+/** Shows confirm card. */
 @Composable
 private fun ConfirmCard(summary: String, onConfirm: () -> Unit, onCancel: () -> Unit) {
     SectionCard(title = "Confirm before I proceed") {

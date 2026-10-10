@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** State and actions for the create transaction screen. */
 @HiltViewModel
 class CreateTransactionViewModel @Inject constructor(
     private val repository: TransactionRepository
@@ -20,18 +21,22 @@ class CreateTransactionViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CreateTransactionUiState())
     val uiState: StateFlow<CreateTransactionUiState> = _uiState.asStateFlow()
 
+    /** Reacts to amount change. */
     fun onAmountChange(input: String) {
         _uiState.update { it.copy(amountInput = input, amountError = null, errorMessage = null) }
     }
 
+    /** Reacts to category change. */
     fun onCategoryChange(input: String) {
         _uiState.update { it.copy(category = input, categoryError = null, errorMessage = null) }
     }
 
+    /** Reacts to description change. */
     fun onDescriptionChange(input: String) {
         _uiState.update { it.copy(description = input, errorMessage = null) }
     }
 
+    /** Submit. */
     fun submit() {
         val state = _uiState.value
         val minorUnits = state.amountInput.toMinorUnits()

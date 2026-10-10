@@ -16,10 +16,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
+/** Allowed values of chat role. */
 enum class ChatRole { USER, ASSISTANT }
 
+/** Chat message. */
 data class ChatMessage(val group: String, val role: ChatRole, val text: String)
 
+/** Values rendered by the assistant screen. */
 data class AssistantUiState(
     val isLoading: Boolean = false,
     val tokens: String = "",
@@ -29,8 +32,10 @@ data class AssistantUiState(
     val errorMessage: String? = null,
 )
 
+/** Entry. */
 private data class Entry(val role: ChatRole, val group: String, val id: String, val text: String)
 
+/** State and actions for the assistant screen. */
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
     private val history: AssistantHistory,
@@ -53,16 +58,19 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
+    /** Consume. */
     fun consume(line: String) {
         val token = line.removePrefix("data:").trim()
         if (token.isEmpty() || token == "[DONE]") return
         push(token)
     }
 
+    /** Push. */
     fun push(token: String) {
         append(Entry(ChatRole.ASSISTANT, STREAM, token, token))
     }
 
+    /** Ask. */
     fun ask(question: String) {
         val text = question.trim()
         if (text.isEmpty() || state.value.isTyping) return
@@ -79,6 +87,7 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
+    /** Append. */
     private fun append(entry: Entry) {
         val before = queue.charges
         queue.replay(listOf(entry.id))
@@ -87,6 +96,7 @@ class AssistantViewModel @Inject constructor(
         state.update { it.with(entry) }
     }
 
+    /** With. */
     private fun AssistantUiState.with(entry: Entry): AssistantUiState {
         val last = messages.lastOrNull()
         val merged = if (entry.role == ChatRole.ASSISTANT && last?.role == ChatRole.ASSISTANT && last.group == entry.group) {
@@ -102,9 +112,11 @@ class AssistantViewModel @Inject constructor(
         )
     }
 
+    /** Encode. */
     private fun encode(entry: Entry): String =
         if (entry.group == STREAM && entry.id == entry.text) entry.text else listOf(entry.role.name, entry.group, entry.id, entry.text).joinToString(SEP)
 
+    /** Decode. */
     private fun decode(raw: String): Entry {
         val parts = raw.split(SEP, limit = 4)
         return if (parts.size == 4) Entry(ChatRole.valueOf(parts[0]), parts[1], parts[2], parts[3]) else Entry(ChatRole.ASSISTANT, STREAM, raw, raw)

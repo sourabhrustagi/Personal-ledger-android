@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ledger.personal.mock.MockCatalog
 import java.math.BigDecimal
 
+/** Shows the wallet screen. */
 @Composable
 fun WalletScreen(
     onBack: () -> Unit,
@@ -71,6 +72,7 @@ fun WalletScreen(
     }
 }
 
+/** Shows transfer form. */
 @Composable
 private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offline: Boolean) {
     var amountText by rememberSaveable {
@@ -132,6 +134,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
     )
 }
 
+/** Shows transfer review. */
 @Composable
 private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel: WalletViewModel) {
     val contact = MockCatalog.contacts.firstOrNull { it.handle == state.recipient }
@@ -158,6 +161,7 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
     TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text("Edit details") }
 }
 
+/** Shows transfer receipt. */
 @Composable
 private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, onSendAnother: () -> Unit) {
     val contact = MockCatalog.contacts.firstOrNull { it.handle == state.recipient }
@@ -182,6 +186,7 @@ private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, onSendAnot
     }
 }
 
+/** Shows step up button. */
 @Composable
 private fun StepUpButton(debugStepUp: Boolean, onResult: (Boolean) -> Unit) {
     val context = LocalContext.current
@@ -196,12 +201,15 @@ private fun StepUpButton(debugStepUp: Boolean, onResult: (Boolean) -> Unit) {
     )
 }
 
+/** Authenticate. */
 private fun authenticate(activity: FragmentActivity, onResult: (Boolean) -> Unit) {
     val prompt = BiometricPrompt(
         activity,
         ContextCompat.getMainExecutor(activity),
         object : BiometricPrompt.AuthenticationCallback() {
+            /** Reacts to authentication succeeded. */
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onResult(true)
+            /** Reacts to authentication error. */
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onResult(false)
         },
     )

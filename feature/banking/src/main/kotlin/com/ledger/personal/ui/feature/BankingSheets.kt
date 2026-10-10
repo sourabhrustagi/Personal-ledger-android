@@ -28,8 +28,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+/** Allowed values of bank sheet. */
 enum class BankSheet { UPI, BILLS, PAYEE }
 
+/** Shows banking sheet. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BankingSheet(sheet: BankSheet, state: BankingUiState, viewModel: BankingViewModel, onDismiss: () -> Unit) {
@@ -50,6 +52,7 @@ fun BankingSheet(sheet: BankSheet, state: BankingUiState, viewModel: BankingView
     }
 }
 
+/** Shows upi request. */
 @Composable
 private fun UpiRequest(payload: String?, onCreate: (String, Long) -> Unit) {
     val context = LocalContext.current
@@ -74,6 +77,7 @@ private fun UpiRequest(payload: String?, onCreate: (String, Long) -> Unit) {
     }
 }
 
+/** Shows bills. */
 @Composable
 private fun Bills(state: BankingUiState, onPay: (String, Long) -> Unit) {
     SheetTitle("Pay bills", "Bills due this month")
@@ -91,6 +95,7 @@ private fun Bills(state: BankingUiState, onPay: (String, Long) -> Unit) {
     }
 }
 
+/** Shows add payee. */
 @Composable
 private fun AddPayee(state: BankingUiState, viewModel: BankingViewModel) {
     var name by rememberSaveable { mutableStateOf("") }
@@ -120,6 +125,7 @@ private fun AddPayee(state: BankingUiState, viewModel: BankingViewModel) {
     }
 }
 
+/** Shows sheet title. */
 @Composable
 private fun SheetTitle(title: String, message: String) {
     Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

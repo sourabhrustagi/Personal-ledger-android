@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+/** Shows the charts screen. */
 @Composable
 fun ChartsScreen(onBack: () -> Unit, viewModel: ChartsViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,11 +89,13 @@ fun ChartsScreen(onBack: () -> Unit, viewModel: ChartsViewModel = viewModel()) {
     }
 }
 
+/** Chart palette. */
 @Composable
 private fun chartPalette(): List<Color> = with(MaterialTheme.colorScheme) {
     listOf(primary, secondary, tertiary, error, onSurfaceVariant)
 }
 
+/** Shows donut. */
 @Composable
 private fun Donut(slices: List<Slice>, palette: List<Color>, totalMinor: Long, currency: String) {
     val track = MaterialTheme.colorScheme.surfaceVariant
@@ -116,6 +119,7 @@ private fun Donut(slices: List<Slice>, palette: List<Color>, totalMinor: Long, c
     }
 }
 
+/** Shows slice row. */
 @Composable
 private fun SliceRow(slice: Slice, color: Color, fraction: Float, currency: String, tab: ChartTab) {
     val progress by animateFloatAsState(fraction, label = "slice")

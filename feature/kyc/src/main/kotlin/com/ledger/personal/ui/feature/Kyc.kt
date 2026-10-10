@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Values rendered by the kyc screen. */
 data class KycUiState(
     val isLoading: Boolean = false,
     val name: String = "",
@@ -28,6 +29,7 @@ data class KycUiState(
     val errorMessage: String? = null,
 )
 
+/** State and actions for the kyc screen. */
 @HiltViewModel
 class KycViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
@@ -51,18 +53,21 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    /** Reacts to name. */
     fun onName(value: String) {
         savedState[NAME] = value
         state.update { it.copy(name = value) }
         persist()
     }
 
+    /** Reacts to confidence. */
     fun onConfidence(value: Double) {
         val review = needsHumanReview(listOf(CapturedField(required = true, confidence = value)))
         state.update { it.copy(confidence = value, humanReview = review) }
         persist()
     }
 
+    /** Capture. */
     fun capture() {
         val edge = documentSpan(intArrayOf(0, 10, 80, 90, 5))
         state.update {
@@ -74,6 +79,7 @@ class KycViewModel @Inject constructor(
         persist()
     }
 
+    /** Incoming edit. */
     fun incomingEdit(other: String) {
         val merged = mergeField(state.value.name, other)
         state.update {
@@ -81,6 +87,7 @@ class KycViewModel @Inject constructor(
         }
     }
 
+    /** Persist. */
     private fun persist() {
         val current = state.value
         viewModelScope.launch { drafts.save(current.name, current.confidence, current.captureUri) }
@@ -91,6 +98,7 @@ class KycViewModel @Inject constructor(
     }
 }
 
+/** Document span. */
 fun documentSpan(luma: IntArray, threshold: Int = 40): IntRange? {
     val start = luma.indexOfFirst { it >= threshold }
     if (start < 0) return null

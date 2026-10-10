@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
+/** Shows loading state. */
 @Composable
 fun LoadingState(
     modifier: Modifier = Modifier,
@@ -56,6 +57,7 @@ fun LoadingState(
     }
 }
 
+/** Shows empty state. */
 @Composable
 fun EmptyState(
     modifier: Modifier = Modifier,
@@ -103,6 +105,7 @@ fun EmptyState(
     }
 }
 
+/** Shows error state. */
 @Composable
 fun ErrorState(
     errorMessage: String,
@@ -153,6 +156,7 @@ fun ErrorState(
     }
 }
 
+/** Shows loading state preview. */
 @PreviewLightDark
 @Composable
 private fun LoadingStatePreview() {
@@ -161,6 +165,7 @@ private fun LoadingStatePreview() {
     }
 }
 
+/** Shows empty state preview. */
 @PreviewLightDark
 @Composable
 private fun EmptyStatePreview() {
@@ -169,6 +174,7 @@ private fun EmptyStatePreview() {
     }
 }
 
+/** Shows empty state with action preview. */
 @PreviewLightDark
 @Composable
 private fun EmptyStateWithActionPreview() {
@@ -182,6 +188,7 @@ private fun EmptyStateWithActionPreview() {
     }
 }
 
+/** Shows error state preview. */
 @PreviewLightDark
 @Composable
 private fun ErrorStatePreview() {
@@ -190,6 +197,7 @@ private fun ErrorStatePreview() {
     }
 }
 
+/** Shows error state with retry preview. */
 @PreviewLightDark
 @Composable
 private fun ErrorStateWithRetryPreview() {

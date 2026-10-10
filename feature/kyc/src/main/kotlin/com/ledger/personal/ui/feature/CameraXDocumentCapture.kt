@@ -8,7 +8,9 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 
+/** Camera x document capture. */
 class CameraXDocumentCapture(private val context: Context) {
+    /** Bind. */
     fun bind(owner: LifecycleOwner, previewView: PreviewView) {
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({

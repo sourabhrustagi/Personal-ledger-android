@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** State and actions for the transaction detail screen. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
@@ -43,16 +44,19 @@ class TransactionDetailViewModel @Inject constructor(
         TransactionDetailUiState(isLoading = transactionId != null),
     )
 
+    /** Loads transaction. */
     fun loadTransaction(id: String = transactionId ?: "") {
         if (id.isBlank()) return
         controls.update { it.copy(errorMessage = null) }
         reload.update { it + 1 }
     }
 
+    /** Stores delete dialog visible. */
     fun setDeleteDialogVisible(visible: Boolean) {
         controls.update { it.copy(showDialog = visible) }
     }
 
+    /** Confirms delete. */
     fun confirmDelete() {
         val id = uiState.value.transaction?.id ?: return
         viewModelScope.launch {
@@ -74,6 +78,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /** Streams transaction. */
     private fun observeTransaction() = reload.flatMapLatest {
         val id = transactionId
         if (id.isNullOrBlank()) {
@@ -92,6 +97,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /** Detail controls. */
     private data class DetailControls(
         val showDialog: Boolean = false,
         val deleting: Boolean = false,

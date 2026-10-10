@@ -203,29 +203,25 @@ fun InsightsHub(
     }
 }
 
-/** Shows the promotions shelves. Tabs and deals are whatever that team returned. */
+/** Shows the promotions stored on the device. */
 @Composable
-fun PromotionsHub(shelves: Result<List<PromoTab>>?, selected: String, onSelect: (String) -> Unit, onProfile: () -> Unit) {
+fun PromotionsHub(shelves: List<PromoTab>, selected: String, onSelect: (String) -> Unit, onProfile: () -> Unit) {
     FeatureScaffold("Offers", onBack = null, actions = { ProfileAction(onProfile) }) {
-        when {
-            shelves == null -> Text("Loading offers…")
-            shelves.isFailure -> StatusBanner("Promotions couldn't load.", BannerTone.WARNING)
-            shelves.getOrThrow().isEmpty() -> Text("No promotions right now.")
-            else -> {
-                val tabs = shelves.getOrThrow()
-                val index = tabs.indexOfFirst { it.id == selected }.coerceAtLeast(0)
-                PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 16.dp) {
-                    tabs.forEachIndexed { i, shelf ->
-                        Tab(selected = i == index, onClick = { onSelect(shelf.id) }, text = { Text(shelf.title) })
-                    }
+        if (shelves.isEmpty()) {
+            Text("No promotions right now.")
+        } else {
+            val index = shelves.indexOfFirst { it.id == selected }.coerceAtLeast(0)
+            PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 16.dp) {
+                shelves.forEachIndexed { i, shelf ->
+                    Tab(selected = i == index, onClick = { onSelect(shelf.id) }, text = { Text(shelf.title) })
                 }
-                val offers = tabs[index].offers
-                if (offers.isEmpty()) {
-                    Text("Nothing in this tab.")
-                } else {
-                    offers.forEach { offer ->
-                        ListRow(Icons.Outlined.LocalOffer, offer.pitch, subtitle = offer.until.ifBlank { null })
-                    }
+            }
+            val offers = shelves[index].offers
+            if (offers.isEmpty()) {
+                Text("Nothing in this tab.")
+            } else {
+                offers.forEach { offer ->
+                    ListRow(Icons.Outlined.LocalOffer, offer.pitch, subtitle = offer.until.ifBlank { null })
                 }
             }
         }

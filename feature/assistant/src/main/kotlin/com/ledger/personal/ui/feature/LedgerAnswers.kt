@@ -3,13 +3,6 @@ package com.ledger.personal.ui.feature
 import com.ledger.personal.core.emiMinor
 import com.ledger.personal.mock.MockCatalog
 
-val assistantSuggestions = listOf(
-    "What's my balance?",
-    "How much did I spend on groceries?",
-    "What's my biggest expense?",
-    "What's my loan EMI?",
-)
-
 /** Ledger answer. */
 fun ledgerAnswer(question: String): String {
     val q = question.lowercase()

@@ -21,17 +21,21 @@ import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
 import com.ledger.personal.data.security.KtorBindingServer
 import com.ledger.personal.data.security.LocalBindingServer
+import com.ledger.personal.domain.demo.DemoConditions
 import com.ledger.personal.domain.board.AssistantBackend
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.InsightsBackend
 import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromotionsBackend
+import com.ledger.personal.domain.demo.SteadyConditions
 import com.ledger.personal.mock.MockAssistantBackend
 import com.ledger.personal.mock.MockHomeBoard
 import com.ledger.personal.mock.MockInsightsBackend
 import com.ledger.personal.mock.MockPaymentsBackend
 import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
+import com.ledger.personal.mock.SwitchConditions
+import com.ledger.personal.ui.feature.PaymentRail
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.flow.onEach
 import java.io.File
@@ -142,6 +146,25 @@ object TeamModule {
     @Singleton
     fun promotions(mock: MockPromotionsBackend, live: KtorPromotionsBackend): PromotionsBackend =
         if (BuildConfig.FLAVOR == "mock") mock else live
+}
+
+/** Picks demo levers for this flavor. Live builds keep them off. */
+@Module
+@InstallIn(SingletonComponent::class)
+object DemoModule {
+    /** Supplies demo conditions. */
+    @Provides
+    @Singleton
+    fun conditions(mock: SwitchConditions): DemoConditions =
+        if (BuildConfig.FLAVOR == "mock") mock else SteadyConditions()
+
+    /** Supplies the payment attempt. Only the mock flavor runs the flaky rail. */
+    @Provides
+    fun paymentRail(): PaymentRail = if (BuildConfig.FLAVOR == "mock") {
+        PaymentRail { post -> MockSwitches.payment(post = post) }
+    } else {
+        PaymentRail { post -> post() }
+    }
 }
 
 /** Hilt bindings for offline. */

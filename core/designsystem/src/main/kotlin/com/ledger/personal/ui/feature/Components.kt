@@ -1,6 +1,5 @@
 package com.ledger.personal.ui.feature
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,13 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Bolt
@@ -28,13 +25,9 @@ import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +40,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import com.ledger.personal.ui.components.LedgerOneButton
+import com.ledger.personal.ui.components.LedgerOneCard
+import com.ledger.personal.ui.components.LedgerOneText
+import com.ledger.personal.ui.components.LedgerOneTextField
+import com.ledger.personal.ui.components.LedgerOneTextRole
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.LedgerTheme
@@ -83,9 +81,9 @@ fun HeroCard(
     ) {
         CompositionLocalProvider(LocalContentColor provides onHero) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(label, style = MaterialTheme.typography.labelLarge, color = onHero)
-                Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = onHero)
-                supporting?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = onHero) }
+                LedgerOneText(label, role = LedgerOneTextRole.Label, color = onHero)
+                LedgerOneText(value, role = LedgerOneTextRole.Display, weight = FontWeight.Bold, color = onHero)
+                supporting?.let { LedgerOneText(it, color = onHero) }
                 footer()
             }
         }
@@ -99,17 +97,9 @@ fun SectionCard(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            title?.let { Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
-            content()
-        }
+    LedgerOneCard(modifier) {
+        title?.let { LedgerOneText(it, role = LedgerOneTextRole.Title, weight = FontWeight.SemiBold) }
+        content()
     }
 }
 
@@ -240,18 +230,7 @@ fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modi
 /** Shows primary button. */
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.fillMaxWidth().height(52.dp),
-    ) {
-        icon?.let {
-            Icon(it, contentDescription = null, modifier = Modifier.size(18.dp))
-            Box(Modifier.size(8.dp))
-        }
-        Text(text, fontWeight = FontWeight.SemiBold)
-    }
+    LedgerOneButton(text, onClick, modifier, enabled, icon)
 }
 
 /** Shows amount field. */
@@ -265,17 +244,15 @@ fun AmountField(
     supportingText: String? = null,
     isError: Boolean = false,
 ) {
-    OutlinedTextField(
+    LedgerOneTextField(
         value = text,
         onValueChange = { value -> if (amountInput.matches(value)) onTextChange(value) },
-        label = { Text(label) },
-        prefix = { Text(symbol) },
-        singleLine = true,
+        modifier = modifier,
+        label = label,
+        prefix = symbol,
+        supportingText = supportingText,
         isError = isError,
-        supportingText = supportingText?.let { { Text(it) } },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.fillMaxWidth(),
+        keyboardType = KeyboardType.Decimal,
     )
 }
 

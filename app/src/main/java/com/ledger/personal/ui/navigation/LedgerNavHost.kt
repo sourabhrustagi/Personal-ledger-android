@@ -1,5 +1,7 @@
 package com.ledger.personal.ui.navigation
 
+import android.content.Intent
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -8,6 +10,7 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -15,6 +18,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -30,7 +34,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ledger.personal.BuildConfig
@@ -52,6 +55,7 @@ import androidx.compose.material3.OutlinedButton
 import com.ledger.personal.ui.app.HelpScreen
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.app.InsightsHub
+import com.ledger.personal.ui.app.InsightsHubViewModel
 import com.ledger.personal.ui.app.MOCK_ROLES
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
@@ -59,6 +63,9 @@ import com.ledger.personal.ui.app.MockControlsScreen
 import com.ledger.personal.ui.app.MoneyHub
 import com.ledger.personal.ui.app.NotificationsScreen
 import com.ledger.personal.ui.app.PayHub
+import com.ledger.personal.ui.app.PayHubViewModel
+import com.ledger.personal.ui.app.PromotionsHub
+import com.ledger.personal.ui.app.PromotionsViewModel
 import com.ledger.personal.ui.app.ProfileScreen
 import com.ledger.personal.ui.app.SecurityScreen
 import com.ledger.personal.ui.app.SessionState
@@ -84,6 +91,7 @@ import com.ledger.personal.ui.screens.edit.EditTransactionViewModel
 import com.ledger.personal.ui.screens.home.HomeScreen
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListViewModel
+import androidx.core.util.Consumer
 
 /** Tab. */
 private data class Tab(val route: Screen, val label: String, val icon: ImageVector)
@@ -93,6 +101,7 @@ private val tabs = listOf(
     Tab(Screen.MoneyHub, "Money", Icons.Outlined.AccountBalanceWallet),
     Tab(Screen.PayHub, "Pay", Icons.Outlined.QrCodeScanner),
     Tab(Screen.InsightsHub, "Insights", Icons.Outlined.Insights),
+    Tab(Screen.Promotions(), "Offers", Icons.Outlined.LocalOffer),
     Tab(Screen.Assistant, "Assistant", Icons.Outlined.AutoAwesome),
 )
 
@@ -111,6 +120,12 @@ fun LedgerNavHost(
     val destination = entry?.destination
     val flags = HubFlags(offline, empty, session.revealBalances || !prefs.hideBalances, appViewModel::toggleReveal)
     val tools: ToolsViewModel = hiltViewModel()
+    val activity = LocalContext.current as ComponentActivity
+    DisposableEffect(activity, navController) {
+        val listener = Consumer<Intent> { incoming -> navController.handleDeepLink(incoming) }
+        activity.addOnNewIntentListener(listener)
+        onDispose { activity.removeOnNewIntentListener(listener) }
+    }
     val categoriesReady by appViewModel.categoriesReady.collectAsStateWithLifecycle()
     val categories = if (categoriesReady) prefs.categories else emptyList()
     val defaultCategories = if (categoriesReady) prefs.defaultCategories else emptyList()
@@ -167,22 +182,38 @@ private fun NavGraphBuilder.tabRoutes(nav: NavHostController, prefs: AppPrefs, f
             onCreate = { nav.navigate(Screen.CreateTransaction) },
             onSeeAll = { nav.navigate(Screen.TransactionList) },
             onQuickAction = { action ->
-                nav.navigate(
-                    when (action) {
-                        "send" -> Screen.Wallet
-                        "upi" -> Screen.Scan
-                        "budgets" -> Screen.Budgets
-                        else -> Screen.Banking
-                    },
-                )
+                val route = when (action) {
+                    "send" -> Screen.Wallet
+                    "upi" -> Screen.Scan
+                    "bills" -> Screen.Banking
+                    "budgets" -> Screen.Budgets
+                    "ask" -> Screen.Assistant
+                    "offers" -> Screen.Promotions()
+                    else -> null
+                }
+                if (route != null) nav.navigate(route)
             },
             conflicts = conflicts.size,
             onConflicts = { nav.navigate(Screen.Conflicts) },
         )
     }
     composable<Screen.MoneyHub> { MoneyHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate) }
-    composable<Screen.PayHub> { PayHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate) }
-    composable<Screen.InsightsHub> { InsightsHub({ nav.navigate(Screen.Profile) }, nav::navigate) }
+    composable<Screen.PayHub> {
+        val pay: PayHubViewModel = hiltViewModel()
+        val shortcuts by pay.shortcuts.collectAsStateWithLifecycle()
+        PayHub(flags, shortcuts, { nav.navigate(Screen.Profile) }, nav::navigate)
+    }
+    composable<Screen.InsightsHub> {
+        val insights: InsightsHubViewModel = hiltViewModel()
+        val highlights by insights.highlights.collectAsStateWithLifecycle()
+        InsightsHub(highlights, { nav.navigate(Screen.Profile) }, nav::navigate)
+    }
+    composable<Screen.Promotions>(deepLinks = promotionLinks()) {
+        val offers: PromotionsViewModel = hiltViewModel()
+        val shelves by offers.shelves.collectAsStateWithLifecycle()
+        val selected by offers.selected.collectAsStateWithLifecycle()
+        PromotionsHub(shelves, selected, offers::select) { nav.navigate(Screen.Profile) }
+    }
     composable<Screen.Assistant> {
         AssistantScreen(onBack = null, onReviewPayment = { nav.navigate(Screen.Wallet) }, offline = flags.offline)
     }
@@ -208,12 +239,7 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
 /** Ledger routes. */
 private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: List<String>, categoriesLoading: Boolean) {
     listRoute(nav)
-    composable<Screen.TransactionDetail>(
-        deepLinks = listOf(
-            navDeepLink<Screen.TransactionDetail>(basePath = "ledger://transactions"),
-            navDeepLink<Screen.TransactionDetail>(basePath = "https://app.personal-ledger.com/transactions"),
-        ),
-    ) { backStackEntry ->
+    composable<Screen.TransactionDetail>(deepLinks = appLinks<Screen.TransactionDetail>("transactions")) { backStackEntry ->
         val route = backStackEntry.toRoute<Screen.TransactionDetail>()
         val viewModel: TransactionDetailViewModel = hiltViewModel()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -333,7 +359,7 @@ private fun NavGraphBuilder.toolRoutes(
             nav.navigate(Screen.PayTo(target.vpa, target.amountMinor)) { popUpTo<Screen.Scan> { inclusive = true } }
         }
     }
-    composable<Screen.PayTo> { entry ->
+    composable<Screen.PayTo>(deepLinks = appLinks<Screen.PayTo>("pay")) { entry ->
         val route = entry.toRoute<Screen.PayTo>()
         WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, prefillHandle = route.handle, prefillMinor = route.amountMinor)
     }

@@ -94,7 +94,7 @@ fun AssistantScreen(
             }, onCancel = { pending = null })
         }
         if (state.messages.isEmpty()) {
-            Welcome(onPick = viewModel::ask)
+            Welcome(state.prompts, state.promptsMessage, viewModel::ask)
         } else {
             LazyColumn(
                 state = listState,
@@ -112,7 +112,7 @@ fun AssistantScreen(
 
 /** Shows welcome. */
 @Composable
-private fun Welcome(onPick: (String) -> Unit) {
+private fun Welcome(prompts: List<String>, message: String?, onPick: (String) -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(top = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -126,7 +126,8 @@ private fun Welcome(onPick: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    assistantSuggestions.forEach { suggestion ->
+    message?.let { StatusBanner(it, BannerTone.WARNING) }
+    prompts.forEach { suggestion ->
         SuggestionChip(onClick = { onPick(suggestion) }, label = { Text(suggestion) }, modifier = Modifier.fillMaxWidth())
     }
 }

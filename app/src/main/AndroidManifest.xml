@@ -23,6 +23,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -39,7 +40,27 @@
                     android:host="transactions" />
             </intent-filter>
 
-            <!-- Web Deep Link: https://app.personal-ledger.com/transactions/{id} -->
+            <!-- ledger://pay/{handle}/{amountMinor} -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="ledger"
+                    android:host="pay" />
+            </intent-filter>
+
+            <!-- ledger://promotions?tab={key} -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="ledger"
+                    android:host="promotions" />
+            </intent-filter>
+
+            <!-- https://{flavor host}/transactions/{id} -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -48,6 +69,28 @@
                     android:scheme="https"
                     android:host="${appLinkHost}"
                     android:pathPrefix="/transactions" />
+            </intent-filter>
+
+            <!-- https://{flavor host}/pay/{handle}/{amountMinor} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="${appLinkHost}"
+                    android:pathPrefix="/pay/" />
+            </intent-filter>
+
+            <!-- https://{flavor host}/promotions?tab={key} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="${appLinkHost}"
+                    android:path="/promotions" />
             </intent-filter>
         </activity>
 

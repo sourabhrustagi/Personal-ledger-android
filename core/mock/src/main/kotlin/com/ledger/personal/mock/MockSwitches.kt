@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 import kotlin.random.Random
 
-/** Debug-only levers for the mock flavor; every screen reads the same switches. */
+/** Debug levers for the mock flavor. The app reads them only through the mock binding. */
 object MockSwitches {
     val slow = MutableStateFlow(false)
     val failures = MutableStateFlow(false)

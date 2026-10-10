@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTextApi::class)
+
 package com.ledger.personal.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -12,9 +14,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ledger.personal.designsystem.R
 
 /** Allowed values of theme mode. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -95,27 +103,44 @@ private val DarkScheme = darkColorScheme(
     onErrorContainer = Red300,
 )
 
-/** Tabular. */
-private fun TextStyle.tabular(size: Int? = null) =
-    copy(fontFeatureSettings = "tnum", fontSize = size?.sp ?: fontSize, lineHeight = size?.let { (it + 8).sp } ?: lineHeight)
+private fun inter(weight: FontWeight) = Font(
+    R.font.inter,
+    weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
+
+private val Inter = FontFamily(
+    inter(FontWeight.Normal),
+    inter(FontWeight.Medium),
+    inter(FontWeight.SemiBold),
+    inter(FontWeight.Bold),
+)
+
+/** Tabular figures in Inter. */
+private fun TextStyle.ledger(size: Int? = null) = copy(
+    fontFamily = Inter,
+    fontFeatureSettings = "tnum",
+    fontSize = size?.sp ?: fontSize,
+    lineHeight = size?.let { (it + 8).sp } ?: lineHeight,
+)
 
 private val LedgerTypography = Typography().run {
     copy(
-        displayLarge = displayLarge.tabular(),
-        displayMedium = displayMedium.tabular(),
-        displaySmall = displaySmall.tabular(),
-        headlineLarge = headlineLarge.tabular(),
-        headlineMedium = headlineMedium.tabular(),
-        headlineSmall = headlineSmall.tabular(),
-        titleLarge = titleLarge.tabular(22),
-        titleMedium = titleMedium.tabular(18),
-        titleSmall = titleSmall.tabular(16),
-        bodyLarge = bodyLarge.tabular(16),
-        bodyMedium = bodyMedium.tabular(16),
-        bodySmall = bodySmall.tabular(14),
-        labelLarge = labelLarge.tabular(16),
-        labelMedium = labelMedium.tabular(14),
-        labelSmall = labelSmall.tabular(14),
+        displayLarge = displayLarge.ledger(),
+        displayMedium = displayMedium.ledger(),
+        displaySmall = displaySmall.ledger(),
+        headlineLarge = headlineLarge.ledger(),
+        headlineMedium = headlineMedium.ledger(),
+        headlineSmall = headlineSmall.ledger(),
+        titleLarge = titleLarge.ledger(22),
+        titleMedium = titleMedium.ledger(18),
+        titleSmall = titleSmall.ledger(16),
+        bodyLarge = bodyLarge.ledger(16),
+        bodyMedium = bodyMedium.ledger(16),
+        bodySmall = bodySmall.ledger(14),
+        labelLarge = labelLarge.ledger(16),
+        labelMedium = labelMedium.ledger(14),
+        labelSmall = labelSmall.ledger(14),
     )
 }
 

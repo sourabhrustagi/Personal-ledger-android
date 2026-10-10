@@ -41,8 +41,13 @@ android {
             versionNameSuffix = "-mock"
             manifestPlaceholders["appName"] = "Personal Ledger Mock"
             manifestPlaceholders["appLinkHost"] = "mock.app.personal-ledger.com"
+            buildConfigField("String", "APP_LINK_HOST", "\"mock.app.personal-ledger.com\"")
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/retail/v1/\"")
             buildConfigField("String", "TICKER_URL", "\"ws://10.0.2.2:8080/retail/v1/ticks\"")
+            buildConfigField("String", "PAYMENTS_BASE_URL", "\"http://10.0.2.2:8091/v1/\"")
+            buildConfigField("String", "INSIGHTS_BASE_URL", "\"http://10.0.2.2:8092/v1/\"")
+            buildConfigField("String", "ASSISTANT_BASE_URL", "\"http://10.0.2.2:8093/v1/\"")
+            buildConfigField("String", "PROMOTIONS_BASE_URL", "\"http://10.0.2.2:8094/v1/\"")
         }
         create("dev") {
             dimension = "environment"
@@ -50,8 +55,13 @@ android {
             versionNameSuffix = "-dev"
             manifestPlaceholders["appName"] = "Personal Ledger Dev"
             manifestPlaceholders["appLinkHost"] = "dev.app.personal-ledger.com"
+            buildConfigField("String", "APP_LINK_HOST", "\"dev.app.personal-ledger.com\"")
             buildConfigField("String", "API_BASE_URL", "\"https://dev-api.personal-ledger.com/retail/v1/\"")
             buildConfigField("String", "TICKER_URL", "\"wss://dev-api.personal-ledger.com/retail/v1/ticks\"")
+            buildConfigField("String", "PAYMENTS_BASE_URL", "\"https://dev-payments.personal-ledger.com/v1/\"")
+            buildConfigField("String", "INSIGHTS_BASE_URL", "\"https://dev-insights.personal-ledger.com/v1/\"")
+            buildConfigField("String", "ASSISTANT_BASE_URL", "\"https://dev-assistant.personal-ledger.com/v1/\"")
+            buildConfigField("String", "PROMOTIONS_BASE_URL", "\"https://dev-promotions.personal-ledger.com/v1/\"")
         }
         create("staging") {
             dimension = "environment"
@@ -59,15 +69,25 @@ android {
             versionNameSuffix = "-staging"
             manifestPlaceholders["appName"] = "Personal Ledger Staging"
             manifestPlaceholders["appLinkHost"] = "staging.app.personal-ledger.com"
+            buildConfigField("String", "APP_LINK_HOST", "\"staging.app.personal-ledger.com\"")
             buildConfigField("String", "API_BASE_URL", "\"https://staging-api.personal-ledger.com/retail/v1/\"")
             buildConfigField("String", "TICKER_URL", "\"wss://staging-api.personal-ledger.com/retail/v1/ticks\"")
+            buildConfigField("String", "PAYMENTS_BASE_URL", "\"https://staging-payments.personal-ledger.com/v1/\"")
+            buildConfigField("String", "INSIGHTS_BASE_URL", "\"https://staging-insights.personal-ledger.com/v1/\"")
+            buildConfigField("String", "ASSISTANT_BASE_URL", "\"https://staging-assistant.personal-ledger.com/v1/\"")
+            buildConfigField("String", "PROMOTIONS_BASE_URL", "\"https://staging-promotions.personal-ledger.com/v1/\"")
         }
         create("prod") {
             dimension = "environment"
             manifestPlaceholders["appName"] = "Personal Ledger"
             manifestPlaceholders["appLinkHost"] = "app.personal-ledger.com"
+            buildConfigField("String", "APP_LINK_HOST", "\"app.personal-ledger.com\"")
             buildConfigField("String", "API_BASE_URL", "\"https://api.personal-ledger.com/retail/v1/\"")
             buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
+            buildConfigField("String", "PAYMENTS_BASE_URL", "\"https://payments.personal-ledger.com/v1/\"")
+            buildConfigField("String", "INSIGHTS_BASE_URL", "\"https://insights.personal-ledger.com/v1/\"")
+            buildConfigField("String", "ASSISTANT_BASE_URL", "\"https://assistant.personal-ledger.com/v1/\"")
+            buildConfigField("String", "PROMOTIONS_BASE_URL", "\"https://promotions.personal-ledger.com/v1/\"")
         }
     }
 

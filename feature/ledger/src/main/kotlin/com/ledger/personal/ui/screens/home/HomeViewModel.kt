@@ -3,7 +3,8 @@ package com.ledger.personal.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.domain.board.HomeBoard
-import com.ledger.personal.domain.board.HomeTile
+import com.ledger.personal.domain.board.HomeSection
+import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
@@ -44,11 +45,19 @@ data class HomeUiState(
     val sync: SyncPhase = SyncPhase.IDLE,
     val pendingDelete: Transaction? = null,
     val total: Int = 0,
-    val tiles: List<HomeTile> = emptyList(),
-    val tilesMessage: String? = null,
+    val tabs: List<HomeTab> = emptyList(),
+    val sections: List<HomeSection> = emptyList(),
+    val layoutReady: Boolean = false,
+    val layoutMessage: String? = null,
 )
 
 private const val RECENT_LIMIT = 30
+
+/** Balance and recent activity stay on screen when the dashboard cannot be loaded. */
+private val essentialHome = listOf(HomeSection.Balance, HomeSection.Activity("Recent"))
+
+/** Home stays reachable when the dashboard cannot be loaded. */
+private val essentialTabs = listOf(HomeTab("home", "Home"))
 const val UNDO_WINDOW_MS = 4_000L
 
 /** State and actions for the home screen. */
@@ -61,16 +70,26 @@ class HomeViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val category = MutableStateFlow<String?>(null)
     private val pending = MutableStateFlow<Transaction?>(null)
-    private val tiles = MutableStateFlow<List<HomeTile>>(emptyList())
-    private val tilesMessage = MutableStateFlow<String?>(null)
+    private val tabs = MutableStateFlow<List<HomeTab>>(emptyList())
+    private val sections = MutableStateFlow<List<HomeSection>>(emptyList())
+    private val layoutMessage = MutableStateFlow<String?>(null)
+    private val layoutReady = MutableStateFlow(false)
     private var deleteJob: Job? = null
 
     init {
         viewModelScope.launch {
-            board.tiles().fold(
-                onSuccess = { tiles.value = it },
-                onFailure = { tilesMessage.value = "The home layout couldn't load." },
+            board.layout().fold(
+                onSuccess = {
+                    tabs.value = it.tabs
+                    sections.value = it.sections
+                },
+                onFailure = {
+                    layoutMessage.value = "The home layout couldn't load."
+                    tabs.value = essentialTabs
+                    sections.value = essentialHome
+                },
             )
+            layoutReady.value = true
         }
     }
 
@@ -78,9 +97,11 @@ class HomeViewModel @Inject constructor(
         combine(repository.observeTransactions(), query, category, pending, sync.observe()) { all, q, cat, held, phase ->
             LedgerSlice(all, q, cat, held, phase)
         },
-        tiles,
-        tilesMessage,
-    ) { slice, boardTiles, message ->
+        tabs,
+        sections,
+        layoutMessage,
+        layoutReady,
+    ) { slice, bar, board, message, ready ->
         val (all, q, cat, held, phase) = slice
         val visible = all.filter { it.id != held?.id }
         val month = YearMonth.now()
@@ -100,8 +121,10 @@ class HomeViewModel @Inject constructor(
             sync = phase,
             pendingDelete = held,
             total = filtered.size,
-            tiles = boardTiles,
-            tilesMessage = message,
+            tabs = bar,
+            sections = board,
+            layoutReady = ready,
+            layoutMessage = message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

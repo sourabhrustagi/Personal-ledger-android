@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ledger.personal.core.TRANSACTION_ATTEMPTS
 import com.ledger.personal.mock.MockCatalog
 import java.math.BigDecimal
@@ -50,7 +50,7 @@ fun WalletScreen(
     offline: Boolean = false,
     prefillHandle: String? = null,
     prefillMinor: Long = 0L,
-    viewModel: WalletViewModel = viewModel(),
+    viewModel: WalletViewModel = hiltViewModel(),
 ) {
     remember(prefillHandle, prefillMinor) {
         prefillHandle?.let(viewModel::onRecipient)

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,11 +49,12 @@ import com.ledger.personal.ui.app.ToolsViewModel
 import com.ledger.personal.ui.feature.SplitBillScreen
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.platform.LocalContext
 import com.ledger.personal.ui.app.HelpScreen
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.app.InsightsHub
 import com.ledger.personal.ui.app.MOCK_ROLES
+import com.ledger.personal.ui.app.offlineNow
+import com.ledger.personal.ui.app.rememberConnected
 import com.ledger.personal.ui.app.MockControlsScreen
 import com.ledger.personal.ui.app.MoneyHub
 import com.ledger.personal.ui.app.NotificationsScreen
@@ -102,7 +104,8 @@ fun LedgerNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val session by appViewModel.session.collectAsStateWithLifecycle()
-    val offline by MockSwitches.offline.collectAsStateWithLifecycle()
+    val mockOffline by MockSwitches.offline.collectAsStateWithLifecycle()
+    val offline = offlineNow(mockOffline, rememberConnected())
     val empty by MockSwitches.empty.collectAsStateWithLifecycle()
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
@@ -285,6 +288,7 @@ private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPref
             onMode = app::setMode,
             onOpen = nav::navigate,
             onLock = app::lock,
+            onLogOut = app::logOut,
         )
     }
     composable<Screen.Settings> { SettingsScreen(prefs, back, { app.setTheme(it) }, { app.setHideBalances(it) }) }

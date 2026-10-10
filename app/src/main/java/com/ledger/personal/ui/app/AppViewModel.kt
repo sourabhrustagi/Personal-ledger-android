@@ -12,6 +12,7 @@ import com.ledger.personal.data.security.DeviceKeys
 import com.ledger.personal.data.security.PIN_V2
 import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.updateRequired
+import com.ledger.personal.domain.session.Session
 import com.ledger.personal.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,9 @@ fun mockPinUnlocks(pin: String, mockFlavor: Boolean): Boolean = mockFlavor && pi
 /** Mock user holds every role so the switcher is demonstrable; a live build would read roles from the session token. */
 val MOCK_ROLES = setOf("CUSTOMER", "MERCHANT", "ANALYST")
 
+/** True when the mock switch is on or the phone has no internet. */
+fun offlineNow(mockOffline: Boolean, connected: Boolean): Boolean = mockOffline || !connected
+
 /** State and actions for the app screen. */
 @HiltViewModel
 class AppViewModel @Inject constructor(
@@ -58,6 +62,7 @@ class AppViewModel @Inject constructor(
     private val server: BindingServer,
     categorySync: CategorySync,
     release: AppRelease,
+    private val signIn: Session,
 ) : ViewModel() {
     val prefs: StateFlow<AppPrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -168,8 +173,15 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    /** Ends this sign-in. The ledger stays on the phone and opens again with the MPIN. */
+    fun logOut() {
+        signIn.end()
+        lock()
+    }
+
     /** Sign out everywhere. */
     fun signOutEverywhere() = viewModelScope.launch {
+        signIn.end()
         keys.delete()
         store.reset()
         mutableSession.value = SessionState()

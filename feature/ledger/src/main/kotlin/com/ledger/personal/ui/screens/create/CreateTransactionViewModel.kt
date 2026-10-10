@@ -2,6 +2,7 @@ package com.ledger.personal.ui.screens.create
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.util.toMinorUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,7 +71,7 @@ class CreateTransactionViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = error.localizedMessage ?: "Failed to save transaction"
+                            errorMessage = transactionFailureMessage(error)
                         )
                     }
                 }

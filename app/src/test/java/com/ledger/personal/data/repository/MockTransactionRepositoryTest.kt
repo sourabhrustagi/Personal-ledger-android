@@ -1,11 +1,15 @@
 package com.ledger.personal.data.repository
 
+import com.ledger.personal.core.TransactionRejected
+import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.testing.sampleTransaction
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 class MockTransactionRepositoryTest {
 
@@ -13,8 +17,16 @@ class MockTransactionRepositoryTest {
 
     @Before
     fun setUp() {
+        MockSwitches.flakyPayments.value = false
+        MockSwitches.nextRolls.clear()
         repository = MockTransactionRepository()
         repository.clear()
+    }
+
+    @After
+    fun tearDown() {
+        MockSwitches.flakyPayments.value = false
+        MockSwitches.nextRolls.clear()
     }
 
     @Test
@@ -161,5 +173,33 @@ class MockTransactionRepositoryTest {
         val stored = repository.getTransactionById("dup").getOrThrow()
         assertEquals(200L, stored.amountInCents)
         assertEquals("Rent", stored.category)
+    }
+
+    @Test
+    fun createRetriesACancelledWriteThenSucceeds() = runTest {
+        MockSwitches.flakyPayments.value = true
+        MockSwitches.nextRolls.addLast(0)
+        MockSwitches.nextRolls.addLast(80)
+        val created = repository.createTransaction(500L, "INR", "Food", "Tea").getOrThrow()
+        assertEquals("Food", created.category)
+        assertEquals(1, repository.getTransactions(1, 10).getOrThrow().size)
+    }
+
+    @Test
+    fun createDoesNotRetryAServerRejection() = runTest {
+        MockSwitches.flakyPayments.value = true
+        MockSwitches.nextRolls.addLast(30)
+        val result = repository.createTransaction(500L, "INR", "Food", "Tea")
+        assertTrue(result.exceptionOrNull() is TransactionRejected)
+        assertTrue(repository.getTransactions(1, 10).getOrThrow().isEmpty())
+    }
+
+    @Test
+    fun createGivesUpAfterDroppedConnections() = runTest {
+        MockSwitches.flakyPayments.value = true
+        repeat(3) { MockSwitches.nextRolls.addLast(0) }
+        val result = repository.createTransaction(500L, "INR", "Food", "Tea")
+        assertTrue(result.exceptionOrNull() is IOException)
+        assertTrue(repository.getTransactions(1, 10).getOrThrow().isEmpty())
     }
 }

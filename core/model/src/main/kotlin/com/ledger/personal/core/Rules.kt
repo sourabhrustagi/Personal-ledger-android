@@ -33,6 +33,9 @@ class TransferBook {
 
     /** How many distinct transfers have been recorded. */
     fun size(): Int = posted.size
+
+    /** Sum of every distinct transfer. */
+    fun total(): Long = posted.values.sum()
 }
 
 /** Result of checking whether the actor may see a wallet. */

@@ -2,7 +2,9 @@ package com.ledger.personal.ui.screens.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.testing.asSnapshot
+import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.data.repository.MockTransactionRepository
+import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.testing.MockSyncCoordinator
 import com.ledger.personal.testing.MockUserSettings
 import com.ledger.personal.testing.ScriptedTransactionRepository
@@ -39,6 +41,8 @@ class TransactionViewModelsTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        MockSwitches.flakyPayments.value = false
+        MockSwitches.nextRolls.clear()
         mockRepository = MockTransactionRepository()
         sync = MockSyncCoordinator()
     }
@@ -185,7 +189,7 @@ class TransactionViewModelsTest {
         viewModel.onCategoryChange("Food")
         viewModel.submit()
         advanceUntilIdle()
-        assertEquals("save failed", viewModel.uiState.value.errorMessage)
+        assertEquals(transactionFailureMessage(IllegalStateException("save failed")), viewModel.uiState.value.errorMessage)
         assertFalse(viewModel.uiState.value.isSuccess)
         assertFalse(viewModel.uiState.value.isSubmitting)
     }
@@ -266,7 +270,7 @@ class TransactionViewModelsTest {
         viewModel.onDescriptionChange("changed")
         viewModel.submitPatch()
         advanceUntilIdle()
-        assertEquals("conflict", viewModel.uiState.value.errorMessage)
+        assertEquals(transactionFailureMessage(IllegalStateException("conflict")), viewModel.uiState.value.errorMessage)
         assertEquals("x", repo.lastPatchId)
         assertEquals("changed", repo.lastPatchDescription)
         assertNull(repo.lastPatchCategory)
@@ -318,7 +322,7 @@ class TransactionViewModelsTest {
         repo.deleteResult = Result.failure(IllegalStateException("locked"))
         viewModel.confirmDelete()
         advanceUntilIdle()
-        assertEquals("locked", viewModel.uiState.value.errorMessage)
+        assertEquals(transactionFailureMessage(IllegalStateException("locked")), viewModel.uiState.value.errorMessage)
         assertFalse(viewModel.uiState.value.isDeleted)
         assertFalse(viewModel.uiState.value.showDeleteConfirmation)
     }

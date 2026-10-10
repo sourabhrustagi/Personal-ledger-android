@@ -3,6 +3,7 @@ package com.ledger.personal.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,7 +71,7 @@ class TransactionDetailViewModel @Inject constructor(
                         it.copy(
                             deleting = false,
                             showDialog = false,
-                            errorMessage = error.message ?: "Failed to delete transaction",
+                            errorMessage = transactionFailureMessage(error),
                         )
                     }
                 },

@@ -108,7 +108,7 @@ fun SyncIndicator(state: SyncState, modifier: Modifier = Modifier) {
         SyncState.SYNCED -> Triple(Icons.Outlined.CloudDone, "Synced", BannerTone.SUCCESS)
         SyncState.SYNCING -> Triple(Icons.Outlined.Sync, "Syncing", BannerTone.INFO)
         SyncState.WAITING -> Triple(Icons.Outlined.CloudOff, "Waiting for network", BannerTone.WARNING)
-        SyncState.FAILED -> Triple(Icons.Outlined.ErrorOutline, "Sync failed, retry", BannerTone.ERROR)
+        SyncState.FAILED -> Triple(Icons.Outlined.ErrorOutline, "Couldn't reach the bank", BannerTone.ERROR)
     }
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, contentDescription = null, tint = toneColor(tone), modifier = Modifier.size(16.dp))

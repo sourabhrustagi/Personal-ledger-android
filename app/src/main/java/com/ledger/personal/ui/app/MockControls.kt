@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.SignalCellularConnectedNoInternet4Bar
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SyncProblem
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
     val offline by MockSwitches.offline.collectAsStateWithLifecycle()
     val empty by MockSwitches.empty.collectAsStateWithLifecycle()
     val dropLive by MockSwitches.dropLive.collectAsStateWithLifecycle()
+    val flakyPayments by MockSwitches.flakyPayments.collectAsStateWithLifecycle()
     FeatureScaffold("Mock controls", onBack, subtitle = "Debug build only") {
         StatusBanner("These switches change what the mock backend returns. The next request or refresh uses them.", BannerTone.INFO)
         SectionCard(title = "Network") {
@@ -37,6 +39,12 @@ fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
             SwitchRow(Icons.Outlined.LinkOff, "Drop live connection", "Ticker falls back to polling", dropLive) {
                 MockSwitches.dropLive.value = it
             }
+            SwitchRow(
+                Icons.Outlined.SignalCellularConnectedNoInternet4Bar,
+                "Flaky payments",
+                "About 1 in 3 writes drop, are cancelled, or the server refuses",
+                flakyPayments,
+            ) { MockSwitches.flakyPayments.value = it }
         }
         SectionCard(title = "Data") {
             SwitchRow(Icons.Outlined.Inbox, "Empty data", "Accounts and sync return nothing", empty) { MockSwitches.empty.value = it }

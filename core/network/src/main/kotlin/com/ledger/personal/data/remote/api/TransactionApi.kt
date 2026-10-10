@@ -9,10 +9,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.appendPathSegments
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,9 +54,15 @@ class KtorTransactionApi @Inject constructor(
     override suspend fun getTransactionById(id: String): TransactionDto =
         client.get { url { appendPathSegments("transactions", id) } }.body()
 
-    /** Creates transaction. */
+    /**
+     * Creates transaction. The key is fixed for this call, so the retry plugin resends the same one.
+     * ponytail: a WorkManager re-run sends a new key; pass the local row id once the server accepts it.
+     */
     override suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto =
-        client.post("transactions") { setBody(request) }.body()
+        client.post("transactions") {
+            header("Idempotency-Key", UUID.randomUUID().toString())
+            setBody(request)
+        }.body()
 
     /** Patch transaction. */
     override suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto =

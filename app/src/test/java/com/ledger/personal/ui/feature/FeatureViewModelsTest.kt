@@ -43,7 +43,7 @@ class FeatureViewModelsTest {
 
     @Test
     fun walletRejectsInsufficientFundsAndRetriesOnce() {
-        val viewModel = WalletViewModel()
+        val viewModel = WalletViewModel(rail = { post -> post() }, retryDelayMs = 0)
         viewModel.onAmount(viewModel.uiState.value.balanceMinor + 1)
         viewModel.review()
         assertEquals(TransferStatus.INSUFFICIENT, viewModel.uiState.value.status)
@@ -51,9 +51,54 @@ class FeatureViewModelsTest {
         viewModel.onAmount(100L)
         viewModel.review()
         viewModel.onStepUp(true)
+        dispatcher.scheduler.advanceUntilIdle()
         viewModel.retry()
+        dispatcher.scheduler.advanceUntilIdle()
         assertEquals(TransferStep.RECEIPT, viewModel.uiState.value.step)
         assertEquals(1, viewModel.postedCount())
+    }
+
+    @Test
+    fun droppedResponseAfterPostingIsRetriedWithoutChargingTwice() {
+        var calls = 0
+        val viewModel = WalletViewModel(
+            rail = { post ->
+                calls++
+                val posted = post()
+                if (calls == 1) throw java.io.IOException("dropped after posting")
+                posted
+            },
+            retryDelayMs = 0,
+        )
+        val opening = viewModel.uiState.value.balanceMinor
+        viewModel.onAmount(100L)
+        viewModel.review()
+        viewModel.onStepUp(true)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(TransferStatus.DONE, viewModel.uiState.value.status)
+        assertEquals(2, calls)
+        assertEquals(1, viewModel.postedCount())
+        assertEquals(opening - 100L, viewModel.uiState.value.balanceMinor)
+    }
+
+    @Test
+    fun declinedPaymentShowsAMessageAndIsNotRetried() {
+        var calls = 0
+        val viewModel = WalletViewModel(
+            rail = {
+                calls++
+                throw com.ledger.personal.core.TransactionRejected("Your bank declined this payment")
+            },
+            retryDelayMs = 0,
+        )
+        viewModel.onAmount(100L)
+        viewModel.review()
+        viewModel.onStepUp(true)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(TransferStatus.FAILED, viewModel.uiState.value.status)
+        assertEquals(1, calls)
+        assertEquals(0, viewModel.postedCount())
+        assertTrue(viewModel.uiState.value.errorMessage!!.contains("Nothing was changed on the server"))
     }
 
     @Test

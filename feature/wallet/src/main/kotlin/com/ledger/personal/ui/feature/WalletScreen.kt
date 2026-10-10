@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ledger.personal.core.TRANSACTION_ATTEMPTS
 import com.ledger.personal.mock.MockCatalog
 import java.math.BigDecimal
 
@@ -149,16 +150,24 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
         DetailRow("Fee", "Free")
         DetailRow("Reference", state.idempotencyKey)
     }
-    StatusBanner("We'll ask for your fingerprint or screen lock before sending.", BannerTone.INFO)
-    if (state.status == TransferStatus.PENDING) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    when (state.status) {
+        TransferStatus.PENDING -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator()
-            Text("Sending…")
+            Text(
+                if (state.attempt <= 1) "Sending…" else "Weak connection. Trying again (${state.attempt} of $TRANSACTION_ATTEMPTS)…",
+            )
         }
-    } else {
-        StepUpButton(debugStepUp) { viewModel.onStepUp(it) }
+        TransferStatus.FAILED -> {
+            StatusBanner(state.errorMessage.orEmpty(), BannerTone.ERROR, title = "Payment not completed")
+        }
+        else -> {
+            StatusBanner("We'll ask for your fingerprint or screen lock before sending.", BannerTone.INFO)
+            StepUpButton(debugStepUp) { viewModel.onStepUp(it) }
+        }
     }
-    TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text("Edit details") }
+    if (state.status != TransferStatus.PENDING) {
+        TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text("Edit details") }
+    }
 }
 
 /** Shows transfer receipt. */

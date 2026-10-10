@@ -12,3 +12,12 @@ class MockPinTest {
         assertFalse(mockPinUnlocks("2580", mockFlavor = true))
     }
 }
+
+class OfflineNowTest {
+    @Test
+    fun mockSwitchOrNoConnection() {
+        assertTrue(offlineNow(mockOffline = true, connected = true))
+        assertTrue(offlineNow(mockOffline = false, connected = false))
+        assertFalse(offlineNow(mockOffline = false, connected = true))
+    }
+}

@@ -63,13 +63,13 @@ class OfflineTransactionRepository @Inject constructor(
         }
     }
 
-    /** Creates transaction. */
+    /** Creates transaction. The row is saved first; a refused write is shown and a dropped one is left to sync. */
     override suspend fun createTransaction(
         amountInCents: Long,
         currency: String,
         category: String,
         description: String,
-    ): Result<Transaction> = runCatching {
+    ): Result<Transaction> {
         val created = Transaction(
             id = UUID.randomUUID().toString(),
             amountInCents = amountInCents,
@@ -79,8 +79,15 @@ class OfflineTransactionRepository @Inject constructor(
             timestampEpochMs = System.currentTimeMillis(),
         )
         dao.upsert(created.toEntity(SyncState.PENDING_CREATE, created.timestampEpochMs))
+        val pushed = remote.createTransaction(amountInCents, currency, category, description)
+        if (pushed.isSuccess) {
+            dao.delete(created.id)
+            val confirmed = pushed.getOrThrow()
+            dao.upsert(confirmed.toEntity(SyncState.SYNCED, created.timestampEpochMs))
+            return Result.success(confirmed)
+        }
         syncCoordinator.enqueue()
-        created
+        return pushed
     }
 
     /** Patch transaction. */
@@ -89,8 +96,8 @@ class OfflineTransactionRepository @Inject constructor(
         category: String?,
         description: String?,
         amountInCents: Long?,
-    ): Result<Transaction> = runCatching {
-        val existing = dao.find(id) ?: throw NoSuchElementException("Transaction not found with id: $id")
+    ): Result<Transaction> {
+        val existing = dao.find(id) ?: return Result.failure(NoSuchElementException("Transaction not found with id: $id"))
         val updated = existing.toDomain().copy(
             category = category ?: existing.category,
             description = description ?: existing.description,
@@ -102,19 +109,31 @@ class OfflineTransactionRepository @Inject constructor(
             SyncState.PENDING_UPDATE
         }
         dao.upsert(updated.toEntity(state, System.currentTimeMillis()))
+        val pushed = remote.patchTransaction(id, category, description, amountInCents)
+        if (pushed.isSuccess) {
+            val confirmed = pushed.getOrThrow()
+            dao.upsert(confirmed.toEntity(SyncState.SYNCED, System.currentTimeMillis()))
+            return Result.success(confirmed)
+        }
         syncCoordinator.enqueue()
-        updated
+        return pushed
     }
 
     /** Deletes transaction. */
-    override suspend fun deleteTransaction(id: String): Result<Unit> = runCatching {
-        val existing = dao.find(id) ?: throw NoSuchElementException("Transaction not found with id: $id")
+    override suspend fun deleteTransaction(id: String): Result<Unit> {
+        val existing = dao.find(id) ?: return Result.failure(NoSuchElementException("Transaction not found with id: $id"))
         if (existing.syncState == SyncState.PENDING_CREATE) {
             dao.delete(id)
-        } else {
-            dao.upsert(existing.copy(syncState = SyncState.PENDING_DELETE, updatedAtEpochMs = System.currentTimeMillis()))
+            return Result.success(Unit)
+        }
+        dao.upsert(existing.copy(syncState = SyncState.PENDING_DELETE, updatedAtEpochMs = System.currentTimeMillis()))
+        val deleted = remote.deleteTransaction(id)
+        if (deleted.isSuccess || deleted.exceptionOrNull()?.message?.contains("404") == true) {
+            dao.delete(id)
+            return Result.success(Unit)
         }
         syncCoordinator.enqueue()
+        return deleted
     }
 
     /**

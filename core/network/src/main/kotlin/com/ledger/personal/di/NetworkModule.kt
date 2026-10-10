@@ -1,12 +1,14 @@
 package com.ledger.personal.di
 
 import android.content.Context
+import com.ledger.personal.core.TRANSACTION_ATTEMPTS
 import com.ledger.personal.data.remote.certificatePinner
 import com.ledger.personal.data.remote.api.KtorStaticApi
 import com.ledger.personal.data.remote.api.KtorTransactionApi
 import com.ledger.personal.data.remote.api.StaticApi
 import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.domain.release.AppRelease
+import com.ledger.personal.domain.session.Session
 import com.ledger.personal.domain.settings.CategoryCatalog
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
 import com.ledger.personal.data.remote.interceptor.StaticCacheInterceptor
@@ -19,6 +21,7 @@ import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.accept
@@ -76,7 +79,7 @@ object NetworkModule {
         engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor),
         config = config,
         json = json,
-        webSockets = true,
+        authenticated = true,
     )
 
     /** Public client for the static endpoints. No Authorization header, and responses are kept on disk. */
@@ -99,6 +102,13 @@ object NetworkModule {
             loggingInterceptor,
         )
         return ktorClient(engineClient, config, json)
+    }
+
+    /** Supplies the session. Ending it drops the bearer token. */
+    @Provides
+    @Singleton
+    fun provideSession(auth: AuthInterceptor): Session = object : Session {
+        override fun end() = auth.updateToken(null)
     }
 
     /** Supplies the transaction API. */
@@ -125,12 +135,15 @@ object NetworkModule {
         override suspend fun minimumVersionCode(): Int? = runCatching { api.version().versionCode }.getOrNull()
     }
 
-    /** Builds a Ktor client on the hardened OkHttp engine. */
+    /**
+     * Builds a Ktor client on the hardened OkHttp engine. The authenticated client also speaks WebSockets and
+     * retries dropped connections and 5xx answers; the static client relies on its disk cache instead.
+     */
     private fun ktorClient(
         engineClient: OkHttpClient,
         config: ApiConfig,
         json: Json,
-        webSockets: Boolean = false,
+        authenticated: Boolean = false,
     ): HttpClient = HttpClient(OkHttp) {
         engine { preconfigured = engineClient }
         expectSuccess = true
@@ -139,14 +152,21 @@ object NetworkModule {
             url(config.baseUrl)
             accept(ContentType.Application.Json)
         }
-        if (webSockets) install(WebSockets)
+        if (authenticated) {
+            install(WebSockets)
+            install(HttpRequestRetry) {
+                retryOnExceptionOrServerErrors(maxRetries = TRANSACTION_ATTEMPTS - 1)
+                exponentialDelay()
+            }
+        }
     }
 
-    /** Shared timeouts for the signed-in client and the static client. */
+    /** 30 s so a slow radio can finish a small JSON call before the static cache is used. */
     private fun timeouts(): OkHttpClient.Builder = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
 
     /** Adds logging, debug inspection, and certificate pins, then builds the client. */
     private fun finish(

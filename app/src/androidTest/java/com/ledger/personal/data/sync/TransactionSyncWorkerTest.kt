@@ -14,6 +14,7 @@ import androidx.work.WorkerParameters
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.ledger.personal.data.local.LedgerDatabase
 import com.ledger.personal.data.repository.MockTransactionRepository
+import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.data.repository.OfflineTransactionRepository
 import com.ledger.personal.domain.settings.UserSettings
 import com.ledger.personal.domain.sync.ConflictInbox
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +33,9 @@ import org.junit.runner.RunWith
 class TransactionSyncWorkerTest {
 
     @Test
-    fun workerRunsWhenNetworkAndBatteryConstraintsAreMet() {
+    fun workerRunsOnAnyConnection() {
+        MockSwitches.flakyPayments.value = false
+        MockSwitches.nextRolls.clear()
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, LedgerDatabase::class.java)
             .allowMainThreadQueries()
@@ -66,7 +70,7 @@ class TransactionSyncWorkerTest {
 
         val constraints = TransactionSync.constraints()
         assertEquals(NetworkType.CONNECTED, constraints.requiredNetworkType)
-        assertTrue(constraints.requiresBatteryNotLow())
+        assertFalse(constraints.requiresBatteryNotLow())
 
         val workManager = WorkManager.getInstance(context)
         workManager.enqueueUniqueWork(

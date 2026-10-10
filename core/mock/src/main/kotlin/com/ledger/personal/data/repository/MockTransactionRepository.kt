@@ -1,5 +1,6 @@
 package com.ledger.personal.data.repository
 
+import com.ledger.personal.core.withRetry
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.mock.MockSwitches
@@ -144,8 +145,8 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
         currency: String,
         category: String,
         description: String
-    ): Result<Transaction> = MockSwitches.gate {
-        runCatching {
+    ): Result<Transaction> = withRetry {
+        MockSwitches.transaction {
             val newTx = Transaction(
                 id = UUID.randomUUID().toString(),
                 amountInCents = amountInCents,
@@ -166,7 +167,7 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
         category: String?,
         description: String?,
         amountInCents: Long?
-    ): Result<Transaction> = MockSwitches.gate { patch(id, category, description, amountInCents) }
+    ): Result<Transaction> = withRetry { MockSwitches.transaction { patch(id, category, description, amountInCents).getOrThrow() } }
 
     /** Patch. */
     private fun patch(id: String, category: String?, description: String?, amountInCents: Long?): Result<Transaction> {
@@ -188,12 +189,13 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     }
 
     /** Deletes transaction. */
-    override suspend fun deleteTransaction(id: String): Result<Unit> = MockSwitches.gate {
-        if (storage.remove(id) != null) {
-            publish()
-            Result.success(Unit)
-        } else {
-            Result.failure(NoSuchElementException("Transaction not found with id: $id"))
+    override suspend fun deleteTransaction(id: String): Result<Unit> = withRetry {
+        MockSwitches.transaction {
+            if (storage.remove(id) != null) {
+                publish()
+            } else {
+                throw NoSuchElementException("Transaction not found with id: $id")
+            }
         }
     }
 }

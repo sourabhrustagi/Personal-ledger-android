@@ -3,6 +3,7 @@ package com.ledger.personal.ui.screens.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.util.toMajorUnitsString
 import com.ledger.personal.util.toMinorUnits
@@ -128,7 +129,7 @@ class EditTransactionViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = error.localizedMessage ?: "Failed to update transaction"
+                            errorMessage = transactionFailureMessage(error)
                         )
                     }
                 }

@@ -11,10 +11,9 @@ import java.util.concurrent.TimeUnit
 object TransactionSync {
     const val WORK_NAME = "ledger-transaction-sync"
 
-    /** Constraints. */
+    /** Any connection is enough. A low battery must not hold a write that is already queued. */
     fun constraints(): Constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
-        .setRequiresBatteryNotLow(true)
         .build()
 
     /** Request. */

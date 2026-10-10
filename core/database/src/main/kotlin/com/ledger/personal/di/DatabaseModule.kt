@@ -3,13 +3,18 @@ package com.ledger.personal.di
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ledger.personal.data.local.AssistantDao
 import com.ledger.personal.data.local.KycDraftDao
 import com.ledger.personal.data.local.LedgerDatabase
 import com.ledger.personal.data.local.MIGRATION_1_2
 import com.ledger.personal.data.local.MIGRATION_2_3
+import com.ledger.personal.data.local.MIGRATION_3_4
 import com.ledger.personal.data.local.PosForwardDao
+import com.ledger.personal.data.local.PromotionDao
 import com.ledger.personal.data.local.TransactionDao
+import com.ledger.personal.data.local.seedPromotions
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +32,10 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LedgerDatabase {
         val builder = Room.databaseBuilder(context, LedgerDatabase::class.java, LedgerDatabase.NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) = db.seedPromotions()
+            })
         val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         if (debuggable) {
             builder.fallbackToDestructiveMigration(dropAllTables = true)
@@ -50,4 +58,8 @@ object DatabaseModule {
     /** Supplies pos forward dao. */
     @Provides
     fun providePosForwardDao(database: LedgerDatabase): PosForwardDao = database.posForwardDao()
+
+    /** Supplies promotion dao. */
+    @Provides
+    fun providePromotionDao(database: LedgerDatabase): PromotionDao = database.promotionDao()
 }

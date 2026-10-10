@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ledger.personal.core.ChargeQueue
 import com.ledger.personal.data.local.AssistantHistory
 import com.ledger.personal.data.local.MemoryAssistantHistory
+import com.ledger.personal.domain.board.AssistantBackend
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,8 @@ data class AssistantUiState(
     val isTyping: Boolean = false,
     val isEmpty: Boolean = true,
     val errorMessage: String? = null,
+    val prompts: List<String> = emptyList(),
+    val promptsMessage: String? = null,
 )
 
 /** Entry. */
@@ -39,8 +42,10 @@ private data class Entry(val role: ChatRole, val group: String, val id: String, 
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
     private val history: AssistantHistory,
+    private val prompts: AssistantBackend,
 ) : ViewModel() {
-    constructor() : this(MemoryAssistantHistory())
+    constructor(history: AssistantHistory) : this(history, QuietPrompts)
+    constructor() : this(MemoryAssistantHistory(), QuietPrompts)
 
     private val queue = ChargeQueue()
     private val writes = Mutex()
@@ -48,6 +53,12 @@ class AssistantViewModel @Inject constructor(
     val uiState: StateFlow<AssistantUiState> = state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            prompts.prompts().fold(
+                onSuccess = { list -> state.update { it.copy(prompts = list) } },
+                onFailure = { state.update { it.copy(promptsMessage = "Suggestions couldn't load.") } },
+            )
+        }
         viewModelScope.launch {
             val saved = history.all().map(::decode)
             if (saved.isEmpty()) return@launch
@@ -123,6 +134,9 @@ class AssistantViewModel @Inject constructor(
     }
 
     private companion object {
+        val QuietPrompts = object : AssistantBackend {
+            override suspend fun prompts() = Result.success(emptyList<String>())
+        }
         const val STREAM = "stream"
         const val SEP = "\u001F"
         const val THINKING_MS = 400L

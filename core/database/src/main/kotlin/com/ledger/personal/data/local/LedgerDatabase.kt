@@ -10,8 +10,9 @@ import androidx.room.TypeConverters
         KycDraftEntity::class,
         AssistantMessageEntity::class,
         PosForwardEntity::class,
+        PromotionEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 /** Ledger database. */
@@ -25,6 +26,8 @@ abstract class LedgerDatabase : RoomDatabase() {
     abstract fun assistantDao(): AssistantDao
     /** Pos forward dao. */
     abstract fun posForwardDao(): PosForwardDao
+    /** Promotion dao. */
+    abstract fun promotionDao(): PromotionDao
 
     companion object {
         const val NAME = "ledger.db"

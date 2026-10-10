@@ -22,7 +22,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -40,9 +39,9 @@ import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.mock.MockCatalog
-import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.ui.app.AppViewModel
 import com.ledger.personal.ui.app.CategoriesScreen
+import com.ledger.personal.ui.app.DemoViewModel
 import com.ledger.personal.ui.app.ConflictScreen
 import com.ledger.personal.ui.app.DisputeScreen
 import com.ledger.personal.ui.app.DisputesScreen
@@ -89,21 +88,10 @@ import com.ledger.personal.ui.screens.detail.TransactionDetailViewModel
 import com.ledger.personal.ui.screens.edit.EditTransactionScreen
 import com.ledger.personal.ui.screens.edit.EditTransactionViewModel
 import com.ledger.personal.ui.screens.home.HomeScreen
+import com.ledger.personal.ui.screens.home.HomeViewModel
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListViewModel
 import androidx.core.util.Consumer
-
-/** Tab. */
-private data class Tab(val route: Screen, val label: String, val icon: ImageVector)
-
-private val tabs = listOf(
-    Tab(Screen.Home, "Home", Icons.Outlined.Home),
-    Tab(Screen.MoneyHub, "Money", Icons.Outlined.AccountBalanceWallet),
-    Tab(Screen.PayHub, "Pay", Icons.Outlined.QrCodeScanner),
-    Tab(Screen.InsightsHub, "Insights", Icons.Outlined.Insights),
-    Tab(Screen.Promotions(), "Offers", Icons.Outlined.LocalOffer),
-    Tab(Screen.Assistant, "Assistant", Icons.Outlined.AutoAwesome),
-)
 
 /** Shows ledger nav host. */
 @Composable
@@ -113,13 +101,39 @@ fun LedgerNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val session by appViewModel.session.collectAsStateWithLifecycle()
-    val mockOffline by MockSwitches.offline.collectAsStateWithLifecycle()
+    val demo: DemoViewModel = hiltViewModel()
+    val mockOffline by demo.offline.collectAsStateWithLifecycle()
     val offline = offlineNow(mockOffline, rememberConnected())
-    val empty by MockSwitches.empty.collectAsStateWithLifecycle()
+    val empty by demo.empty.collectAsStateWithLifecycle()
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
     val flags = HubFlags(offline, empty, session.revealBalances || !prefs.hideBalances, appViewModel::toggleReveal)
     val tools: ToolsViewModel = hiltViewModel()
+    val home: HomeViewModel = hiltViewModel()
+    val homeState by home.uiState.collectAsStateWithLifecycle()
+    fun routeFor(id: String): Screen? = when (id) {
+        "home" -> Screen.Home
+        "money" -> Screen.MoneyHub
+        "pay" -> Screen.PayHub
+        "insights" -> Screen.InsightsHub
+        "offers" -> Screen.Promotions()
+        "assistant" -> Screen.Assistant
+        else -> null
+    }
+    fun iconFor(id: String) = when (id) {
+        "home" -> Icons.Outlined.Home
+        "money" -> Icons.Outlined.AccountBalanceWallet
+        "pay" -> Icons.Outlined.QrCodeScanner
+        "insights" -> Icons.Outlined.Insights
+        "offers" -> Icons.Outlined.LocalOffer
+        "assistant" -> Icons.Outlined.AutoAwesome
+        else -> null
+    }
+    val bar = homeState.tabs.mapNotNull { tab ->
+        val route = routeFor(tab.id) ?: return@mapNotNull null
+        val icon = iconFor(tab.id) ?: return@mapNotNull null
+        Triple(tab.title, route, icon)
+    }
     val activity = LocalContext.current as ComponentActivity
     DisposableEffect(activity, navController) {
         val listener = Consumer<Intent> { incoming -> navController.handleDeepLink(incoming) }
@@ -132,14 +146,14 @@ fun LedgerNavHost(
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            if (tabs.any { tab -> destination?.hasRoute(tab.route::class) == true }) {
+            if (bar.any { (_, route, _) -> destination?.hasRoute(route::class) == true }) {
                 NavigationBar {
-                    tabs.forEach { tab ->
+                    bar.forEach { (label, route, icon) ->
                         NavigationBarItem(
-                            selected = destination?.hierarchy?.any { it.hasRoute(tab.route::class) } == true,
-                            onClick = { navController.navigateTab(tab.route) },
-                            icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { Text(tab.label) },
+                            selected = destination?.hierarchy?.any { it.hasRoute(route::class) } == true,
+                            onClick = { navController.navigateTab(route) },
+                            icon = { Icon(icon, contentDescription = null) },
+                            label = { Text(label) },
                         )
                     }
                 }
@@ -151,7 +165,7 @@ fun LedgerNavHost(
             startDestination = Screen.Home,
             modifier = Modifier.padding(inner).consumeWindowInsets(inner),
         ) {
-            tabRoutes(navController, prefs, flags, tools)
+            tabRoutes(navController, prefs, flags, tools, home)
             ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
             productRoutes(navController, offline)
             accountRoutes(navController, prefs, session, appViewModel)
@@ -168,7 +182,13 @@ private fun NavHostController.navigateTab(route: Screen) = navigate(route) {
 }
 
 /** Tab routes. */
-private fun NavGraphBuilder.tabRoutes(nav: NavHostController, prefs: AppPrefs, flags: HubFlags, tools: ToolsViewModel) {
+private fun NavGraphBuilder.tabRoutes(
+    nav: NavHostController,
+    prefs: AppPrefs,
+    flags: HubFlags,
+    tools: ToolsViewModel,
+    home: HomeViewModel,
+) {
     composable<Screen.Home> {
         val conflicts by tools.inbox.conflicts.collectAsStateWithLifecycle()
         HomeScreen(
@@ -195,6 +215,7 @@ private fun NavGraphBuilder.tabRoutes(nav: NavHostController, prefs: AppPrefs, f
             },
             conflicts = conflicts.size,
             onConflicts = { nav.navigate(Screen.Conflicts) },
+            viewModel = home,
         )
     }
     composable<Screen.MoneyHub> { MoneyHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate) }

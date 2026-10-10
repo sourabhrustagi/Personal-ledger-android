@@ -2,6 +2,9 @@ package com.ledger.personal.mock
 
 import com.ledger.personal.domain.board.AssistantBackend
 import com.ledger.personal.domain.board.HomeBoard
+import com.ledger.personal.domain.board.HomeLayout
+import com.ledger.personal.domain.board.HomeSection
+import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.board.HomeTile
 import com.ledger.personal.domain.board.InsightsBackend
 import com.ledger.personal.domain.board.PayShortcut
@@ -12,18 +15,35 @@ import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.board.SpendHighlight
 import javax.inject.Inject
 
-/** Mock dashboard. The home screen renders this list and does not keep its own. */
+/** Mock dashboard. The home screen draws these sections in this order and keeps no layout of its own. */
 class MockHomeBoard @Inject constructor() : HomeBoard {
-    /** Returns tiles. */
-    override suspend fun tiles(): Result<List<HomeTile>> = MockSwitches.gate {
+    /** Returns layout. */
+    override suspend fun layout(): Result<HomeLayout> = MockSwitches.gate {
         Result.success(
-            listOf(
-                HomeTile("send", "Send"),
-                HomeTile("upi", "UPI"),
-                HomeTile("bills", "Pay bills"),
-                HomeTile("budgets", "Budgets"),
-                HomeTile("ask", "Ask"),
-                HomeTile("offers", "Offers"),
+            HomeLayout(
+                tabs = listOf(
+                    HomeTab("home", "Home"),
+                    HomeTab("money", "Money"),
+                    HomeTab("pay", "Pay"),
+                    HomeTab("insights", "Insights"),
+                    HomeTab("offers", "Offers"),
+                    HomeTab("assistant", "Assistant"),
+                ),
+                sections = listOf(
+                    HomeSection.Balance,
+                    HomeSection.Note("UPI cashback", "5% back until Sunday."),
+                    HomeSection.Shortcuts(
+                        listOf(
+                            HomeTile("send", "Send"),
+                            HomeTile("upi", "UPI"),
+                            HomeTile("bills", "Pay bills"),
+                            HomeTile("budgets", "Budgets"),
+                            HomeTile("ask", "Ask"),
+                            HomeTile("offers", "Offers"),
+                        ),
+                    ),
+                    HomeSection.Activity("Latest activity"),
+                ),
             ),
         )
     }

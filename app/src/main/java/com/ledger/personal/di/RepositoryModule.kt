@@ -2,6 +2,11 @@ package com.ledger.personal.di
 
 import android.content.Context
 import com.ledger.personal.BuildConfig
+import com.ledger.personal.data.remote.api.KtorAssistantBackend
+import com.ledger.personal.data.remote.api.KtorHomeBoard
+import com.ledger.personal.data.remote.api.KtorInsightsBackend
+import com.ledger.personal.data.remote.api.KtorPaymentsBackend
+import com.ledger.personal.data.remote.api.KtorPromotionsBackend
 import com.ledger.personal.data.local.CardReader
 import com.ledger.personal.data.local.MockCardReader
 import com.ledger.personal.data.local.MockReceiptPrinter
@@ -16,6 +21,16 @@ import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
 import com.ledger.personal.data.security.KtorBindingServer
 import com.ledger.personal.data.security.LocalBindingServer
+import com.ledger.personal.domain.board.AssistantBackend
+import com.ledger.personal.domain.board.HomeBoard
+import com.ledger.personal.domain.board.InsightsBackend
+import com.ledger.personal.domain.board.PaymentsBackend
+import com.ledger.personal.domain.board.PromotionsBackend
+import com.ledger.personal.mock.MockAssistantBackend
+import com.ledger.personal.mock.MockHomeBoard
+import com.ledger.personal.mock.MockInsightsBackend
+import com.ledger.personal.mock.MockPaymentsBackend
+import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.flow.onEach
@@ -43,6 +58,10 @@ object RepositoryModule {
         debuggable = BuildConfig.DEBUG,
         pinSha256 = BuildConfig.PIN_SHA256,
         pinBackup = BuildConfig.PIN_SHA256_BACKUP,
+        paymentsBaseUrl = BuildConfig.PAYMENTS_BASE_URL,
+        insightsBaseUrl = BuildConfig.INSIGHTS_BASE_URL,
+        assistantBaseUrl = BuildConfig.ASSISTANT_BASE_URL,
+        promotionsBaseUrl = BuildConfig.PROMOTIONS_BASE_URL,
     )
 
     /** Supplies transaction remote. */
@@ -89,6 +108,40 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideReceiptPrinter(): ReceiptPrinter = MockReceiptPrinter()
+}
+
+/** Picks the mock or live backend for each team. Their response shapes stay inside the Ktor classes. */
+@Module
+@InstallIn(SingletonComponent::class)
+object TeamModule {
+    /** Supplies home board. */
+    @Provides
+    @Singleton
+    fun home(mock: MockHomeBoard, live: KtorHomeBoard): HomeBoard = if (BuildConfig.FLAVOR == "mock") mock else live
+
+    /** Supplies payments backend. */
+    @Provides
+    @Singleton
+    fun payments(mock: MockPaymentsBackend, live: KtorPaymentsBackend): PaymentsBackend =
+        if (BuildConfig.FLAVOR == "mock") mock else live
+
+    /** Supplies insights backend. */
+    @Provides
+    @Singleton
+    fun insights(mock: MockInsightsBackend, live: KtorInsightsBackend): InsightsBackend =
+        if (BuildConfig.FLAVOR == "mock") mock else live
+
+    /** Supplies assistant backend. */
+    @Provides
+    @Singleton
+    fun assistant(mock: MockAssistantBackend, live: KtorAssistantBackend): AssistantBackend =
+        if (BuildConfig.FLAVOR == "mock") mock else live
+
+    /** Supplies promotions backend. */
+    @Provides
+    @Singleton
+    fun promotions(mock: MockPromotionsBackend, live: KtorPromotionsBackend): PromotionsBackend =
+        if (BuildConfig.FLAVOR == "mock") mock else live
 }
 
 /** Hilt bindings for offline. */

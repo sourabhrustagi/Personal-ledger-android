@@ -17,10 +17,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+/** Hilt bindings for database. */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    /** Supplies database. */
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LedgerDatabase {
@@ -33,15 +35,19 @@ object DatabaseModule {
         return builder.build()
     }
 
+    /** Supplies transaction dao. */
     @Provides
     fun provideTransactionDao(database: LedgerDatabase): TransactionDao = database.transactionDao()
 
+    /** Supplies kyc draft dao. */
     @Provides
     fun provideKycDraftDao(database: LedgerDatabase): KycDraftDao = database.kycDraftDao()
 
+    /** Supplies assistant dao. */
     @Provides
     fun provideAssistantDao(database: LedgerDatabase): AssistantDao = database.assistantDao()
 
+    /** Supplies pos forward dao. */
     @Provides
     fun providePosForwardDao(database: LedgerDatabase): PosForwardDao = database.posForwardDao()
 }

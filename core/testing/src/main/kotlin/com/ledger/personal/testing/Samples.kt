@@ -2,6 +2,7 @@ package com.ledger.personal.testing
 
 import com.ledger.personal.domain.model.Transaction
 
+/** Sample transaction. */
 fun sampleTransaction(
     id: String = "tx-1",
     amountInCents: Long = 2550L,

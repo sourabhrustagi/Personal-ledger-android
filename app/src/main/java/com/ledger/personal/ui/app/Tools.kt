@@ -38,12 +38,12 @@ import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.categoryIcon
-import com.ledger.personal.ui.screens.create.DEFAULT_CATEGORIES
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 private const val STATEMENT_MONTHS = 6L
 
+/** Shows the statements screen. */
 @Composable
 fun StatementsScreen(onBack: () -> Unit, tools: ToolsViewModel) {
     val context = LocalContext.current
@@ -92,14 +92,24 @@ fun StatementsScreen(onBack: () -> Unit, tools: ToolsViewModel) {
     }
 }
 
+/** Shows the categories screen. */
 @Composable
-fun CategoriesScreen(categories: List<String>, onBack: () -> Unit, onSave: (List<String>) -> Unit) {
+fun CategoriesScreen(
+    categories: List<String>,
+    onBack: () -> Unit,
+    defaults: List<String> = emptyList(),
+    loading: Boolean = false,
+    onSave: (List<String>) -> Unit,
+) {
     var draft by rememberSaveable { mutableStateOf("") }
     var renaming by rememberSaveable { mutableStateOf<String?>(null) }
     val name = draft.trim()
     val duplicate = categories.any { it.equals(name, ignoreCase = true) && it != renaming }
-    FeatureScaffold("Categories", onBack, subtitle = "${categories.size} categories") {
-        SectionCard(title = if (renaming == null) "Add a category" else "Rename $renaming") {
+    FeatureScaffold("Categories", onBack, subtitle = if (loading) "Waiting for categories" else "${categories.size} categories") {
+        if (loading) {
+            Text("Waiting for categories", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            SectionCard(title = if (renaming == null) "Add a category" else "Rename $renaming") {
             OutlinedTextField(
                 draft,
                 { if (it.length <= 24) draft = it },
@@ -136,13 +146,14 @@ fun CategoriesScreen(categories: List<String>, onBack: () -> Unit, onSave: (List
         ListRow(
             Icons.AutoMirrored.Outlined.Label,
             "Restore defaults",
-            subtitle = DEFAULT_CATEGORIES.joinToString(),
-            onClick = { onSave(DEFAULT_CATEGORIES) },
+            subtitle = defaults.joinToString(),
+            onClick = { onSave(defaults) },
         )
         Text(
             "Salary can't be removed because it marks money coming in. Renaming doesn't change past transactions.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        }
     }
 }

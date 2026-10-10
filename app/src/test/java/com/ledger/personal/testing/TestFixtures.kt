@@ -103,7 +103,7 @@ class ScriptedTransactionRepository : TransactionRepository {
     }
 }
 
-class FakeSyncCoordinator : SyncCoordinator {
+class MockSyncCoordinator : SyncCoordinator {
     var enqueued = 0
     private val phase = MutableStateFlow(SyncPhase.IDLE)
 
@@ -114,7 +114,7 @@ class FakeSyncCoordinator : SyncCoordinator {
     override fun observe(): Flow<SyncPhase> = phase
 }
 
-class FakeUserSettings : UserSettings {
+class MockUserSettings : UserSettings {
     override val lastSyncEpochMs: Flow<Long?> = MutableStateFlow(null)
     override suspend fun recordSync(epochMs: Long) = Unit
 }

@@ -7,19 +7,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-class FakeTransactionRepositoryTest {
+class MockTransactionRepositoryTest {
 
-    private lateinit var repository: FakeTransactionRepository
+    private lateinit var repository: MockTransactionRepository
 
     @Before
     fun setUp() {
-        repository = FakeTransactionRepository()
+        repository = MockTransactionRepository()
         repository.clear()
     }
 
     @Test
     fun seedsTwentyFiveTransactionsByDefault() = runTest {
-        val seeded = FakeTransactionRepository()
+        val seeded = MockTransactionRepository()
         val page1 = seeded.getTransactions(page = 1, pageSize = 25).getOrThrow()
         val page2 = seeded.getTransactions(page = 2, pageSize = 25).getOrThrow()
         assertEquals(25, page1.size)

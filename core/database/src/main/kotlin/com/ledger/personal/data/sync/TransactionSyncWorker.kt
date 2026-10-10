@@ -9,6 +9,7 @@ import com.ledger.personal.domain.settings.UserSettings
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
+/** Background work for transaction sync. */
 @HiltWorker
 class TransactionSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
@@ -16,6 +17,7 @@ class TransactionSyncWorker @AssistedInject constructor(
     private val repository: OfflineTransactionRepository,
     private val settings: UserSettings,
 ) : CoroutineWorker(context, params) {
+    /** Do work. */
     override suspend fun doWork(): Result {
         val synced = repository.sync()
         return if (synced.isSuccess) {

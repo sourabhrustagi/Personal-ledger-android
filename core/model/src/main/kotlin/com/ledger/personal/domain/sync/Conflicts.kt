@@ -12,6 +12,7 @@ import java.util.Base64
 /** The server rejected a push because it already has a different copy. */
 class VersionConflict(val server: Transaction) : Exception("Server has a newer copy of ${server.id}")
 
+/** Sync conflict. */
 data class SyncConflict(val local: Transaction, val server: Transaction)
 
 /**
@@ -22,10 +23,13 @@ class ConflictInbox(private val file: File?) {
     private val rows = MutableStateFlow(read())
     val conflicts: StateFlow<List<SyncConflict>> = rows.asStateFlow()
 
+    /** Add. */
     fun add(conflict: SyncConflict) = replace(rows.value.filterNot { it.local.id == conflict.local.id } + conflict)
 
+    /** Remove. */
     fun remove(id: String) = replace(rows.value.filterNot { it.local.id == id })
 
+    /** Replace. */
     private fun replace(next: List<SyncConflict>) {
         rows.value = next
         val target = file ?: return
@@ -37,22 +41,27 @@ class ConflictInbox(private val file: File?) {
         }
     }
 
+    /** Read. */
     private fun read(): List<SyncConflict> = file?.takeIf { it.isFile }?.readLines()?.mapNotNull { line ->
         runCatching { unpack(line) }.getOrNull()
     }.orEmpty()
 }
 
+/** Pack. */
 private fun SyncConflict.pack(): String = Base64.getEncoder().encodeToString("${local.pack()}\u001E${server.pack()}".toByteArray())
 
+/** Unpack. */
 private fun unpack(line: String): SyncConflict {
     val (left, right) = String(Base64.getDecoder().decode(line)).split("\u001E", limit = 2)
     return SyncConflict(left.toTransaction(), right.toTransaction())
 }
 
+/** Pack. */
 private fun Transaction.pack(): String =
     listOf(id, amountInCents.toString(), currency, category, description, timestampEpochMs.toString())
         .joinToString("\u001F") { URLEncoder.encode(it, "UTF-8") }
 
+/** Converts this value to transaction. */
 private fun String.toTransaction(): Transaction {
     val parts = split("\u001F").map { URLDecoder.decode(it, "UTF-8") }
     return Transaction(parts[0], parts[1].toLong(), parts[2], parts[3], parts[4], parts[5].toLong())

@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+/** Shows feature scaffold. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeatureScaffold(
@@ -76,6 +77,7 @@ fun FeatureScaffold(
     }
 }
 
+/** Shows loading or empty. */
 @Composable
 fun LoadingOrEmpty(isLoading: Boolean, isEmpty: Boolean, errorMessage: String?, label: String) {
     when {

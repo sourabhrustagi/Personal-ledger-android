@@ -30,7 +30,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.BuildConfig
-import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.ui.feature.FraudScreen
 import com.ledger.personal.ui.feature.PosScreen
 import com.ledger.personal.ui.navigation.LedgerNavHost
@@ -39,18 +38,20 @@ import com.ledger.personal.ui.theme.ThemeMode
 
 private const val LOCK_AFTER_MS = 30_000L
 
+/** Shows ledger one app. */
 @Composable
 fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
-    val forceUpdate by MockSwitches.forceUpdate.collectAsStateWithLifecycle()
+    val releaseChecked by viewModel.releaseChecked.collectAsStateWithLifecycle()
+    val updateRequired by viewModel.updateRequired.collectAsStateWithLifecycle()
     val context = LocalContext.current
     LockWhenBackgrounded(viewModel::lock)
     LedgerOneTheme(prefs?.theme ?: ThemeMode.SYSTEM) {
         val current = prefs
         when {
-            current == null -> Box(Modifier.fillMaxSize()) { Surface(Modifier.fillMaxSize()) {} }
-            forceUpdate -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
+            current == null || !releaseChecked -> Box(Modifier.fillMaxSize()) { Surface(Modifier.fillMaxSize()) {} }
+            updateRequired -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
             !current.onboarded -> OnboardingFlow(viewModel::completeOnboarding) { done -> viewModel.bindDevice(context, done) }
             !session.unlocked -> MpinLoginScreen(
                 name = current.name,
@@ -59,7 +60,7 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
                 onPin = { pin, done -> viewModel.tryMpin(pin, onResult = done) },
                 onBiometric = viewModel::unlockWithBiometric,
                 onReset = viewModel::signOutEverywhere,
-                demoPin = BuildConfig.USE_FAKE_REPOSITORY,
+                demoPin = BuildConfig.FLAVOR == "mock",
             )
             session.mode == AppMode.POS -> ModeFrame(AppMode.POS, { viewModel.setMode(AppMode.PERSONAL) }) {
                 PosScreen(onBack = { viewModel.setMode(AppMode.PERSONAL) })
@@ -72,6 +73,7 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
     }
 }
 
+/** Shows lock when backgrounded. */
 @Composable
 private fun LockWhenBackgrounded(onLock: () -> Unit) {
     val owner = LocalLifecycleOwner.current
@@ -93,6 +95,7 @@ private fun LockWhenBackgrounded(onLock: () -> Unit) {
     }
 }
 
+/** Shows mode frame. */
 @Composable
 private fun ModeFrame(mode: AppMode, onExit: () -> Unit, content: @Composable () -> Unit) {
     Scaffold(

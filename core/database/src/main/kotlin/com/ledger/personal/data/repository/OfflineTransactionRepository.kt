@@ -22,6 +22,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Reads and writes offline transaction. */
 @Singleton
 class OfflineTransactionRepository @Inject constructor(
     private val dao: TransactionDao,
@@ -30,12 +31,15 @@ class OfflineTransactionRepository @Inject constructor(
     private val conflicts: ConflictInbox,
 ) : TransactionRepository {
 
+    /** Streams transactions. */
     override fun observeTransactions(): Flow<List<Transaction>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }
 
+    /** Streams transaction. */
     override fun observeTransaction(id: String): Flow<Transaction?> =
         dao.observeById(id).map { row -> row?.toDomain() }
 
+    /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> = runCatching {
         require(page >= 1) { "Page number must be >= 1" }
         require(pageSize >= 1) { "Page size must be >= 1" }
@@ -43,11 +47,13 @@ class OfflineTransactionRepository @Inject constructor(
         dao.page(pageSize, from).map { it.toDomain() }
     }
 
+    /** Pages. */
     override fun pages(): Flow<PagingData<Transaction>> =
         Pager(PagingConfig(pageSize = 20)) { dao.pagingSource() }
             .flow
             .map { page -> page.map { entity -> entity.toDomain() } }
 
+    /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> {
         val row = dao.find(id)
         return if (row == null || row.syncState == SyncState.PENDING_DELETE) {
@@ -57,6 +63,7 @@ class OfflineTransactionRepository @Inject constructor(
         }
     }
 
+    /** Creates transaction. */
     override suspend fun createTransaction(
         amountInCents: Long,
         currency: String,
@@ -76,6 +83,7 @@ class OfflineTransactionRepository @Inject constructor(
         created
     }
 
+    /** Patch transaction. */
     override suspend fun patchTransaction(
         id: String,
         category: String?,
@@ -98,6 +106,7 @@ class OfflineTransactionRepository @Inject constructor(
         updated
     }
 
+    /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String): Result<Unit> = runCatching {
         val existing = dao.find(id) ?: throw NoSuchElementException("Transaction not found with id: $id")
         if (existing.syncState == SyncState.PENDING_CREATE) {
@@ -118,6 +127,7 @@ class OfflineTransactionRepository @Inject constructor(
         pullRemote()
     }
 
+    /** Push pending. */
     private suspend fun pushPending() {
         val blocked = conflicts.conflicts.value.map { it.local.id }.toSet()
         dao.pending().forEach { row ->
@@ -154,6 +164,7 @@ class OfflineTransactionRepository @Inject constructor(
         }
     }
 
+    /** Pull remote. */
     private suspend fun pullRemote() {
         var page = 1
         while (true) {

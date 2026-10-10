@@ -46,6 +46,7 @@ import com.ledger.personal.ui.feature.Timeline
 import com.ledger.personal.ui.feature.TimelineStep
 import com.ledger.personal.ui.feature.formatMoney
 
+/** Shows the dispute screen. */
 @Composable
 fun DisputeScreen(transactionId: String, tools: ToolsViewModel, onBack: () -> Unit, onTrack: () -> Unit) {
     val all by tools.transactions.collectAsStateWithLifecycle()
@@ -105,6 +106,7 @@ fun DisputeScreen(transactionId: String, tools: ToolsViewModel, onBack: () -> Un
     }
 }
 
+/** Shows dispute status. */
 @Composable
 private fun DisputeStatus(dispute: Dispute) {
     val stage = dispute.stage(System.currentTimeMillis())
@@ -121,6 +123,7 @@ private fun DisputeStatus(dispute: Dispute) {
     }
 }
 
+/** Shows the disputes screen. */
 @Composable
 fun DisputesScreen(tools: ToolsViewModel, onBack: () -> Unit) {
     val filed by tools.disputeDesk.disputes.collectAsStateWithLifecycle()
@@ -132,6 +135,7 @@ fun DisputesScreen(tools: ToolsViewModel, onBack: () -> Unit) {
     }
 }
 
+/** Shows the conflict screen. */
 @Composable
 fun ConflictScreen(tools: ToolsViewModel, onBack: () -> Unit) {
     val conflicts by tools.inbox.conflicts.collectAsStateWithLifecycle()
@@ -153,6 +157,7 @@ fun ConflictScreen(tools: ToolsViewModel, onBack: () -> Unit) {
     }
 }
 
+/** Shows conflict card. */
 @Composable
 private fun ConflictCard(conflict: SyncConflict, onResolve: (Map<String, Boolean>) -> Unit) {
     val diffs = remember(conflict) { conflictFields(conflict.local, conflict.server) }

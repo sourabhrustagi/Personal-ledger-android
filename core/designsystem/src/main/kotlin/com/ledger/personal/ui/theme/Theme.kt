@@ -16,8 +16,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/** Allowed values of theme mode. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Ledger colors. */
 @Immutable
 data class LedgerColors(
     val success: Color,
@@ -33,6 +35,7 @@ private val DarkLedger = LedgerColors(Green400, Green950, Amber400, Amber950, Re
 
 val LocalLedgerColors = staticCompositionLocalOf { LightLedger }
 
+/** Shared ledger theme. */
 object LedgerTheme {
     val colors: LedgerColors
         @Composable get() = LocalLedgerColors.current
@@ -92,6 +95,7 @@ private val DarkScheme = darkColorScheme(
     onErrorContainer = Red300,
 )
 
+/** Tabular. */
 private fun TextStyle.tabular(size: Int? = null) =
     copy(fontFeatureSettings = "tnum", fontSize = size?.sp ?: fontSize, lineHeight = size?.let { (it + 8).sp } ?: lineHeight)
 
@@ -123,6 +127,7 @@ private val LedgerShapes = Shapes(
     extraLarge = RoundedCornerShape(16.dp),
 )
 
+/** Shows personal ledger theme. */
 @Composable
 fun PersonalLedgerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -138,6 +143,7 @@ fun PersonalLedgerTheme(
     }
 }
 
+/** Shows ledger one theme. */
 @Composable
 fun LedgerOneTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     val dark = when (mode) {

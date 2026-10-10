@@ -8,6 +8,7 @@ import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
 
+/** Ledger application. */
 @HiltAndroidApp
 class LedgerApplication : Application(), Configuration.Provider {
 
@@ -20,6 +21,7 @@ class LedgerApplication : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
+    /** Reacts to create. */
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {

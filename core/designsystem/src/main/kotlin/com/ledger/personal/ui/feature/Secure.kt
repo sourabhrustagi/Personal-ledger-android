@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.LedgerTheme
 
+/** Shows amount text. */
 @Composable
 fun AmountText(
     minor: Long,
@@ -83,6 +84,7 @@ fun SecureWindow() {
     }
 }
 
+/** Shows protected badge. */
 @Composable
 fun ProtectedBadge(modifier: Modifier = Modifier) {
     Row(
@@ -95,6 +97,7 @@ fun ProtectedBadge(modifier: Modifier = Modifier) {
     }
 }
 
+/** Shows masked amount. */
 @Composable
 fun MaskedAmount(
     minor: Long,
@@ -125,6 +128,7 @@ fun MaskedAmount(
     }
 }
 
+/** Shows pin dots. */
 @Composable
 fun PinDots(filled: Int, length: Int, modifier: Modifier = Modifier, error: Boolean = false) {
     val active = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -142,6 +146,7 @@ fun PinDots(filled: Int, length: Int, modifier: Modifier = Modifier, error: Bool
     }
 }
 
+/** Shows numeric keypad. */
 @Composable
 fun NumericKeypad(
     onDigit: (Char) -> Unit,
@@ -169,6 +174,7 @@ fun NumericKeypad(
     }
 }
 
+/** Shows key. */
 @Composable
 private fun Key(label: String, modifier: Modifier, onClick: () -> Unit) {
     Surface(
@@ -183,6 +189,7 @@ private fun Key(label: String, modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
+/** Shows otp field. */
 @Composable
 fun OtpField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, length: Int = 6) {
     BasicTextField(
@@ -212,6 +219,7 @@ fun OtpField(value: String, onValueChange: (String) -> Unit, modifier: Modifier 
     )
 }
 
+/** Shows text link. */
 @Composable
 fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(onClick = onClick, modifier = modifier.padding(0.dp)) { Text(text, fontWeight = FontWeight.SemiBold) }

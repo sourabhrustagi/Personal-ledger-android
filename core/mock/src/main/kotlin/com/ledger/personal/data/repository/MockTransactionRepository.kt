@@ -15,11 +15,13 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
-class FakeTransactionRepository @Inject constructor() : TransactionRepository {
+/** Reads and writes mock transaction. */
+class MockTransactionRepository @Inject constructor() : TransactionRepository {
 
     private val storage = ConcurrentHashMap<String, Transaction>()
     private val revisions = MutableStateFlow(0)
 
+    /** Publish. */
     private fun publish() {
         revisions.value += 1
         activePage?.invalidate()
@@ -50,24 +52,30 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         }
     }
 
+    /** Insert direct. */
     fun insertDirect(transaction: Transaction) {
         storage[transaction.id] = transaction
         publish()
     }
 
+    /** Clear. */
     fun clear() {
         storage.clear()
         publish()
     }
 
+    /** Streams transactions. */
     override fun observeTransactions(): Flow<List<Transaction>> = revisions.map { sortedSnapshot() }
 
+    /** Pages. */
     override fun pages(): Flow<PagingData<Transaction>> = Pager(
         config = PagingConfig(pageSize = 20),
         pagingSourceFactory = { pageSource().also { activePage = it } },
     ).flow
 
+    /** Page source. */
     private fun pageSource(): PagingSource<Int, Transaction> = object : PagingSource<Int, Transaction>() {
+        /** Load. */
         override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Transaction> {
             val all = sortedSnapshot()
             val start = params.key ?: 0
@@ -79,21 +87,26 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
             )
         }
 
+        /** Returns refresh key. */
         override fun getRefreshKey(state: PagingState<Int, Transaction>): Int? = state.anchorPosition
     }
 
+    /** Streams transaction. */
     override fun observeTransaction(id: String): Flow<Transaction?> = revisions.map { storage[id] }
 
+    /** Sorted snapshot. */
     private fun sortedSnapshot(): List<Transaction> = storage.values.sortedWith(
         compareByDescending<Transaction> { it.timestampEpochMs }.thenByDescending { it.id },
     )
 
+    /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> {
         require(page >= 1) { "Page number must be >= 1" }
         require(pageSize >= 1) { "Page size must be >= 1" }
         return MockSwitches.gate { pageOf(page, pageSize) }
     }
 
+    /** Page of. */
     private fun pageOf(page: Int, pageSize: Int): Result<List<Transaction>> {
         if (MockSwitches.empty.value) return Result.success(emptyList())
 
@@ -112,8 +125,10 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         return Result.success(sortedList.subList(fromIndex, toIndex))
     }
 
+    /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> = MockSwitches.gate { byId(id) }
 
+    /** By id. */
     private fun byId(id: String): Result<Transaction> {
         val tx = storage[id]
         return if (tx != null) {
@@ -123,6 +138,7 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         }
     }
 
+    /** Creates transaction. */
     override suspend fun createTransaction(
         amountInCents: Long,
         currency: String,
@@ -144,6 +160,7 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         }
     }
 
+    /** Patch transaction. */
     override suspend fun patchTransaction(
         id: String,
         category: String?,
@@ -151,6 +168,7 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         amountInCents: Long?
     ): Result<Transaction> = MockSwitches.gate { patch(id, category, description, amountInCents) }
 
+    /** Patch. */
     private fun patch(id: String, category: String?, description: String?, amountInCents: Long?): Result<Transaction> {
         val existing = storage[id]
             ?: return Result.failure(NoSuchElementException("Transaction not found with id: $id"))
@@ -169,6 +187,7 @@ class FakeTransactionRepository @Inject constructor() : TransactionRepository {
         }
     }
 
+    /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String): Result<Unit> = MockSwitches.gate {
         if (storage.remove(id) != null) {
             publish()

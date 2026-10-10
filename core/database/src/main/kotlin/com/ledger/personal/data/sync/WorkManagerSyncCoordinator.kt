@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Coordinates work manager sync. */
 @Singleton
 class WorkManagerSyncCoordinator @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : SyncCoordinator {
+    /** Enqueue. */
     override fun enqueue() {
         WorkManager.getInstance(context).enqueueUniqueWork(
             TransactionSync.WORK_NAME,
@@ -24,12 +26,14 @@ class WorkManagerSyncCoordinator @Inject constructor(
         )
     }
 
+    /** Observe. */
     override fun observe(): Flow<SyncPhase> =
         WorkManager.getInstance(context)
             .getWorkInfosForUniqueWorkFlow(TransactionSync.WORK_NAME)
             .map { infos -> infos.firstOrNull()?.toPhase() ?: SyncPhase.IDLE }
 }
 
+/** Converts this value to phase. */
 private fun WorkInfo.toPhase(): SyncPhase = when (state) {
     WorkInfo.State.ENQUEUED -> SyncPhase.ENQUEUED
     WorkInfo.State.RUNNING -> SyncPhase.RUNNING

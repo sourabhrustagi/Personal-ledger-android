@@ -18,9 +18,9 @@ flowchart TD
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
         db[":core:database<br/>Room + sync"]
-        net[":core:network<br/>Retrofit"]
+        net[":core:network<br/>Ktor"]
         ds[":core:designsystem<br/>theme + components"]
-        mock[":core:mock<br/>fake backend"]
+        mock[":core:mock<br/>mock backend"]
     end
     app --> features
     app --> core
@@ -43,10 +43,10 @@ flowchart TD
 | Module | Owns |
 |--------|------|
 | `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, idempotency, fraud and KYC rules) |
-| `:core:network` | `TransactionApiService`, DTOs and their mapping to domain types, `AuthInterceptor`, `CertificatePins`, OkHttp ticker socket, `RetrofitTransactionRepository` |
+| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `KtorTransactionRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared components: amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`, `SecureWindow` |
-| `:core:mock` | `FakeTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty, live-drop, force-update) |
+| `:core:mock` | `MockTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty, live-drop) |
 | `:core:testing` | Sample objects shared by tests |
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
 | `:feature:wallet` | Send money, UPI request, split bill |
@@ -70,7 +70,7 @@ sequenceDiagram
     participant Repo as OfflineTransactionRepository
     participant Room as Room database
     participant Work as TransactionSyncWorker
-    participant Remote as TransactionRemote (fake or Retrofit)
+    participant Remote as TransactionRemote (mock or Ktor)
 
     UI->>VM: user saves a transaction
     VM->>Repo: createTransaction(...)
@@ -96,17 +96,17 @@ What this means in practice:
 
 The same pattern applies to POS sales (`PosForwardStore`: queued offline, settled later), KYC drafts and assistant history, which each have their own Room table.
 
-### Mock and live
+### Environments
 
-`RepositoryModule` in `:app` decides which implementation each interface gets, based on `BuildConfig.USE_FAKE_REPOSITORY`:
+The app has one flavor dimension, `environment`: `mock` (default), `dev`, `staging`, and `prod`. `RepositoryModule` uses the mock backend when `BuildConfig.FLAVOR` is `mock`, and the real API otherwise. Each flavor carries its own API host, so a debug build of prod still talks to production.
 
-| Interface | `mock` flavor | `live` flavor |
-|-----------|---------------|---------------|
-| `TransactionRemote` | `FakeTransactionRepository` | `RetrofitTransactionRepository` |
-| `TickerSocket` | Fake price stream (can be told to drop) | OkHttp WebSocket |
-| `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `RetrofitBindingServer` (`devices/challenge`, `devices/bind`) |
+| Interface | `mock` | `dev`, `staging`, and `prod` |
+|-----------|--------|------------------------------|
+| `TransactionRemote` | `MockTransactionRepository` | `KtorTransactionRepository` |
+| `TickerSocket` | Mock price stream (can be told to drop) | Ktor WebSocket |
+| `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `KtorBindingServer` (`devices/challenge`, `devices/bind`) |
 
-Everything above the remote layer — Room, sync, view models, screens — is the same code in both flavors. The mock flavor exercises the real offline and sync path; only the server is fake.
+Room, sync, view models, and screens are the same code in every flavor. Mock exercises the real offline and sync path; only the server is mock. Each flavor has its own application id, launcher name, version-name suffix, and app-link host, so the four apps install side by side.
 
 ## UI architecture
 
@@ -121,7 +121,7 @@ Everything above the remote layer — Room, sync, view models, screens — is th
 - **Device binding.** During onboarding or from the Security centre, the phone creates an EC key in the Android Keystore that requires biometric authentication and is invalidated if biometrics change. The server sends a one-time challenge, the phone signs it after a fingerprint check (`SHA256withECDSA`), and the server verifies the signature before issuing a device ID. "Sign out everywhere" deletes the key.
 - **Sensitive screens** (login, onboarding, send money, banking products, security) call `SecureWindow()`, which blocks screenshots and the recent-apps preview.
 - **Balances are hidden** until you tap to reveal them.
-- **Network.** Release builds only allow HTTPS (`network_security_config.xml`); debug builds also allow the emulator host. `CertificatePins` adds pinning once real pins are configured.
+- **Network.** Dev, staging, and prod use HTTPS. Debug builds also allow the emulator host and localhost. `CertificatePins` adds pinning once real pins are configured.
 
 ## Rules the build enforces
 
@@ -138,9 +138,9 @@ Everything above the remote layer — Room, sync, view models, screens — is th
 These are deliberate shortcuts. Search the code for `ponytail:` to find the ones marked inline.
 
 - Disputes are stored on this phone until a disputes endpoint exists. Sync conflicts are stored on this phone too. A live sync records one when the server answers `409` with the current transaction and then stops pushing that row; the mock flavor still creates one from Mock controls.
-- The force-update screen is triggered only by the mock switch. A production version would read a minimum version from remote config.
-- The `live` device-binding endpoints are assumed. Confirm the paths and payloads with the backend team.
-- The camera QR scanner runs only in the `live` flavor. The mock flavor uses a sample QR so it works on emulators without a camera.
+- Force update comes from `GET static/version`. The screen blocks the app when `versionCode` is higher than `BuildConfig.VERSION_CODE`. A failed call does not block.
+- The dev, staging, and prod device-binding endpoints are assumed. Confirm the paths and payloads with the backend team.
+- The camera QR scanner runs unless the flavor is `mock`. Mock uses a sample QR so it works on emulators without a camera.
 - Statements cover INR transactions only.
 
 ## Where to start

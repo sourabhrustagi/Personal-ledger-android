@@ -13,7 +13,7 @@ import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.ledger.personal.data.local.LedgerDatabase
-import com.ledger.personal.data.repository.FakeTransactionRepository
+import com.ledger.personal.data.repository.MockTransactionRepository
 import com.ledger.personal.data.repository.OfflineTransactionRepository
 import com.ledger.personal.domain.settings.UserSettings
 import com.ledger.personal.domain.sync.ConflictInbox
@@ -38,7 +38,7 @@ class TransactionSyncWorkerTest {
             .build()
         val repository = OfflineTransactionRepository(
             dao = database.transactionDao(),
-            remote = FakeTransactionRepository(),
+            remote = MockTransactionRepository(),
             conflicts = ConflictInbox(null),
             syncCoordinator = object : SyncCoordinator {
                 override fun enqueue() = Unit

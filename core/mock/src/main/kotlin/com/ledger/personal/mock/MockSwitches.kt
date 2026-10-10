@@ -11,7 +11,6 @@ object MockSwitches {
     val offline = MutableStateFlow(false)
     val empty = MutableStateFlow(false)
     val dropLive = MutableStateFlow(false)
-    val forceUpdate = MutableStateFlow(false)
 
     const val SLOW_MS = 2_500L
 
@@ -24,7 +23,8 @@ object MockSwitches {
         }
     }
 
+    /** Reset. */
     fun reset() {
-        listOf(slow, failures, offline, empty, dropLive, forceUpdate).forEach { it.value = false }
+        listOf(slow, failures, offline, empty, dropLive).forEach { it.value = false }
     }
 }

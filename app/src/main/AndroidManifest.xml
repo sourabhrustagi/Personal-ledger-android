@@ -14,7 +14,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@android:drawable/sym_def_app_icon"
-        android:label="Personal Ledger"
+        android:label="${appName}"
         android:roundIcon="@android:drawable/sym_def_app_icon"
         android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -46,7 +46,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="app.personal-ledger.com"
+                    android:host="${appLinkHost}"
                     android:pathPrefix="/transactions" />
             </intent-filter>
         </activity>

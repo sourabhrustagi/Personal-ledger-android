@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import com.ledger.personal.domain.model.Money
 import com.ledger.personal.domain.model.Transaction
 
+/** Database row for transaction. */
 @Entity(tableName = "transactions")
 data class TransactionEntity(
     @PrimaryKey val id: String,
@@ -17,6 +18,7 @@ data class TransactionEntity(
     val updatedAtEpochMs: Long,
 )
 
+/** Converts this value to domain. */
 fun TransactionEntity.toDomain(): Transaction = Transaction(
     id = id,
     amountInCents = amount.minorUnits,
@@ -26,6 +28,7 @@ fun TransactionEntity.toDomain(): Transaction = Transaction(
     timestampEpochMs = timestampEpochMs,
 )
 
+/** Converts this value to entity. */
 fun Transaction.toEntity(syncState: String, updatedAtEpochMs: Long): TransactionEntity = TransactionEntity(
     id = id,
     amount = Money(amountInCents),

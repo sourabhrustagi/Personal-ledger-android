@@ -10,14 +10,15 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.ledger.personal.data.security.PinSealer
 import com.ledger.personal.data.security.pinMatches
 import com.ledger.personal.data.security.sealPin
-import com.ledger.personal.ui.screens.create.DEFAULT_CATEGORIES
 import com.ledger.personal.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** App prefs. */
 data class AppPrefs(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val onboarded: Boolean = false,
@@ -28,7 +29,8 @@ data class AppPrefs(
     val biometric: Boolean = false,
     val hideBalances: Boolean = true,
     val language: String = "English",
-    val categories: List<String> = DEFAULT_CATEGORIES,
+    val categories: List<String> = emptyList(),
+    val defaultCategories: List<String> = emptyList(),
     val deviceId: String = "",
 )
 
@@ -44,9 +46,11 @@ private val BIOMETRIC = booleanPreferencesKey("biometric")
 private val HIDE_BALANCES = booleanPreferencesKey("hide_balances")
 private val LANGUAGE = stringPreferencesKey("language")
 private val CATEGORIES = stringPreferencesKey("categories")
+private val DEFAULT_CATEGORY_KEY = stringPreferencesKey("default_categories")
 private val DEVICE_ID = stringPreferencesKey("device_id")
 private const val SEP = "\u001F"
 
+/** App preferences. */
 @Singleton
 class AppPreferences @Inject constructor(@ApplicationContext private val context: Context) {
     val prefs: Flow<AppPrefs> = context.appStore.data.map { p ->
@@ -60,13 +64,16 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             biometric = p[BIOMETRIC] ?: false,
             hideBalances = p[HIDE_BALANCES] ?: true,
             language = p[LANGUAGE] ?: "English",
-            categories = p[CATEGORIES]?.split(SEP)?.filter { it.isNotBlank() } ?: DEFAULT_CATEGORIES,
+            categories = p[CATEGORIES]?.split(SEP)?.filter { it.isNotBlank() }.orEmpty(),
+            defaultCategories = p[DEFAULT_CATEGORY_KEY]?.split(SEP)?.filter { it.isNotBlank() }.orEmpty(),
             deviceId = p[DEVICE_ID].orEmpty(),
         )
     }
 
+    /** Matches. */
     fun matches(pin: String, prefs: AppPrefs): Boolean = pinMatches(pin, prefs.mpinSalt, prefs.mpinHash)
 
+    /** Finishes onboarding. */
     suspend fun completeOnboarding(name: String, phone: String, pin: String, biometric: Boolean, language: String) {
         val (salt, hash) = sealPin(pin)
         context.appStore.edit {
@@ -80,12 +87,16 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         }
     }
 
+    /** Stores theme. */
     suspend fun setTheme(mode: ThemeMode) = context.appStore.edit { it[THEME] = mode.name }
 
+    /** Stores biometric. */
     suspend fun setBiometric(enabled: Boolean) = context.appStore.edit { it[BIOMETRIC] = enabled }
 
+    /** Stores hide balances. */
     suspend fun setHideBalances(hide: Boolean) = context.appStore.edit { it[HIDE_BALANCES] = hide }
 
+    /** Changes mpin. */
     suspend fun changeMpin(pin: String) {
         val (salt, hash) = sealPin(pin)
         context.appStore.edit {
@@ -94,10 +105,29 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         }
     }
 
+    /** Stores categories. */
     suspend fun setCategories(names: List<String>) = context.appStore.edit { it[CATEGORIES] = names.joinToString(SEP) }
 
+    /** Null when the user has never saved a category list. */
+    suspend fun storedCategories(): List<String>? = stored(CATEGORIES)
+
+    /** Null until a static-catalog response has been saved. */
+    suspend fun storedDefaults(): List<String>? = stored(DEFAULT_CATEGORY_KEY)
+
+    /** Reads one saved name list, or null when that key has never been written. */
+    private suspend fun stored(key: Preferences.Key<String>): List<String>? =
+        context.appStore.data.first()[key]?.split(SEP)?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+
+    /** Saves the catalog from the static API and the list the app should show. */
+    suspend fun saveCategorySync(defaults: List<String>, selected: List<String>) = context.appStore.edit {
+        it[DEFAULT_CATEGORY_KEY] = defaults.joinToString(SEP)
+        it[CATEGORIES] = selected.joinToString(SEP)
+    }
+
+    /** Stores device id. */
     suspend fun setDeviceId(id: String) = context.appStore.edit { it[DEVICE_ID] = id }
 
+    /** Reset. */
     suspend fun reset() {
         PinSealer.delete()
         context.appStore.edit { it.clear() }

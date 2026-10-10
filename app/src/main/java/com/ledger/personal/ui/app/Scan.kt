@@ -64,6 +64,7 @@ import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 import java.util.concurrent.Executors
 
+/** Shows the scan screen. */
 @Composable
 fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) -> Unit) {
     val context = LocalContext.current
@@ -108,6 +109,7 @@ fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) ->
     }
 }
 
+/** Shows camera scanner. */
 @Composable
 private fun CameraScanner(onCode: (String) -> Unit) {
     val context = LocalContext.current
@@ -131,6 +133,7 @@ private fun CameraScanner(onCode: (String) -> Unit) {
     }
 }
 
+/** Binds qr scanner. */
 @OptIn(ExperimentalGetImage::class)
 private fun bindQrScanner(
     context: Context,
@@ -160,6 +163,7 @@ private fun bindQrScanner(
     }, ContextCompat.getMainExecutor(context))
 }
 
+/** Shows the force update screen. */
 @Composable
 fun ForceUpdateScreen(versionName: String) {
     val context = LocalContext.current
@@ -187,6 +191,7 @@ fun ForceUpdateScreen(versionName: String) {
     }
 }
 
+/** Opens store. */
 private fun openStore(context: Context) {
     val id = context.packageName.removeSuffix(".debug")
     try {

@@ -30,6 +30,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
+/** State and actions for the tools screen. */
 @HiltViewModel
 class ToolsViewModel @Inject constructor(
     private val repository: TransactionRepository,
@@ -39,6 +40,7 @@ class ToolsViewModel @Inject constructor(
     val transactions: StateFlow<List<Transaction>> =
         repository.observeTransactions().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Files dispute. */
     fun fileDispute(tx: Transaction, reason: DisputeReason, details: String) = disputeDesk.file(tx, reason, details)
 
     /** Mock controls: pretend the server changed the newest transaction while this device edited it. */
@@ -50,6 +52,7 @@ class ToolsViewModel @Inject constructor(
         }
     }
 
+    /** Resolve. */
     fun resolve(conflict: SyncConflict, keepMine: Map<String, Boolean>, onDone: (Result<Unit>) -> Unit) {
         val merged = resolveConflict(conflict.local, conflict.server, keepMine)
         viewModelScope.launch {
@@ -59,6 +62,7 @@ class ToolsViewModel @Inject constructor(
         }
     }
 
+    /** Shares statement. */
     fun shareStatement(context: Context, summary: StatementSummary, onError: (String) -> Unit) {
         viewModelScope.launch {
             val file = runCatching { withContext(Dispatchers.IO) { writeStatementPdf(context, summary) } }
@@ -78,6 +82,7 @@ private const val PAGE_H = 842
 private const val MARGIN = 40f
 private const val LINE = 16f
 
+/** Write statement pdf. */
 private fun writeStatementPdf(context: Context, summary: StatementSummary): File {
     val dateFormat = DateTimeFormatter.ofPattern("dd MMM yyyy")
     val lines = buildList {

@@ -39,6 +39,7 @@ import com.ledger.personal.ui.navigation.Screen
 
 private val modeRole = mapOf(AppMode.PERSONAL to "CUSTOMER", AppMode.POS to "MERCHANT", AppMode.FRAUD to "ANALYST")
 
+/** Shows the profile screen. */
 @Composable
 fun ProfileScreen(
     prefs: AppPrefs,

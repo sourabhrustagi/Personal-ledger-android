@@ -14,11 +14,16 @@ import androidx.room.TypeConverters
     version = 3,
     exportSchema = true,
 )
+/** Ledger database. */
 @TypeConverters(MoneyConverter::class)
 abstract class LedgerDatabase : RoomDatabase() {
+    /** Transaction dao. */
     abstract fun transactionDao(): TransactionDao
+    /** Kyc draft dao. */
     abstract fun kycDraftDao(): KycDraftDao
+    /** Assistant dao. */
     abstract fun assistantDao(): AssistantDao
+    /** Pos forward dao. */
     abstract fun posForwardDao(): PosForwardDao
 
     companion object {

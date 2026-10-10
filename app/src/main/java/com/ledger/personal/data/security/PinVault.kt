@@ -17,13 +17,16 @@ import javax.crypto.spec.PBEKeySpec
 const val PIN_ITERATIONS = 600_000
 const val PIN_V2 = "v2:"
 
+/** Derives pin. */
 fun derivePin(pin: String, salt: ByteArray): ByteArray = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
     .generateSecret(PBEKeySpec(pin.toCharArray(), salt, PIN_ITERATIONS, 256))
     .encoded
 
+/** Legacy pin hash. */
 fun legacyPinHash(pin: String, salt: String): String =
     MessageDigest.getInstance("SHA-256").digest((salt + pin).toByteArray()).joinToString("") { "%02x".format(it) }
 
+/** Legacy matches. */
 fun legacyMatches(pin: String, salt: String, hash: String): Boolean =
     MessageDigest.isEqual(legacyPinHash(pin, salt).toByteArray(), hash.toByteArray())
 
@@ -34,6 +37,7 @@ fun sealPin(pin: String): Pair<String, String> {
     return hex to (PIN_V2 + PinSealer.seal(derivePin(pin, salt)))
 }
 
+/** Pin matches. */
 fun pinMatches(pin: String, saltHex: String, stored: String): Boolean = if (stored.startsWith(PIN_V2)) {
     val salt = saltHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     MessageDigest.isEqual(derivePin(pin, salt), PinSealer.open(stored.removePrefix(PIN_V2)))
@@ -43,6 +47,7 @@ fun pinMatches(pin: String, saltHex: String, stored: String): Boolean = if (stor
 
 /** AES-GCM key that never leaves the Android Keystore. */
 object PinSealer {
+    /** Seal. */
     fun seal(plain: ByteArray): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
@@ -50,6 +55,7 @@ object PinSealer {
         return Base64.getEncoder().encodeToString(payload)
     }
 
+    /** Open. */
     fun open(sealed: String): ByteArray {
         val payload = Base64.getDecoder().decode(sealed)
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -57,11 +63,13 @@ object PinSealer {
         return cipher.doFinal(payload.copyOfRange(IV_BYTES, payload.size))
     }
 
+    /** Delete. */
     fun delete() {
         val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
         if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS)
     }
 
+    /** Key. */
     private fun key(): SecretKey {
         val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
         (store.getKey(ALIAS, null) as? SecretKey)?.let { return it }

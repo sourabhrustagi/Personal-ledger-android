@@ -7,8 +7,10 @@ import androidx.fragment.app.FragmentActivity
 import com.ledger.personal.ui.app.LedgerOneApp
 import dagger.hilt.android.AndroidEntryPoint
 
+/** Main activity. */
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    /** Reacts to create. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

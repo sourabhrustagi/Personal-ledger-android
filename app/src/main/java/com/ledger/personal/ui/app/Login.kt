@@ -40,6 +40,7 @@ import kotlinx.coroutines.delay
 
 private const val PIN_LENGTH = 4
 
+/** Shows the mpin login screen. */
 @Composable
 fun MpinLoginScreen(
     name: String,

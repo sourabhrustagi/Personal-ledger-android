@@ -1,5 +1,6 @@
 package com.ledger.personal.mock
 
+/** Seed transaction. */
 data class SeedTransaction(
     val id: String,
     val amountMinor: Long,
@@ -8,12 +9,16 @@ data class SeedTransaction(
     val dayOffset: Int,
 )
 
+/** Seed account. */
 data class SeedAccount(val name: String, val lastFour: String, val balanceMinor: Long)
 
+/** Seed contact. */
 data class SeedContact(val name: String, val handle: String)
 
+/** Seed biller. */
 data class SeedBiller(val id: String, val name: String, val dueMinor: Long, val dueDate: String)
 
+/** Seed fraud alert. */
 data class SeedFraudAlert(
     val id: String,
     val merchant: String,
@@ -24,6 +29,7 @@ data class SeedFraudAlert(
     val score: Int = 0,
 )
 
+/** Shared mock catalog. */
 object MockCatalog {
     val bankAccounts: List<SeedAccount> = listOf(
         SeedAccount("Savings", "4821", 2_45_678_90L),

@@ -46,11 +46,13 @@ import com.ledger.personal.ui.navigation.Screen
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+/** Shows profile action. */
 @Composable
 private fun ProfileAction(onProfile: () -> Unit) {
     IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
 }
 
+/** Shows hub link. */
 @Composable
 private fun HubLink(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -68,6 +70,7 @@ private fun HubLink(
     )
 }
 
+/** Shows money hub. */
 @Composable
 fun MoneyHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
     val accounts = if (flags.empty) emptyList() else MockCatalog.bankAccounts
@@ -95,6 +98,7 @@ fun MoneyHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
     }
 }
 
+/** Shows account tile. */
 @Composable
 private fun AccountTile(account: SeedAccount, flags: HubFlags) {
     Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primary) {
@@ -111,6 +115,7 @@ private fun AccountTile(account: SeedAccount, flags: HubFlags) {
     }
 }
 
+/** Shows pay hub. */
 @Composable
 fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
     FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
@@ -143,6 +148,7 @@ fun PayHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
     }
 }
 
+/** Shows insights hub. */
 @Composable
 fun InsightsHub(onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
     FeatureScaffold("Insights", onBack = null, actions = { ProfileAction(onProfile) }) {

@@ -1,6 +1,6 @@
 package com.ledger.personal.data.repository
 
-import com.ledger.personal.data.remote.api.TransactionApiService
+import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
@@ -8,19 +8,17 @@ import com.ledger.personal.data.remote.dto.TransactionListResponseDto
 import com.ledger.personal.testing.sampleDto
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import retrofit2.Response
 
-class RetrofitTransactionRepositoryTest {
+class KtorTransactionRepositoryTest {
 
     private val dispatcher = StandardTestDispatcher()
 
     @Test
     fun getTransactionsMapsItems() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply {
+        val api = MockTransactionApi().apply {
             listResponse = TransactionListResponseDto(
                 items = listOf(sampleDto(id = "a"), sampleDto(id = "b", amountInCents = 100L)),
                 page = 1,
@@ -28,7 +26,7 @@ class RetrofitTransactionRepositoryTest {
                 totalItems = 2
             )
         }
-        val repo = RetrofitTransactionRepository(api, dispatcher)
+        val repo = KtorTransactionRepository(api, dispatcher)
         val items = repo.getTransactions(1, 15).getOrThrow()
         assertEquals(listOf("a", "b"), items.map { it.id })
         assertEquals(100L, items[1].amountInCents)
@@ -37,26 +35,26 @@ class RetrofitTransactionRepositoryTest {
 
     @Test
     fun getTransactionsFailureIsResultFailure() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply {
+        val api = MockTransactionApi().apply {
             listError = IllegalStateException("network down")
         }
-        val result = RetrofitTransactionRepository(api, dispatcher).getTransactions(1, 10)
+        val result = KtorTransactionRepository(api, dispatcher).getTransactions(1, 10)
         assertTrue(result.isFailure)
         assertEquals("network down", result.exceptionOrNull()?.message)
     }
 
     @Test
     fun getByIdMapsDto() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply { byIdResponse = sampleDto(id = "detail") }
-        val tx = RetrofitTransactionRepository(api, dispatcher).getTransactionById("detail").getOrThrow()
+        val api = MockTransactionApi().apply { byIdResponse = sampleDto(id = "detail") }
+        val tx = KtorTransactionRepository(api, dispatcher).getTransactionById("detail").getOrThrow()
         assertEquals("detail", tx.id)
         assertEquals("detail", api.lastGetId)
     }
 
     @Test
     fun createSendsRequestAndMapsResponse() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply { createResponse = sampleDto(id = "new", amountInCents = 4500L) }
-        val tx = RetrofitTransactionRepository(api, dispatcher)
+        val api = MockTransactionApi().apply { createResponse = sampleDto(id = "new", amountInCents = 4500L) }
+        val tx = KtorTransactionRepository(api, dispatcher)
             .createTransaction(4500L, "USD", "Dining", "Dinner")
             .getOrThrow()
         assertEquals("new", tx.id)
@@ -65,10 +63,10 @@ class RetrofitTransactionRepositoryTest {
 
     @Test
     fun patchSendsOnlyProvidedFields() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply {
+        val api = MockTransactionApi().apply {
             patchResponse = sampleDto(id = "p", category = "Office")
         }
-        val tx = RetrofitTransactionRepository(api, dispatcher)
+        val tx = KtorTransactionRepository(api, dispatcher)
             .patchTransaction(id = "p", category = "Office")
             .getOrThrow()
         assertEquals("Office", tx.category)
@@ -78,30 +76,30 @@ class RetrofitTransactionRepositoryTest {
 
     @Test
     fun deleteSucceedsOn2xx() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply { deleteResponse = Response.success(Unit) }
-        val result = RetrofitTransactionRepository(api, dispatcher).deleteTransaction("gone")
+        val api = MockTransactionApi()
+        val result = KtorTransactionRepository(api, dispatcher).deleteTransaction("gone")
         assertTrue(result.isSuccess)
         assertEquals("gone", api.lastDeleteId)
     }
 
     @Test
     fun deleteFailsOnHttpError() = runTest(dispatcher) {
-        val api = FakeTransactionApiService().apply {
-            deleteResponse = Response.error(404, ByteArray(0).toResponseBody(null))
+        val api = MockTransactionApi().apply {
+            deleteError = IllegalStateException("HTTP 404")
         }
-        val result = RetrofitTransactionRepository(api, dispatcher).deleteTransaction("missing")
+        val result = KtorTransactionRepository(api, dispatcher).deleteTransaction("missing")
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull()!!.message!!.contains("HTTP 404"))
     }
 
-    private class FakeTransactionApiService : TransactionApiService {
+    private class MockTransactionApi : TransactionApi {
         var listResponse = TransactionListResponseDto(emptyList(), 1, 15, 0)
         var listError: Throwable? = null
         var byIdResponse = sampleDto()
         var byIdError: Throwable? = null
         var createResponse = sampleDto()
         var patchResponse = sampleDto()
-        var deleteResponse: Response<Unit> = Response.success(Unit)
+        var deleteError: Throwable? = null
 
         var lastListArgs: Pair<Int, Int>? = null
         var lastGetId: String? = null
@@ -133,9 +131,9 @@ class RetrofitTransactionRepositoryTest {
             return patchResponse
         }
 
-        override suspend fun deleteTransaction(id: String): Response<Unit> {
+        override suspend fun deleteTransaction(id: String) {
             lastDeleteId = id
-            return deleteResponse
+            deleteError?.let { throw it }
         }
     }
 }

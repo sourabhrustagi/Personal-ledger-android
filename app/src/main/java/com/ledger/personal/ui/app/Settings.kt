@@ -49,6 +49,7 @@ import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.StatusChip
 import com.ledger.personal.ui.theme.ThemeMode
 
+/** Shows switch row. */
 @Composable
 fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -57,6 +58,7 @@ fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boole
     }
 }
 
+/** Shows the settings screen. */
 @Composable
 fun SettingsScreen(prefs: AppPrefs, onBack: () -> Unit, onTheme: (ThemeMode) -> Unit, onHideBalances: (Boolean) -> Unit) {
     FeatureScaffold("Settings", onBack) {
@@ -87,6 +89,7 @@ fun SettingsScreen(prefs: AppPrefs, onBack: () -> Unit, onTheme: (ThemeMode) -> 
     }
 }
 
+/** Shows the security screen. */
 @Composable
 fun SecurityScreen(
     prefs: AppPrefs,
@@ -176,6 +179,7 @@ fun SecurityScreen(
     }
 }
 
+/** Notice. */
 private data class Notice(val title: String, val body: String, val time: String, val tone: BannerTone, val unread: Boolean)
 
 private val notices = listOf(
@@ -186,6 +190,7 @@ private val notices = listOf(
     Notice("USD/INR crossed 83.50", "Your FX alert fired", "Sat", BannerTone.INFO, false),
 )
 
+/** Shows the notifications screen. */
 @Composable
 fun NotificationsScreen(onBack: () -> Unit) {
     FeatureScaffold("Notifications", onBack) {
@@ -214,6 +219,7 @@ private val faqs = listOf(
     "Is my data shared?" to "Only with your consent, and only to process payments you start.",
 )
 
+/** Shows the help screen. */
 @Composable
 fun HelpScreen(onBack: () -> Unit) {
     var open by rememberSaveable { mutableStateOf<Int?>(null) }

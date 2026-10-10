@@ -1,0 +1,70 @@
+package com.ledger.personal.data.remote.api
+
+import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
+import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
+import com.ledger.personal.data.remote.dto.TransactionDto
+import com.ledger.personal.data.remote.dto.TransactionListResponseDto
+import com.ledger.personal.di.AuthenticatedClient
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.patch
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.appendPathSegments
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** Transaction HTTP contract. */
+interface TransactionApi {
+    /** Returns transactions. */
+    suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto
+
+    /** Returns transaction by id. */
+    suspend fun getTransactionById(id: String): TransactionDto
+
+    /** Creates transaction. */
+    suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto
+
+    /** Patch transaction. */
+    suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto
+
+    /** Deletes transaction. */
+    suspend fun deleteTransaction(id: String)
+}
+
+/** Ktor implementation of the transaction API. */
+@Singleton
+class KtorTransactionApi @Inject constructor(
+    @param:AuthenticatedClient private val client: HttpClient,
+) : TransactionApi {
+    /** Returns transactions. */
+    override suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto =
+        client.get("transactions") {
+            url {
+                parameters.append("page", page.toString())
+                parameters.append("pageSize", pageSize.toString())
+            }
+        }.body()
+
+    /** Returns transaction by id. */
+    override suspend fun getTransactionById(id: String): TransactionDto =
+        client.get { url { appendPathSegments("transactions", id) } }.body()
+
+    /** Creates transaction. */
+    override suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto =
+        client.post("transactions") { setBody(request) }.body()
+
+    /** Patch transaction. */
+    override suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto =
+        client.patch {
+            url { appendPathSegments("transactions", id) }
+            setBody(request)
+        }.body()
+
+    /** Deletes transaction. */
+    override suspend fun deleteTransaction(id: String) {
+        client.delete { url { appendPathSegments("transactions", id) } }
+    }
+}

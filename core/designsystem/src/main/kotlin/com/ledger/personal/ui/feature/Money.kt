@@ -5,8 +5,10 @@ import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
+/** Allowed values of money direction. */
 enum class MoneyDirection { CREDIT, DEBIT, NEUTRAL }
 
+/** Formats money. */
 fun formatMoney(minor: Long, currency: String = "INR"): String {
     if (currency == "INR") return formatRupees(minor)
     val format = NumberFormat.getCurrencyInstance(Locale.US)
@@ -27,6 +29,7 @@ private fun formatRupees(minor: Long): String {
     return "$sign₹$grouped.${(abs % 100).toString().padStart(2, '0')}"
 }
 
+/** Formats signed. */
 fun formatSigned(minor: Long, direction: MoneyDirection, currency: String = "INR"): String {
     val body = formatMoney(kotlin.math.abs(minor), currency)
     return when (direction) {
@@ -36,6 +39,7 @@ fun formatSigned(minor: Long, direction: MoneyDirection, currency: String = "INR
     }
 }
 
+/** Spoken amount. */
 fun spokenAmount(minor: Long, currency: String = "INR"): String {
     val whole = kotlin.math.abs(minor) / 100
     val fraction = kotlin.math.abs(minor) % 100
@@ -47,9 +51,11 @@ fun spokenAmount(minor: Long, currency: String = "INR"): String {
     return if (fraction == 0L) "$whole $major" else "$whole $major $fraction $sub"
 }
 
+/** Parses minor. */
 fun parseMinor(text: String): Long? = runCatching {
     val value = BigDecimal(text.trim())
     if (value.signum() <= 0 || value.scale() > 2) null else value.movePointRight(2).longValueExact()
 }.getOrNull()
 
+/** Mask. */
 fun mask(lastFour: String): String = "•• $lastFour"

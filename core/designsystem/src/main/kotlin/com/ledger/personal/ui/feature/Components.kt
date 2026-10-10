@@ -51,8 +51,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.LedgerTheme
 
+/** Allowed values of banner tone. */
 enum class BannerTone { INFO, SUCCESS, WARNING, ERROR }
 
+/** Tone color. */
 @Composable
 fun toneColor(tone: BannerTone): Color = when (tone) {
     BannerTone.INFO -> MaterialTheme.colorScheme.secondary
@@ -61,6 +63,7 @@ fun toneColor(tone: BannerTone): Color = when (tone) {
     BannerTone.ERROR -> MaterialTheme.colorScheme.error
 }
 
+/** Shows hero card. */
 @Composable
 fun HeroCard(
     label: String,
@@ -89,6 +92,7 @@ fun HeroCard(
     }
 }
 
+/** Shows section card. */
 @Composable
 fun SectionCard(
     modifier: Modifier = Modifier,
@@ -109,6 +113,7 @@ fun SectionCard(
     }
 }
 
+/** Shows section header. */
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, action: @Composable () -> Unit = {}) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -122,6 +127,7 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, action: @Composa
     }
 }
 
+/** Shows icon badge. */
 @Composable
 fun IconBadge(icon: ImageVector, modifier: Modifier = Modifier, tint: Color = MaterialTheme.colorScheme.primary, size: Int = 44) {
     Box(
@@ -132,6 +138,7 @@ fun IconBadge(icon: ImageVector, modifier: Modifier = Modifier, tint: Color = Ma
     }
 }
 
+/** Shows list row. */
 @Composable
 fun ListRow(
     icon: ImageVector,
@@ -166,6 +173,7 @@ fun ListRow(
     }
 }
 
+/** Shows detail row. */
 @Composable
 fun DetailRow(label: String, value: String, modifier: Modifier = Modifier, emphasize: Boolean = false) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -179,6 +187,7 @@ fun DetailRow(label: String, value: String, modifier: Modifier = Modifier, empha
     }
 }
 
+/** Shows status banner. */
 @Composable
 fun StatusBanner(message: String, tone: BannerTone, modifier: Modifier = Modifier, title: String? = null) {
     val color = toneColor(tone)
@@ -199,6 +208,7 @@ fun StatusBanner(message: String, tone: BannerTone, modifier: Modifier = Modifie
     }
 }
 
+/** Shows status chip. */
 @Composable
 fun StatusChip(text: String, tone: BannerTone, modifier: Modifier = Modifier) {
     val color = toneColor(tone)
@@ -213,6 +223,7 @@ fun StatusChip(text: String, tone: BannerTone, modifier: Modifier = Modifier) {
     }
 }
 
+/** Shows empty state. */
 @Composable
 fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modifier = Modifier) {
     Column(
@@ -226,6 +237,7 @@ fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modi
     }
 }
 
+/** Shows primary button. */
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
     Button(
@@ -242,6 +254,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
+/** Shows amount field. */
 @Composable
 fun AmountField(
     text: String,
@@ -268,6 +281,7 @@ fun AmountField(
 
 private val amountInput = Regex("^\\d{0,9}(\\.\\d{0,2})?$")
 
+/** Category icon. */
 fun categoryIcon(category: String): ImageVector = when (category.lowercase()) {
     "groceries" -> Icons.Outlined.ShoppingCart
     "dining" -> Icons.Outlined.Restaurant

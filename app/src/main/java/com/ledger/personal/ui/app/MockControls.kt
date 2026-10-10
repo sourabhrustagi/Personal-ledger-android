@@ -8,7 +8,6 @@ import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SyncProblem
-import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +18,7 @@ import com.ledger.personal.ui.feature.ListRow
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.StatusBanner
 
+/** Shows the mock controls screen. */
 @Composable
 fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
     val slow by MockSwitches.slow.collectAsStateWithLifecycle()
@@ -26,7 +26,6 @@ fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
     val offline by MockSwitches.offline.collectAsStateWithLifecycle()
     val empty by MockSwitches.empty.collectAsStateWithLifecycle()
     val dropLive by MockSwitches.dropLive.collectAsStateWithLifecycle()
-    val forceUpdate by MockSwitches.forceUpdate.collectAsStateWithLifecycle()
     FeatureScaffold("Mock controls", onBack, subtitle = "Debug build only") {
         StatusBanner("These switches change what the mock backend returns. The next request or refresh uses them.", BannerTone.INFO)
         SectionCard(title = "Network") {
@@ -48,11 +47,6 @@ fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
                 onClick = onSimulateConflict,
             )
             ListRow(Icons.Outlined.RestartAlt, "Reset all switches", onClick = MockSwitches::reset)
-        }
-        SectionCard(title = "App") {
-            SwitchRow(Icons.Outlined.SystemUpdate, "Force update", "Blocks the app until it is updated", forceUpdate) {
-                MockSwitches.forceUpdate.value = it
-            }
         }
     }
 }

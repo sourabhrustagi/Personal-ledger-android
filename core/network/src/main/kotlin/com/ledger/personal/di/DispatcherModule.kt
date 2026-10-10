@@ -13,10 +13,12 @@ import javax.inject.Singleton
 @Retention(AnnotationRetention.BINARY)
 annotation class IoDispatcher
 
+/** Hilt bindings for dispatcher. */
 @Module
 @InstallIn(SingletonComponent::class)
 object DispatcherModule {
 
+    /** Supplies io dispatcher. */
     @Provides
     @Singleton
     @IoDispatcher

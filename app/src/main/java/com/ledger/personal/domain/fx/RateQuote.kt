@@ -1,9 +1,13 @@
 package com.ledger.personal.domain.fx
 
+/** Rate quote. */
 data class RateQuote(val pair: String, val ticks: Long)
 
+/** Contract for rate disposition. */
 sealed interface RateDisposition {
+    /** Served. */
     data class Served(val quote: RateQuote) : RateDisposition
+    /** Quarantined. */
     data class Quarantined(val quote: RateQuote) : RateDisposition
 }
 

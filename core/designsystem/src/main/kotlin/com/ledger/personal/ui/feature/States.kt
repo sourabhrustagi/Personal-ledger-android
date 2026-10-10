@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Keeps reduced motion. */
 @Composable
 fun rememberReducedMotion(): Boolean {
     val context = LocalContext.current
@@ -47,6 +48,7 @@ fun rememberReducedMotion(): Boolean {
     }
 }
 
+/** Shows skeleton. */
 @Composable
 fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
     val reduced = rememberReducedMotion()
@@ -62,6 +64,7 @@ fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
     )
 }
 
+/** Shows skeleton rows. */
 @Composable
 fun SkeletonRows(count: Int = 5, modifier: Modifier = Modifier) {
     Column(modifier.semantics { contentDescription = "Loading" }, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -78,6 +81,7 @@ fun SkeletonRows(count: Int = 5, modifier: Modifier = Modifier) {
     }
 }
 
+/** Shows offline banner. */
 @Composable
 fun OfflineBanner(ageLabel: String?, modifier: Modifier = Modifier) {
     StatusBanner(
@@ -88,13 +92,16 @@ fun OfflineBanner(ageLabel: String?, modifier: Modifier = Modifier) {
     )
 }
 
+/** Shows payments offline notice. */
 @Composable
 fun PaymentsOfflineNotice(modifier: Modifier = Modifier) {
     StatusBanner("Payments need a live, secure connection. Try again when you're back online.", BannerTone.WARNING, modifier, title = "Payments paused")
 }
 
+/** Allowed values of sync state. */
 enum class SyncState { SYNCED, SYNCING, WAITING, FAILED }
 
+/** Shows sync indicator. */
 @Composable
 fun SyncIndicator(state: SyncState, modifier: Modifier = Modifier) {
     val (icon, label, tone) = when (state) {
@@ -109,6 +116,7 @@ fun SyncIndicator(state: SyncState, modifier: Modifier = Modifier) {
     }
 }
 
+/** Shows step header. */
 @Composable
 fun StepHeader(steps: List<String>, current: Int, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -129,8 +137,10 @@ fun StepHeader(steps: List<String>, current: Int, modifier: Modifier = Modifier)
     }
 }
 
+/** Timeline step. */
 data class TimelineStep(val label: String, val detail: String?, val done: Boolean)
 
+/** Shows timeline. */
 @Composable
 fun Timeline(steps: List<TimelineStep>, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {

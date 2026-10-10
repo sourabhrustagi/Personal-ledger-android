@@ -2,9 +2,9 @@ package com.ledger.personal.ui.screens.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.testing.asSnapshot
-import com.ledger.personal.data.repository.FakeTransactionRepository
-import com.ledger.personal.testing.FakeSyncCoordinator
-import com.ledger.personal.testing.FakeUserSettings
+import com.ledger.personal.data.repository.MockTransactionRepository
+import com.ledger.personal.testing.MockSyncCoordinator
+import com.ledger.personal.testing.MockUserSettings
 import com.ledger.personal.testing.ScriptedTransactionRepository
 import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.screens.create.CreateTransactionViewModel
@@ -33,14 +33,14 @@ import org.junit.Test
 class TransactionViewModelsTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var fakeRepository: FakeTransactionRepository
-    private lateinit var sync: FakeSyncCoordinator
+    private lateinit var mockRepository: MockTransactionRepository
+    private lateinit var sync: MockSyncCoordinator
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        fakeRepository = FakeTransactionRepository()
-        sync = FakeSyncCoordinator()
+        mockRepository = MockTransactionRepository()
+        sync = MockSyncCoordinator()
     }
 
     @After
@@ -50,7 +50,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun listViewModel_loadsInitialTransactionsSuccessfully() = runTest {
-        val viewModel = listViewModel(fakeRepository)
+        val viewModel = listViewModel(mockRepository)
         val items = viewModel.pages.asSnapshot()
 
         assertEquals(25, items.size)
@@ -59,8 +59,8 @@ class TransactionViewModelsTest {
 
     @Test
     fun listViewModel_showsEmptyStateWhenRepositoryIsEmpty() = runTest {
-        fakeRepository.clear()
-        val viewModel = listViewModel(fakeRepository)
+        mockRepository.clear()
+        val viewModel = listViewModel(mockRepository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -72,7 +72,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun listViewModel_showsEveryLocalRowAndIgnoresExtraPageRequests() = runTest {
-        val viewModel = listViewModel(fakeRepository)
+        val viewModel = listViewModel(mockRepository)
         advanceUntilIdle()
 
         viewModel.loadNextPage()
@@ -84,12 +84,12 @@ class TransactionViewModelsTest {
 
     @Test
     fun listViewModel_refreshEnqueuesSyncAndKeepsNewLocalRows() = runTest {
-        fakeRepository.clear()
-        fakeRepository.insertDirect(sampleTransaction(id = "only"))
-        val viewModel = listViewModel(fakeRepository)
+        mockRepository.clear()
+        mockRepository.insertDirect(sampleTransaction(id = "only"))
+        val viewModel = listViewModel(mockRepository)
         advanceUntilIdle()
 
-        fakeRepository.insertDirect(sampleTransaction(id = "newer", timestampEpochMs = 9_000_000_000_000L))
+        mockRepository.insertDirect(sampleTransaction(id = "newer", timestampEpochMs = 9_000_000_000_000L))
         val enqueuedBefore = sync.enqueued
         viewModel.refresh()
         val items = viewModel.pages.asSnapshot()
@@ -110,7 +110,7 @@ class TransactionViewModelsTest {
     }
 
     private fun TestScope.listViewModel(repository: com.ledger.personal.domain.repository.TransactionRepository): TransactionListViewModel {
-        val viewModel = TransactionListViewModel(repository, sync, FakeUserSettings())
+        val viewModel = TransactionListViewModel(repository, sync, MockUserSettings())
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
     }
@@ -126,7 +126,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun createViewModel_rejectsZeroAndNegativeAmount() = runTest {
-        val viewModel = CreateTransactionViewModel(fakeRepository)
+        val viewModel = CreateTransactionViewModel(mockRepository)
         viewModel.onAmountChange("0.00")
         viewModel.onCategoryChange("Food")
         viewModel.submit()
@@ -138,7 +138,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun createViewModel_rejectsBlankCategory() = runTest {
-        val viewModel = CreateTransactionViewModel(fakeRepository)
+        val viewModel = CreateTransactionViewModel(mockRepository)
         viewModel.onAmountChange("10.00")
         viewModel.submit()
         assertEquals("Category is required", viewModel.uiState.value.categoryError)
@@ -147,7 +147,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun createViewModel_createsValidTransaction() = runTest {
-        val viewModel = CreateTransactionViewModel(fakeRepository)
+        val viewModel = CreateTransactionViewModel(mockRepository)
         viewModel.onAmountChange("45.50")
         viewModel.onCategoryChange("Dining")
         viewModel.onDescriptionChange("Dinner with team")
@@ -198,10 +198,10 @@ class TransactionViewModelsTest {
             category = "OldCategory",
             description = "Original Description"
         )
-        fakeRepository.insertDirect(tx)
+        mockRepository.insertDirect(tx)
 
         val savedStateHandle = SavedStateHandle(mapOf("transactionId" to tx.id))
-        val viewModel = EditTransactionViewModel(fakeRepository, savedStateHandle)
+        val viewModel = EditTransactionViewModel(mockRepository, savedStateHandle)
         advanceUntilIdle()
 
         viewModel.onCategoryChange("UpdatedCategory")
@@ -209,7 +209,7 @@ class TransactionViewModelsTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isSuccess)
-        val updated = fakeRepository.getTransactionById(tx.id).getOrThrow()
+        val updated = mockRepository.getTransactionById(tx.id).getOrThrow()
         assertEquals("UpdatedCategory", updated.category)
         assertEquals(9900L, updated.amountInCents)
     }
@@ -229,9 +229,9 @@ class TransactionViewModelsTest {
 
     @Test
     fun editViewModel_rejectsInvalidAmountAndBlankCategory() = runTest {
-        fakeRepository.insertDirect(sampleTransaction(id = "edit-val"))
+        mockRepository.insertDirect(sampleTransaction(id = "edit-val"))
         val viewModel = EditTransactionViewModel(
-            fakeRepository,
+            mockRepository,
             SavedStateHandle(mapOf("transactionId" to "edit-val"))
         )
         advanceUntilIdle()
@@ -245,7 +245,7 @@ class TransactionViewModelsTest {
 
     @Test
     fun editViewModel_missingIdSetsError() = runTest {
-        val viewModel = EditTransactionViewModel(fakeRepository, SavedStateHandle())
+        val viewModel = EditTransactionViewModel(mockRepository, SavedStateHandle())
         assertEquals("Missing transaction ID", viewModel.uiState.value.errorMessage)
         assertFalse(viewModel.uiState.value.isLoadingInitial)
     }
@@ -276,10 +276,10 @@ class TransactionViewModelsTest {
     @Test
     fun detailViewModel_handlesDeleteConfirmationFlow() = runTest {
         val tx = sampleTransaction(id = "test-del-1", amountInCents = 1500L, category = "Subscriptions")
-        fakeRepository.insertDirect(tx)
+        mockRepository.insertDirect(tx)
 
         val savedStateHandle = SavedStateHandle(mapOf("transactionId" to tx.id))
-        val viewModel = detailViewModel(fakeRepository, savedStateHandle)
+        val viewModel = detailViewModel(mockRepository, savedStateHandle)
         advanceUntilIdle()
 
         assertEquals(tx.id, viewModel.uiState.value.transaction?.id)
@@ -292,12 +292,12 @@ class TransactionViewModelsTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isDeleted)
-        assertTrue(fakeRepository.getTransactionById(tx.id).isFailure)
+        assertTrue(mockRepository.getTransactionById(tx.id).isFailure)
     }
 
     @Test
     fun detailViewModel_missingIdSetsError() = runTest {
-        val viewModel = detailViewModel(fakeRepository, SavedStateHandle())
+        val viewModel = detailViewModel(mockRepository, SavedStateHandle())
         advanceUntilIdle()
         assertEquals("Missing transaction ID", viewModel.uiState.value.errorMessage)
         assertFalse(viewModel.uiState.value.isLoading)

@@ -12,21 +12,27 @@ import org.junit.Test
 class AuthInterceptorTest {
 
     @Test
-    fun attachesJsonAndBearerHeadersByDefault() {
+    fun hasNoTokenByDefault() {
         val interceptor = AuthInterceptor()
         val request = intercept(interceptor, Request.Builder().url("http://localhost/transactions").build())
-        assertEquals("application/json", request.header("Accept"))
-        assertEquals("application/json", request.header("Content-Type"))
-        assertEquals("Bearer mock-ledger-jwt-token-2026", request.header("Authorization"))
+        assertNull(request.header("Content-Type"))
+        assertNull(request.header("Authorization"))
     }
 
     @Test
-    fun omitsAuthorizationWhenTokenCleared() {
+    fun preservesHeadersAddedByKtor() {
         val interceptor = AuthInterceptor()
-        interceptor.updateToken(null)
-        val request = intercept(interceptor, Request.Builder().url("http://localhost/transactions").build())
+        val request = intercept(
+            interceptor,
+            Request.Builder()
+                .url("http://localhost/transactions")
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build(),
+        )
         assertNull(request.header("Authorization"))
         assertEquals("application/json", request.header("Accept"))
+        assertEquals("application/json", request.header("Content-Type"))
     }
 
     @Test

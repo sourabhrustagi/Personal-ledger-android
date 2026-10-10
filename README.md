@@ -2,7 +2,7 @@
 
 LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, and keeps working offline. The same app also runs as a shop counter (POS terminal) and as a fraud-review console for analysts.
 
-It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Retrofit.
+It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Ktor.
 
 By default the app runs fully offline on built-in demo data, so you can clone it and run it without a backend.
 
@@ -18,22 +18,26 @@ cd "Personal ledger"
 
 Or open the folder in Android Studio, pick the `mockDebug` build variant, and press Run.
 
-In the demo build:
+In the mock build:
 
 - the sign-up code is `123456`;
-- you choose your own 4-digit MPIN during onboarding, and `1111` also unlocks the mock build;
-- Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, a sync conflict, or a forced app update.
+- you choose your own 4-digit MPIN during onboarding, and `1111` also unlocks this build;
+- Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, or a sync conflict.
 
 ## Build variants
 
-| Flavor | Data source | Use it for |
-|--------|-------------|------------|
-| `mock` (default) | In-app fake backend with seeded demo data | Development, demos, tests, CI |
-| `live` | The real REST API (`API_BASE_URL`) | Running against a backend |
+One flavor dimension, `environment`. Debug and release stay build types: debug logs HTTP and adds `.debug` to the application id; release is minified and does not.
 
-Debug builds get the `.debug` application ID suffix, so they install next to a release build. Debug `live` builds point at `http://10.0.2.2:8080/retail/v1/`, which is your computer as seen from the emulator.
+| Variant | Application id | API | Data |
+|---------|----------------|-----|------|
+| `mockDebug` (default) | `com.ledger.personal.mock.debug` | `http://10.0.2.2:8080/retail/v1/` | In-app mock backend |
+| `devDebug` / `devRelease` | `com.ledger.personal.dev` (plus `.debug` on debug) | `https://dev-api.personal-ledger.com/retail/v1/` | Real API |
+| `stagingDebug` / `stagingRelease` | `com.ledger.personal.staging` (plus `.debug` on debug) | `https://staging-api.personal-ledger.com/retail/v1/` | Real API |
+| `prodDebug` / `prodRelease` | `com.ledger.personal` (plus `.debug` on debug) | `https://api.personal-ledger.com/retail/v1/` | Real API |
 
-Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` are empty on purpose. Fill them with your server's real SPKI hashes before shipping a `live` release.
+`mock` is the only flavor on the mock backend. Dev, staging, and prod call their own host. The four apps install side by side, each with its own launcher name and app-link host.
+
+Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` are empty on purpose. Fill them with your server's real SPKI hashes before shipping a `prod` release.
 
 ## What's in the app
 
@@ -59,10 +63,10 @@ From any transaction you can edit it, delete it, split it with friends, or repor
 ```
 app/                 App shell: navigation, onboarding, login, settings, flavors, DI wiring
 core/model/          Plain Kotlin: domain types, repository interfaces, business rules
-core/network/        Retrofit API, DTOs, auth interceptor, certificate pinning, ticker socket
+core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, ticker socket
 core/database/       Room database, offline-first repository, sync worker, DataStore settings
 core/designsystem/   Theme, colours, money formatting, shared Compose components
-core/mock/           Fake backend, seeded demo catalog, mock switches
+core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples
 feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
                      ticker, assistant, pos, fraud, banking
@@ -70,6 +74,7 @@ docs/                Architecture document and decision records
 ```
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
+See [docs/LIBRARIES.md](docs/LIBRARIES.md) for the dependency choices and comparisons with alternatives.
 
 ## Tests and checks
 
@@ -80,7 +85,7 @@ Feature modules never depend on each other; `ModuleBoundaryTest` fails the build
 ./gradlew connectedMockDebugAndroidTest    # Room, migration and sync tests (needs an emulator)
 ```
 
-CI (`.github/workflows/android.yml`) runs static analysis, unit tests and the mock APK builds on every push.
+CI (`.github/workflows/android.yml`) runs static analysis, the mock unit tests, and the `mockDebug`, `devRelease`, `stagingRelease`, and `prodRelease` APKs on every push.
 
 ## Contributing
 

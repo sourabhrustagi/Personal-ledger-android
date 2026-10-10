@@ -32,16 +32,42 @@ android {
         buildConfig = true
     }
 
-    flavorDimensions += "backend"
+    flavorDimensions += "environment"
     productFlavors {
         create("mock") {
-            dimension = "backend"
+            dimension = "environment"
             isDefault = true
-            buildConfigField("Boolean", "USE_FAKE_REPOSITORY", "true")
+            applicationIdSuffix = ".mock"
+            versionNameSuffix = "-mock"
+            manifestPlaceholders["appName"] = "Personal Ledger Mock"
+            manifestPlaceholders["appLinkHost"] = "mock.app.personal-ledger.com"
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"ws://10.0.2.2:8080/retail/v1/ticks\"")
         }
-        create("live") {
-            dimension = "backend"
-            buildConfigField("Boolean", "USE_FAKE_REPOSITORY", "false")
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appName"] = "Personal Ledger Dev"
+            manifestPlaceholders["appLinkHost"] = "dev.app.personal-ledger.com"
+            buildConfigField("String", "API_BASE_URL", "\"https://dev-api.personal-ledger.com/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"wss://dev-api.personal-ledger.com/retail/v1/ticks\"")
+        }
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            manifestPlaceholders["appName"] = "Personal Ledger Staging"
+            manifestPlaceholders["appLinkHost"] = "staging.app.personal-ledger.com"
+            buildConfigField("String", "API_BASE_URL", "\"https://staging-api.personal-ledger.com/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"wss://staging-api.personal-ledger.com/retail/v1/ticks\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            manifestPlaceholders["appName"] = "Personal Ledger"
+            manifestPlaceholders["appLinkHost"] = "app.personal-ledger.com"
+            buildConfigField("String", "API_BASE_URL", "\"https://api.personal-ledger.com/retail/v1/\"")
+            buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
         }
     }
 
@@ -49,9 +75,6 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            // Android emulator loopback to the LedgerOne API running on the host.
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/retail/v1/\"")
-            buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
             buildConfigField("Boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {
@@ -61,8 +84,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://api.personal-ledger.com/retail/v1/\"")
-            buildConfigField("String", "TICKER_URL", "\"wss://api.personal-ledger.com/retail/v1/ticks\"")
             buildConfigField("Boolean", "ENABLE_HTTP_LOGGING", "false")
         }
     }
@@ -159,11 +180,8 @@ dependencies {
     implementation(libs.mlkit.barcode)
     implementation(libs.androidx.biometric)
 
-    // Networking: Retrofit & OkHttp
-    implementation(libs.retrofit.core)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
-    implementation(libs.okhttp.core)
-    implementation(libs.okhttp.logging)
+    // Networking: Ktor with the OkHttp engine
+    implementation(libs.ktor.client.core)
 
     // Kotlinx Serialization & Coroutines
     implementation(libs.kotlinx.serialization.json)
@@ -172,11 +190,11 @@ dependencies {
     // Logging & Debug Tooling
     implementation(libs.timber)
     debugImplementation(libs.leakcanary)
-    debugImplementation(libs.chucker.debug)
-    releaseImplementation(libs.chucker.release)
 
     // Unit Testing
     testImplementation(libs.junit)
+    testImplementation(platform(libs.okhttp.bom))
+    testImplementation(libs.okhttp.core)
     testImplementation(project(":core:testing"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.paging.testing)

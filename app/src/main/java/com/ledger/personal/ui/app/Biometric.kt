@@ -14,16 +14,20 @@ private val authenticators: Int
         BiometricManager.Authenticators.BIOMETRIC_STRONG
     }
 
+/** Biometric available. */
 fun biometricAvailable(context: Context): Boolean =
     BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
 
+/** Prompt biometric. */
 fun promptBiometric(context: Context, title: String, onResult: (Boolean) -> Unit) {
     val activity = context as? FragmentActivity ?: return onResult(false)
     val prompt = BiometricPrompt(
         activity,
         ContextCompat.getMainExecutor(activity),
         object : BiometricPrompt.AuthenticationCallback() {
+            /** Reacts to authentication succeeded. */
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onResult(true)
+            /** Reacts to authentication error. */
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onResult(false)
         },
     )
@@ -39,7 +43,9 @@ fun promptWithCrypto(context: Context, title: String, signature: java.security.S
         activity,
         ContextCompat.getMainExecutor(activity),
         object : BiometricPrompt.AuthenticationCallback() {
+            /** Reacts to authentication succeeded. */
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onResult(result.cryptoObject?.signature)
+            /** Reacts to authentication error. */
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onResult(null)
         },
     )

@@ -83,6 +83,7 @@ import com.ledger.personal.ui.screens.home.HomeScreen
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListViewModel
 
+/** Tab. */
 private data class Tab(val route: Screen, val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
@@ -93,6 +94,7 @@ private val tabs = listOf(
     Tab(Screen.Assistant, "Assistant", Icons.Outlined.AutoAwesome),
 )
 
+/** Shows ledger nav host. */
 @Composable
 fun LedgerNavHost(
     prefs: AppPrefs,
@@ -106,6 +108,9 @@ fun LedgerNavHost(
     val destination = entry?.destination
     val flags = HubFlags(offline, empty, session.revealBalances || !prefs.hideBalances, appViewModel::toggleReveal)
     val tools: ToolsViewModel = hiltViewModel()
+    val categoriesReady by appViewModel.categoriesReady.collectAsStateWithLifecycle()
+    val categories = if (categoriesReady) prefs.categories else emptyList()
+    val defaultCategories = if (categoriesReady) prefs.defaultCategories else emptyList()
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
@@ -129,20 +134,22 @@ fun LedgerNavHost(
             modifier = Modifier.padding(inner).consumeWindowInsets(inner),
         ) {
             tabRoutes(navController, prefs, flags, tools)
-            ledgerRoutes(navController, prefs.categories)
+            ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
             productRoutes(navController, offline)
             accountRoutes(navController, prefs, session, appViewModel)
-            toolRoutes(navController, prefs, tools, appViewModel)
+            toolRoutes(navController, tools, appViewModel, categories, defaultCategories, !categoriesReady)
         }
     }
 }
 
+/** Navigates to tab. */
 private fun NavHostController.navigateTab(route: Screen) = navigate(route) {
     popUpTo(graph.findStartDestination().id) { saveState = true }
     launchSingleTop = true
     restoreState = true
 }
 
+/** Tab routes. */
 private fun NavGraphBuilder.tabRoutes(nav: NavHostController, prefs: AppPrefs, flags: HubFlags, tools: ToolsViewModel) {
     composable<Screen.Home> {
         val conflicts by tools.inbox.conflicts.collectAsStateWithLifecycle()
@@ -178,6 +185,7 @@ private fun NavGraphBuilder.tabRoutes(nav: NavHostController, prefs: AppPrefs, f
     }
 }
 
+/** List route. */
 private fun NavGraphBuilder.listRoute(nav: NavHostController) {
     composable<Screen.TransactionList> {
         val viewModel: TransactionListViewModel = hiltViewModel()
@@ -194,7 +202,8 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
     }
 }
 
-private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: List<String>) {
+/** Ledger routes. */
+private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: List<String>, categoriesLoading: Boolean) {
     listRoute(nav)
     composable<Screen.TransactionDetail>(
         deepLinks = listOf(
@@ -226,6 +235,7 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
             onSubmit = viewModel::submit,
             onNavigateBack = { nav.popBackStack() },
             quickCategories = categories,
+            categoriesLoading = categoriesLoading,
         )
     }
     composable<Screen.EditTransaction> { backStackEntry ->
@@ -241,10 +251,12 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
             onNavigateBack = { nav.popBackStack() },
             onRetry = { viewModel.loadInitial(route.transactionId) },
             quickCategories = categories,
+            categoriesLoading = categoriesLoading,
         )
     }
 }
 
+/** Product routes. */
 private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boolean) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.LedgerHistory> { LedgerHistoryScreen(onBack = back) }
@@ -252,7 +264,7 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
     composable<Screen.Budgets> { BudgetsScreen(onBack = back, onInsights = { nav.navigate(Screen.Charts) }) }
     composable<Screen.FxAlerts> { FxAlertsScreen(onBack = back) }
     composable<Screen.Ticker> { TickerScreen(onBack = back) }
-    composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = !BuildConfig.USE_FAKE_REPOSITORY) }
+    composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = BuildConfig.FLAVOR != "mock") }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
     composable<Screen.Banking> { BankingScreen(onBack = back) }
     composable<Screen.Cards> { CardsScreen(onBack = back) }
@@ -260,6 +272,7 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
     composable<Screen.Deposits> { DepositsScreen(onBack = back) }
 }
 
+/** Account routes. */
 private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPrefs, session: SessionState, app: AppViewModel) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.Profile> {
@@ -267,7 +280,7 @@ private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPref
             prefs = prefs,
             session = session,
             roles = MOCK_ROLES,
-            showMockControls = BuildConfig.DEBUG && BuildConfig.USE_FAKE_REPOSITORY,
+            showMockControls = BuildConfig.DEBUG && BuildConfig.FLAVOR == "mock",
             onBack = back,
             onMode = app::setMode,
             onOpen = nav::navigate,
@@ -291,10 +304,20 @@ private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPref
 
 }
 
-private fun NavGraphBuilder.toolRoutes(nav: NavHostController, prefs: AppPrefs, tools: ToolsViewModel, app: AppViewModel) {
+/** Tool routes. */
+private fun NavGraphBuilder.toolRoutes(
+    nav: NavHostController,
+    tools: ToolsViewModel,
+    app: AppViewModel,
+    categories: List<String>,
+    defaults: List<String>,
+    categoriesLoading: Boolean,
+) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.Statements> { StatementsScreen(onBack = back, tools = tools) }
-    composable<Screen.Categories> { CategoriesScreen(prefs.categories, back) { app.setCategories(it) } }
+    composable<Screen.Categories> {
+        CategoriesScreen(categories, back, defaults, loading = categoriesLoading) { app.setCategories(it) }
+    }
     composable<Screen.Dispute> { entry ->
         DisputeScreen(entry.toRoute<Screen.Dispute>().transactionId, tools, back) { nav.navigate(Screen.Disputes) }
     }
@@ -302,7 +325,7 @@ private fun NavGraphBuilder.toolRoutes(nav: NavHostController, prefs: AppPrefs, 
     composable<Screen.Conflicts> { ConflictScreen(tools, back) }
     composable<Screen.MockControls> { MockControlsScreen(onBack = back, onSimulateConflict = tools::simulateConflict) }
     composable<Screen.Scan> {
-        ScanScreen(liveCamera = !BuildConfig.USE_FAKE_REPOSITORY, onBack = back) { target ->
+        ScanScreen(liveCamera = BuildConfig.FLAVOR != "mock", onBack = back) { target ->
             nav.navigate(Screen.PayTo(target.vpa, target.amountMinor)) { popUpTo<Screen.Scan> { inclusive = true } }
         }
     }
@@ -316,6 +339,7 @@ private fun NavGraphBuilder.toolRoutes(nav: NavHostController, prefs: AppPrefs, 
     }
 }
 
+/** Shows detail actions. */
 @Composable
 private fun DetailActions(nav: NavHostController, tx: Transaction) {
     OutlinedButton(onClick = { nav.navigate(Screen.SplitBill(tx.amountInCents, tx.description)) }, modifier = Modifier.fillMaxWidth()) {

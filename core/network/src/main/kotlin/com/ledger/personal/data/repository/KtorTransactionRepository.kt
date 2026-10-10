@@ -1,6 +1,6 @@
 package com.ledger.personal.data.repository
 
-import com.ledger.personal.data.remote.api.TransactionApiService
+import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
@@ -9,19 +9,22 @@ import com.ledger.personal.di.IoDispatcher
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRemote
 import com.ledger.personal.domain.sync.VersionConflict
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Reads and writes transactions through Ktor. */
 @Singleton
-class RetrofitTransactionRepository @Inject constructor(
-    private val apiService: TransactionApiService,
+class KtorTransactionRepository @Inject constructor(
+    private val apiService: TransactionApi,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : TransactionRemote {
 
+    /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> =
         withContext(ioDispatcher) {
             runCatching {
@@ -30,6 +33,7 @@ class RetrofitTransactionRepository @Inject constructor(
             }
         }
 
+    /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> =
         withContext(ioDispatcher) {
             runCatching {
@@ -38,6 +42,7 @@ class RetrofitTransactionRepository @Inject constructor(
             }
         }
 
+    /** Creates transaction. */
     override suspend fun createTransaction(
         amountInCents: Long,
         currency: String,
@@ -55,6 +60,7 @@ class RetrofitTransactionRepository @Inject constructor(
         }
     }
 
+    /** Patch transaction. */
     override suspend fun patchTransaction(
         id: String,
         category: String?,
@@ -71,20 +77,19 @@ class RetrofitTransactionRepository @Inject constructor(
         }
     }
 
+    /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String): Result<Unit> =
         withContext(ioDispatcher) {
             runCatching {
-                val response = apiService.deleteTransaction(id = id)
-                if (!response.isSuccessful) {
-                    error("Failed to delete transaction: HTTP ${response.code()}")
-                }
+                apiService.deleteTransaction(id = id)
             }
         }
 
-    private inline fun call(block: () -> TransactionDto): Transaction = try {
+    /** Call. */
+    private suspend fun call(block: suspend () -> TransactionDto): Transaction = try {
         block().toDomain()
-    } catch (error: HttpException) {
-        throw conflictOrNull(error.code(), error.response()?.errorBody()?.string()) ?: error
+    } catch (error: ClientRequestException) {
+        throw conflictOrNull(error.response.status.value, error.response.bodyAsText()) ?: error
     }
 }
 

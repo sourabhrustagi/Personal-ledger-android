@@ -25,6 +25,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
     },
 )
 
+/** Data store user settings. */
 @Singleton
 class DataStoreUserSettings @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -33,6 +34,7 @@ class DataStoreUserSettings @Inject constructor(
         prefs[LAST_SYNC]
     }
 
+    /** Records sync. */
     override suspend fun recordSync(epochMs: Long) {
         context.settingsDataStore.edit { prefs -> prefs[LAST_SYNC] = epochMs }
     }

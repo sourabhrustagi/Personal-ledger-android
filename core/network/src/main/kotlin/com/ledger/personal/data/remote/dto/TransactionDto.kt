@@ -4,6 +4,7 @@ import com.ledger.personal.domain.model.Transaction
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Network payload for transaction. */
 @Serializable
 data class TransactionDto(
     @SerialName("id") val id: String,
@@ -14,6 +15,7 @@ data class TransactionDto(
     @SerialName("timestamp_epoch_ms") val timestampEpochMs: Long
 )
 
+/** Network payload for transaction list response. */
 @Serializable
 data class TransactionListResponseDto(
     @SerialName("items") val items: List<TransactionDto>,
@@ -22,6 +24,7 @@ data class TransactionListResponseDto(
     @SerialName("total_items") val totalItems: Long
 )
 
+/** Network payload for create transaction request. */
 @Serializable
 data class CreateTransactionRequestDto(
     @SerialName("amount_in_cents") val amountInCents: Long,
@@ -30,6 +33,7 @@ data class CreateTransactionRequestDto(
     @SerialName("description") val description: String
 )
 
+/** Network payload for patch transaction request. */
 @Serializable
 data class PatchTransactionRequestDto(
     @SerialName("category") val category: String? = null,

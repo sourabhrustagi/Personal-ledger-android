@@ -49,6 +49,7 @@ import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.feature.TextLink
 import kotlinx.coroutines.delay
 
+/** Allowed values of onboard step. */
 private enum class OnboardStep { WELCOME, PHONE, OTP, MPIN, CONFIRM, BIOMETRIC }
 
 private val steps = listOf("Phone", "Verify", "Create MPIN", "Confirm MPIN", "Secure device")
@@ -57,6 +58,7 @@ const val MOCK_OTP = "123456"
 private const val MPIN_LENGTH = 4
 private const val RESEND_SECONDS = 30
 
+/** Shows onboarding flow. */
 @Composable
 fun OnboardingFlow(
     onFinish: (name: String, phone: String, pin: String, biometric: Boolean, language: String) -> Unit,
@@ -91,6 +93,7 @@ fun OnboardingFlow(
     }
 }
 
+/** Shows welcome. */
 @Composable
 private fun Welcome(language: String, onLanguage: (String) -> Unit, onStart: () -> Unit) {
     Spacer(Modifier.height(32.dp))
@@ -111,6 +114,7 @@ private fun Welcome(language: String, onLanguage: (String) -> Unit, onStart: () 
     PrimaryButton("Get started", onClick = onStart, modifier = Modifier.fillMaxWidth())
 }
 
+/** Shows phone step. */
 @Composable
 private fun PhoneStep(name: String, phone: String, onName: (String) -> Unit, onPhone: (String) -> Unit, onNext: () -> Unit) {
     var consent by rememberSaveable { mutableStateOf(false) }
@@ -139,6 +143,7 @@ private fun PhoneStep(name: String, phone: String, onName: (String) -> Unit, onP
     )
 }
 
+/** Shows otp step. */
 @Composable
 private fun OtpStep(phone: String, onEdit: () -> Unit, onVerified: () -> Unit) {
     var code by rememberSaveable { mutableStateOf("") }
@@ -169,6 +174,7 @@ private fun OtpStep(phone: String, onEdit: () -> Unit, onVerified: () -> Unit) {
     }, enabled = code.length == 6, modifier = Modifier.fillMaxWidth())
 }
 
+/** Shows pin step. */
 @Composable
 private fun PinStep(
     title: String,
@@ -204,6 +210,7 @@ private fun PinStep(
     )
 }
 
+/** Shows biometric step. */
 @Composable
 private fun BiometricStep(onBind: ((Result<String>) -> Unit) -> Unit, onDone: (Boolean) -> Unit) {
     val context = LocalContext.current

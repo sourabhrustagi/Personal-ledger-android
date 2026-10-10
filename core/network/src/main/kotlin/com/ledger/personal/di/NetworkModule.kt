@@ -104,6 +104,23 @@ object NetworkModule {
         return ktorClient(engineClient, config, json)
     }
 
+    /** Same session and pins as the ledger client, without that client's host or write retries. */
+    @Provides
+    @Singleton
+    @TeamClient
+    fun provideTeamClient(
+        config: ApiConfig,
+        authInterceptor: AuthInterceptor,
+        loggingInterceptor: HttpLoggingInterceptor,
+        @ApplicationContext context: Context,
+        json: Json,
+    ): HttpClient = ktorClient(
+        engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor),
+        config = config,
+        json = json,
+        rooted = false,
+    )
+
     /** Supplies the session. Ending it drops the bearer token. */
     @Provides
     @Singleton
@@ -144,12 +161,13 @@ object NetworkModule {
         config: ApiConfig,
         json: Json,
         authenticated: Boolean = false,
+        rooted: Boolean = true,
     ): HttpClient = HttpClient(OkHttp) {
         engine { preconfigured = engineClient }
         expectSuccess = true
         install(ContentNegotiation) { json(json) }
         install(DefaultRequest) {
-            url(config.baseUrl)
+            if (rooted) url(config.baseUrl)
             accept(ContentType.Application.Json)
         }
         if (authenticated) {

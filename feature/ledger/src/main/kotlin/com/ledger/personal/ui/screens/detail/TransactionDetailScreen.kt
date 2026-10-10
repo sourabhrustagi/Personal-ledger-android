@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
+import com.ledger.personal.ui.feature.DetailRow
 import com.ledger.personal.ui.components.LoadingState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
@@ -271,27 +272,6 @@ fun TransactionDetailScreen(
                 )
             }
         }
-    }
-}
-
-/** Shows detail row. */
-@Composable
-private fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 

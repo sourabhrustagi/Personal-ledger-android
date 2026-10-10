@@ -18,10 +18,12 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -75,12 +77,15 @@ import java.time.format.DateTimeFormatter
 /** Quick action. */
 data class QuickAction(val id: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
-private val quickActions = listOf(
-    QuickAction("send", "Send", Icons.AutoMirrored.Outlined.Send),
-    QuickAction("upi", "UPI", Icons.Outlined.QrCode2),
-    QuickAction("bills", "Pay bills", Icons.AutoMirrored.Outlined.ReceiptLong),
-    QuickAction("budgets", "Budgets", Icons.Outlined.PieChart),
-)
+/** Icon for a dashboard tile. An id this build does not know still gets a generic icon. */
+private fun tileIcon(id: String) = when (id) {
+    "send" -> Icons.AutoMirrored.Outlined.Send
+    "upi" -> Icons.Outlined.QrCode2
+    "bills" -> Icons.AutoMirrored.Outlined.ReceiptLong
+    "budgets" -> Icons.Outlined.PieChart
+    "ask" -> Icons.Outlined.AutoAwesome
+    else -> Icons.Outlined.Widgets
+}
 
 private val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
 
@@ -147,9 +152,14 @@ fun HomeScreen(
                 }
             }
             item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(quickActions) { action -> QuickActionTile(action) { onQuickAction(action.id) } }
+            state.tilesMessage?.let { message -> item { StatusBanner(message, BannerTone.WARNING, title = "Home layout") } }
+            if (state.tiles.isNotEmpty()) {
+                item {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.tiles, key = { it.id }) { tile ->
+                            QuickActionTile(QuickAction(tile.id, tile.title, tileIcon(tile.id))) { onQuickAction(tile.id) }
+                        }
+                    }
                 }
             }
             item {

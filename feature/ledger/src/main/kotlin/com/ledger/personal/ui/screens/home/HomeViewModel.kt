@@ -2,6 +2,8 @@ package com.ledger.personal.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ledger.personal.domain.board.HomeBoard
+import com.ledger.personal.domain.board.HomeTile
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
@@ -42,6 +44,8 @@ data class HomeUiState(
     val sync: SyncPhase = SyncPhase.IDLE,
     val pendingDelete: Transaction? = null,
     val total: Int = 0,
+    val tiles: List<HomeTile> = emptyList(),
+    val tilesMessage: String? = null,
 )
 
 private const val RECENT_LIMIT = 30
@@ -52,19 +56,32 @@ const val UNDO_WINDOW_MS = 4_000L
 class HomeViewModel @Inject constructor(
     private val repository: TransactionRepository,
     private val sync: SyncCoordinator,
+    board: HomeBoard,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val category = MutableStateFlow<String?>(null)
     private val pending = MutableStateFlow<Transaction?>(null)
+    private val tiles = MutableStateFlow<List<HomeTile>>(emptyList())
+    private val tilesMessage = MutableStateFlow<String?>(null)
     private var deleteJob: Job? = null
 
+    init {
+        viewModelScope.launch {
+            board.tiles().fold(
+                onSuccess = { tiles.value = it },
+                onFailure = { tilesMessage.value = "The home layout couldn't load." },
+            )
+        }
+    }
+
     val uiState: StateFlow<HomeUiState> = combine(
-        repository.observeTransactions(),
-        query,
-        category,
-        pending,
-        sync.observe(),
-    ) { all, q, cat, held, phase ->
+        combine(repository.observeTransactions(), query, category, pending, sync.observe()) { all, q, cat, held, phase ->
+            LedgerSlice(all, q, cat, held, phase)
+        },
+        tiles,
+        tilesMessage,
+    ) { slice, boardTiles, message ->
+        val (all, q, cat, held, phase) = slice
         val visible = all.filter { it.id != held?.id }
         val month = YearMonth.now()
         val thisMonth = visible.filter { it.currency == "INR" && YearMonth.from(it.date()) == month }
@@ -83,6 +100,8 @@ class HomeViewModel @Inject constructor(
             sync = phase,
             pendingDelete = held,
             total = filtered.size,
+            tiles = boardTiles,
+            tilesMessage = message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -126,6 +145,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 }
+
+/** Ledger fields combined before the dashboard tiles are applied. */
+private data class LedgerSlice(
+    val all: List<Transaction>,
+    val query: String,
+    val category: String?,
+    val pending: Transaction?,
+    val sync: SyncPhase,
+)
 
 /** Date. */
 private fun Transaction.date(): LocalDate = Instant.ofEpochMilli(timestampEpochMs).atZone(ZoneId.systemDefault()).toLocalDate()

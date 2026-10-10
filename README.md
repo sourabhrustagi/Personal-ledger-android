@@ -85,7 +85,7 @@ See [docs/LIBRARIES.md](docs/LIBRARIES.md) for the dependency choices and compar
 ./gradlew connectedMockDebugAndroidTest    # Room, migration and sync tests (needs an emulator)
 ```
 
-CI (`.github/workflows/android.yml`) runs static analysis, the mock unit tests, and the `mockDebug`, `devRelease`, `stagingRelease`, and `prodRelease` APKs on every push.
+CI (`.github/workflows/android.yml`) runs static analysis, the mock unit tests, and the `mockDebug` APK on every push.
 
 ## Contributing
 

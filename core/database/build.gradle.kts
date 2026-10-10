@@ -28,6 +28,7 @@ ksp {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.paging)
     implementation(libs.androidx.paging.runtime)

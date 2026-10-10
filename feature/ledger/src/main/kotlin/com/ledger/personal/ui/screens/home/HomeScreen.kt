@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.sync.SyncPhase
 import com.ledger.personal.ui.feature.AmountText
@@ -151,37 +152,59 @@ fun HomeScreen(
                     }
                 }
             }
-            item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
-            state.tilesMessage?.let { message -> item { StatusBanner(message, BannerTone.WARNING, title = "Home layout") } }
-            if (state.tiles.isNotEmpty()) {
-                item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(state.tiles, key = { it.id }) { tile ->
-                            QuickActionTile(QuickAction(tile.id, tile.title, tileIcon(tile.id))) { onQuickAction(tile.id) }
+            if (!state.layoutReady) {
+                item { SkeletonRows() }
+            } else {
+                state.layoutMessage?.let { message -> item { StatusBanner(message, BannerTone.WARNING, title = "Home layout") } }
+                state.sections.forEach { section ->
+                    when (section) {
+                        HomeSection.Balance -> item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
+                        is HomeSection.Shortcuts -> item {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(section.tiles, key = { it.id }) { tile ->
+                                    QuickActionTile(QuickAction(tile.id, tile.title, tileIcon(tile.id))) { onQuickAction(tile.id) }
+                                }
+                            }
                         }
+                        is HomeSection.Note -> item {
+                            SectionCard(title = section.title.ifBlank { null }) { Text(section.body) }
+                        }
+                        is HomeSection.Activity -> activitySection(section.title, state, onOpen, onCreate, onSeeAll, viewModel)
                     }
                 }
             }
-            item {
-                OutlinedTextField(
-                    state.query,
-                    viewModel::onQuery,
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    placeholder = { Text("Search merchant or category") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.categories) { cat ->
-                        FilterChip(state.category == cat, { viewModel.onCategory(cat) }, label = { Text(cat) })
-                    }
-                }
-            }
-            transactionsSection(state, onOpen, onCreate, onSeeAll, viewModel)
         }
     }
+}
+
+/** Search, filters, and recent rows. Present only when the dashboard asked for activity. */
+private fun androidx.compose.foundation.lazy.LazyListScope.activitySection(
+    title: String,
+    state: HomeUiState,
+    onOpen: (String) -> Unit,
+    onCreate: () -> Unit,
+    onSeeAll: () -> Unit,
+    viewModel: HomeViewModel,
+) {
+    item { Text(title, style = MaterialTheme.typography.titleSmall) }
+    item {
+        OutlinedTextField(
+            state.query,
+            viewModel::onQuery,
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            placeholder = { Text("Search merchant or category") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    item {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(state.categories) { cat ->
+                FilterChip(state.category == cat, { viewModel.onCategory(cat) }, label = { Text(cat) })
+            }
+        }
+    }
+    transactionsSection(state, onOpen, onCreate, onSeeAll, viewModel)
 }
 
 /** Transactions section. */

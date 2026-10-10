@@ -11,6 +11,8 @@ android {
         minSdk = 26
     }
 
+    androidResources.enable = true
+
     buildFeatures {
         compose = true
     }

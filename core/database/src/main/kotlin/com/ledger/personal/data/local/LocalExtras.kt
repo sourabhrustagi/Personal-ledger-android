@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 /** Database row for kyc draft. */
 @Entity(tableName = "kyc_drafts")
@@ -73,4 +74,23 @@ interface PosForwardDao {
     /** Settles all. */
     @Query("UPDATE pos_forward SET settled = 1 WHERE settled = 0")
     suspend fun settleAll(): Int
+}
+
+/** One promotion saved on the device. Room is the only store for these rows. */
+@Entity(tableName = "promotions")
+data class PromotionEntity(
+    @PrimaryKey val id: String,
+    val shelfId: String,
+    val shelfTitle: String,
+    val pitch: String,
+    val until: String,
+    val position: Int,
+)
+
+/** Room queries for promotions. */
+@Dao
+interface PromotionDao {
+    /** Shelves in display order. */
+    @Query("SELECT * FROM promotions ORDER BY position")
+    fun observe(): Flow<List<PromotionEntity>>
 }

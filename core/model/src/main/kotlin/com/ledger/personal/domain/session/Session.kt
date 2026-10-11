@@ -1,7 +1,10 @@
 package com.ledger.personal.domain.session
 
-/** Clears the bearer token. The ledger on the phone is left alone. */
+/** Bearer session. Lock clears it; unlock must call [begin] again. */
 interface Session {
-    /** End. */
+    /** Drops the bearer token. The ledger on the phone is left alone. */
     fun end()
+
+    /** Asks the server for a new token and stores it. */
+    suspend fun begin(): Result<Unit>
 }

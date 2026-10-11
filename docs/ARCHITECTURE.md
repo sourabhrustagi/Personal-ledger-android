@@ -148,7 +148,8 @@ These are deliberate shortcuts. Search the code for `ponytail:` to find the ones
 | To... | Look at |
 |-------|---------|
 | Add a screen to an existing feature | That feature's module, then add a route in `Screen.kt` and wire it in `LedgerNavHost.kt` |
-| Add a feature area | A new `feature/<name>` module, include it in `settings.gradle.kts`, add it to `app/build.gradle.kts` |
+| Add a feature area | [MODULES.md](MODULES.md): new `feature/<name>` module, include it in `settings.gradle.kts`, add it to `app/build.gradle.kts` |
+| Add a core module | [MODULES.md](MODULES.md): new `core/<name>` module, include it in `settings.gradle.kts`, depend on it from `:app` or the cores that need it |
 | Change a business rule | `core/model/.../core/Rules.kt` and `RulesTest` |
 | Change stored data | `core/database`, bump the database version, add a migration and a migration test |
 | Add demo data | `core/mock/.../MockCatalog.kt` |

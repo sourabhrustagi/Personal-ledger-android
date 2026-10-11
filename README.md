@@ -74,6 +74,7 @@ docs/                Architecture document and decision records
 ```
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
+See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 See [docs/LIBRARIES.md](docs/LIBRARIES.md) for the dependency choices and comparisons with alternatives.
 
 ## Tests and checks

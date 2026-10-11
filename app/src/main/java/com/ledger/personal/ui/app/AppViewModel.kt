@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ data class SessionState(
     val lockedUntilMs: Long = 0L,
     val mode: AppMode = AppMode.PERSONAL,
     val revealBalances: Boolean = false,
+    val signInMessage: String? = null,
 )
 
 const val MAX_MPIN_ATTEMPTS = 3
@@ -72,14 +74,26 @@ class AppViewModel @Inject constructor(
     val categoriesReady: StateFlow<Boolean> = mutableCategoriesReady.asStateFlow()
 
     private val mutableReleaseChecked = MutableStateFlow(false)
-
-    /** False until GET static/version has returned. */
-    val releaseChecked: StateFlow<Boolean> = mutableReleaseChecked.asStateFlow()
-
     private val mutableUpdateRequired = MutableStateFlow(false)
+    private val mutableSession = MutableStateFlow(SessionState())
+    val session: StateFlow<SessionState> = mutableSession.asStateFlow()
 
-    /** True when BuildConfig.VERSION_CODE is below the static API versionCode. */
-    val updateRequired: StateFlow<Boolean> = mutableUpdateRequired.asStateFlow()
+    /** Splash, update, onboard, lock, or the signed-in shell. */
+    val status: StateFlow<AppStatus> = combine(
+        prefs,
+        session,
+        mutableReleaseChecked,
+        mutableUpdateRequired,
+    ) { prefs, session, ready, blocked ->
+        when {
+            prefs == null || !ready -> AppStatus.Loading
+            blocked -> AppStatus.Update
+            !prefs.onboarded -> AppStatus.Onboard
+            !session.unlocked -> AppStatus.Locked(prefs, session)
+            session.mode == AppMode.PERSONAL -> AppStatus.Personal(prefs)
+            else -> AppStatus.Work(session.mode)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AppStatus.Loading)
 
     init {
         viewModelScope.launch {
@@ -92,41 +106,61 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private val mutableSession = MutableStateFlow(SessionState())
-    val session: StateFlow<SessionState> = mutableSession.asStateFlow()
-
     /** Finishes onboarding. */
     fun completeOnboarding(name: String, phone: String, pin: String, biometric: Boolean, language: String) {
         viewModelScope.launch {
             store.completeOnboarding(name, phone, pin, biometric, language)
-            mutableSession.update { it.copy(unlocked = true) }
+            openSession()
         }
     }
 
-    /** Checks the PIN off the main thread. [onResult] runs on the main thread. */
+    /** Checks the PIN off the main thread. [onResult] runs on the main thread after a server session is opened. */
     fun tryMpin(pin: String, now: Long = System.currentTimeMillis(), onResult: (Boolean) -> Unit) {
         val current = prefs.value ?: return onResult(false)
         val demo = mockPinUnlocks(pin, BuildConfig.FLAVOR == "mock")
         if (!demo && now < mutableSession.value.lockedUntilMs) return onResult(false)
         viewModelScope.launch {
             val ok = demo || withContext(Dispatchers.Default) { store.matches(pin, current) }
-            mutableSession.update {
-                when {
-                    ok -> it.copy(unlocked = true, failedAttempts = 0)
-                    it.failedAttempts + 1 >= MAX_MPIN_ATTEMPTS -> it.copy(failedAttempts = 0, lockedUntilMs = now + LOCKOUT_MS)
-                    else -> it.copy(failedAttempts = it.failedAttempts + 1)
+            if (!ok) {
+                mutableSession.update {
+                    when {
+                        it.failedAttempts + 1 >= MAX_MPIN_ATTEMPTS ->
+                            it.copy(failedAttempts = 0, lockedUntilMs = now + LOCKOUT_MS, signInMessage = null)
+                        else -> it.copy(failedAttempts = it.failedAttempts + 1, signInMessage = null)
+                    }
                 }
+                onResult(false)
+                return@launch
             }
-            if (ok && !demo && !current.mpinHash.startsWith(PIN_V2)) changeMpin(pin)
-            onResult(ok)
+            if (!demo && !current.mpinHash.startsWith(PIN_V2)) changeMpin(pin)
+            onResult(openSession())
         }
     }
 
-    /** Unlocks with biometric. */
-    fun unlockWithBiometric() = mutableSession.update { it.copy(unlocked = true, failedAttempts = 0) }
+    /** Unlocks with biometric, then opens a server session. */
+    fun unlockWithBiometric(onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch { onResult(openSession()) }
+    }
 
-    /** Lock. */
-    fun lock() = mutableSession.update { it.copy(unlocked = false, revealBalances = false, mode = AppMode.PERSONAL) }
+    /** Drops the bearer token and locks the UI. */
+    fun lock() {
+        signIn.end()
+        mutableSession.update {
+            it.copy(unlocked = false, revealBalances = false, mode = AppMode.PERSONAL, signInMessage = null)
+        }
+    }
+
+    /** Posts a new session. Stays locked when the server refuses. */
+    private suspend fun openSession(): Boolean = signIn.begin().fold(
+        onSuccess = {
+            mutableSession.update { it.copy(unlocked = true, failedAttempts = 0, signInMessage = null) }
+            true
+        },
+        onFailure = {
+            mutableSession.update { it.copy(unlocked = false, signInMessage = "Couldn't sign in. Try again.") }
+            false
+        },
+    )
 
     /** Stores mode. */
     fun setMode(mode: AppMode) = mutableSession.update { it.copy(mode = mode) }
@@ -174,10 +208,7 @@ class AppViewModel @Inject constructor(
     }
 
     /** Ends this sign-in. The ledger stays on the phone and opens again with the MPIN. */
-    fun logOut() {
-        signIn.end()
-        lock()
-    }
+    fun logOut() = lock()
 
     /** Sign out everywhere. */
     fun signOutEverywhere() = viewModelScope.launch {

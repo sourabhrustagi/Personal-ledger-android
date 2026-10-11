@@ -30,6 +30,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.BuildConfig
+import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.ui.feature.FraudScreen
 import com.ledger.personal.ui.feature.PosScreen
 import com.ledger.personal.ui.navigation.LedgerNavHost
@@ -38,42 +39,55 @@ import com.ledger.personal.ui.theme.ThemeMode
 
 private const val LOCK_AFTER_MS = 30_000L
 
-/** Shows ledger one app. */
+/** Picks splash, update, onboarding, lock, or the signed-in app. */
 @Composable
 fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
     val prefs by viewModel.prefs.collectAsStateWithLifecycle()
-    val session by viewModel.session.collectAsStateWithLifecycle()
-    val releaseChecked by viewModel.releaseChecked.collectAsStateWithLifecycle()
-    val updateRequired by viewModel.updateRequired.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val status by viewModel.status.collectAsStateWithLifecycle()
     LockWhenBackgrounded(viewModel::lock)
     LedgerOneTheme(prefs?.theme ?: ThemeMode.SYSTEM) {
-        val current = prefs
-        when {
-            current == null || !releaseChecked -> Box(Modifier.fillMaxSize()) { Surface(Modifier.fillMaxSize()) {} }
-            updateRequired -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
-            !current.onboarded -> OnboardingFlow(viewModel::completeOnboarding) { done -> viewModel.bindDevice(context, done) }
-            !session.unlocked -> MpinLoginScreen(
-                name = current.name,
-                biometric = current.biometric,
-                session = session,
-                onPin = { pin, done -> viewModel.tryMpin(pin, onResult = done) },
-                onBiometric = viewModel::unlockWithBiometric,
-                onReset = viewModel::signOutEverywhere,
-                demoPin = BuildConfig.FLAVOR == "mock",
-            )
-            session.mode == AppMode.POS -> ModeFrame(AppMode.POS, { viewModel.setMode(AppMode.PERSONAL) }) {
-                PosScreen(onBack = { viewModel.setMode(AppMode.PERSONAL) })
-            }
-            session.mode == AppMode.FRAUD -> ModeFrame(AppMode.FRAUD, { viewModel.setMode(AppMode.PERSONAL) }) {
-                FraudScreen(onBack = { viewModel.setMode(AppMode.PERSONAL) }, role = "ANALYST")
-            }
-            else -> LedgerNavHost(prefs = current, appViewModel = viewModel)
+        when (val screen = status) {
+            AppStatus.Loading -> Surface(Modifier.fillMaxSize()) {}
+            AppStatus.Update -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
+            AppStatus.Onboard -> Onboard(viewModel)
+            is AppStatus.Locked -> Locked(screen.prefs, screen.session, viewModel)
+            is AppStatus.Personal -> LedgerNavHost(screen.prefs, viewModel)
+            is AppStatus.Work -> WorkMode(screen.mode, viewModel)
         }
     }
 }
 
-/** Shows lock when backgrounded. */
+/** Runs onboarding and optional device binding. */
+@Composable
+private fun Onboard(viewModel: AppViewModel) {
+    val context = LocalContext.current
+    OnboardingFlow(viewModel::completeOnboarding) { viewModel.bindDevice(context, it) }
+}
+
+/** MPIN or biometric unlock. */
+@Composable
+private fun Locked(prefs: AppPrefs, session: SessionState, viewModel: AppViewModel) {
+    MpinLoginScreen(
+        name = prefs.name,
+        biometric = prefs.biometric,
+        session = session,
+        onPin = { pin, done -> viewModel.tryMpin(pin, onResult = done) },
+        onBiometric = viewModel::unlockWithBiometric,
+        onReset = viewModel::signOutEverywhere,
+        demoPin = BuildConfig.FLAVOR == "mock",
+    )
+}
+
+/** POS or fraud console. */
+@Composable
+private fun WorkMode(mode: AppMode, viewModel: AppViewModel) {
+    val personal = { viewModel.setMode(AppMode.PERSONAL) }
+    ModeFrame(mode, personal) {
+        if (mode == AppMode.POS) PosScreen(onBack = personal) else FraudScreen(onBack = personal, role = "ANALYST")
+    }
+}
+
+/** Locks after 30 s in the background. */
 @Composable
 private fun LockWhenBackgrounded(onLock: () -> Unit) {
     val owner = LocalLifecycleOwner.current
@@ -95,7 +109,7 @@ private fun LockWhenBackgrounded(onLock: () -> Unit) {
     }
 }
 
-/** Shows mode frame. */
+/** Banner around POS or fraud. */
 @Composable
 private fun ModeFrame(mode: AppMode, onExit: () -> Unit, content: @Composable () -> Unit) {
     Scaffold(

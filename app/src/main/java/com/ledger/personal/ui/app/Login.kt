@@ -47,7 +47,7 @@ fun MpinLoginScreen(
     biometric: Boolean,
     session: SessionState,
     onPin: (String, (Boolean) -> Unit) -> Unit,
-    onBiometric: () -> Unit,
+    onBiometric: ((Boolean) -> Unit) -> Unit,
     onReset: () -> Unit,
     demoPin: Boolean = false,
 ) {
@@ -65,7 +65,16 @@ fun MpinLoginScreen(
         }
     }
     LaunchedEffect(biometric) {
-        if (biometric && biometricAvailable(context)) promptBiometric(context, "Unlock LedgerOne") { if (it) onBiometric() }
+        if (biometric && biometricAvailable(context)) {
+            promptBiometric(context, "Unlock LedgerOne") { ok ->
+                if (!ok) return@promptBiometric
+                checking = true
+                onBiometric { signedIn ->
+                    checking = false
+                    wrong = !signedIn
+                }
+            }
+        }
     }
     SecureWindow()
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -92,6 +101,7 @@ fun MpinLoginScreen(
                     BannerTone.ERROR,
                     title = "MPIN locked",
                 )
+                session.signInMessage != null -> StatusBanner(session.signInMessage, BannerTone.ERROR)
                 wrong -> StatusBanner(
                     "Incorrect MPIN. ${MAX_MPIN_ATTEMPTS - session.failedAttempts} attempts left before a 30 s lock.",
                     BannerTone.ERROR,
@@ -117,7 +127,16 @@ fun MpinLoginScreen(
                 large = true,
                 leftKey = if (biometric) {
                     {
-                        IconButton(onClick = { promptBiometric(context, "Unlock LedgerOne") { if (it) onBiometric() } }) {
+                        IconButton(onClick = {
+                            promptBiometric(context, "Unlock LedgerOne") { ok ->
+                                if (!ok) return@promptBiometric
+                                checking = true
+                                onBiometric { signedIn ->
+                                    checking = false
+                                    wrong = !signedIn
+                                }
+                            }
+                        }) {
                             Icon(Icons.Outlined.Fingerprint, contentDescription = "Unlock with biometrics")
                         }
                     }

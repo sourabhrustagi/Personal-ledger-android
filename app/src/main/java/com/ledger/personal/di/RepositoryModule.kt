@@ -66,6 +66,7 @@ object RepositoryModule {
         insightsBaseUrl = BuildConfig.INSIGHTS_BASE_URL,
         assistantBaseUrl = BuildConfig.ASSISTANT_BASE_URL,
         promotionsBaseUrl = BuildConfig.PROMOTIONS_BASE_URL,
+        localSession = BuildConfig.FLAVOR == "mock",
     )
 
     /** Supplies transaction remote. */

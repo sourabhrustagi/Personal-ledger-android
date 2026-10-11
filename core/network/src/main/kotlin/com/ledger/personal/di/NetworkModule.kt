@@ -121,12 +121,10 @@ object NetworkModule {
         rooted = false,
     )
 
-    /** Supplies the session. Ending it drops the bearer token. */
+    /** Supplies the session. Lock drops the token; unlock posts a new one. */
     @Provides
     @Singleton
-    fun provideSession(auth: AuthInterceptor): Session = object : Session {
-        override fun end() = auth.updateToken(null)
-    }
+    fun provideSession(session: com.ledger.personal.data.remote.api.InterceptorSession): Session = session
 
     /** Supplies the transaction API. */
     @Provides

@@ -13,6 +13,7 @@ data class ApiConfig(
     val insightsBaseUrl: String,
     val assistantBaseUrl: String,
     val promotionsBaseUrl: String,
+    val localSession: Boolean,
 )
 
 /** Ktor client that sends the current session token. */

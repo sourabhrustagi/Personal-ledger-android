@@ -1,8 +1,6 @@
 package com.ledger.personal.ui.feature
 
 import androidx.lifecycle.SavedStateHandle
-import com.ledger.personal.core.PayEvent
-import com.ledger.personal.core.PayState
 import com.ledger.personal.data.local.MemoryAssistantHistory
 import com.ledger.personal.data.local.MemoryKycDraftStore
 import com.ledger.personal.data.local.TickerSocket
@@ -133,20 +131,44 @@ class FeatureViewModelsTest {
     }
 
     @Test
-    fun illegalSettleStaysIdle() {
-        val viewModel = PosViewModel()
-        viewModel.onEvent(PayEvent.SETTLE)
-        assertEquals(PayState.IDLE, viewModel.uiState.value.pay)
-        assertTrue(viewModel.uiState.value.errorMessage!!.contains("Illegal"))
+    fun posPaysABillOnce() {
+        val viewModel = PosViewModel(com.ledger.personal.core.LocalBillPay())
+        val biller = viewModel.uiState.value.billers.first { it.id == "electricity" }
+        val card = viewModel.uiState.value.cards.first { it.id == "debit-4821" }
+        viewModel.selectBill(biller)
+        viewModel.onBillNumber("104829")
+        viewModel.fetchBill()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(50_000L, viewModel.uiState.value.fetched!!.amountMinor)
+        viewModel.continueToPay()
+        viewModel.selectCard(card)
+        viewModel.confirmPin("1234")
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals("electricity:50000", viewModel.uiState.value.bill)
+        assertEquals(setOf("electricity"), viewModel.uiState.value.paidBillers)
+        viewModel.selectBill(biller)
+        viewModel.onBillNumber("104829")
+        viewModel.fetchBill()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.continueToPay()
+        viewModel.selectCard(card)
+        viewModel.confirmPin("1234")
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(setOf("electricity"), viewModel.uiState.value.paidBillers)
     }
 
     @Test
-    fun undoSendsNoBlock() {
-        val viewModel = FraudViewModel()
-        viewModel.schedule("card-1")
-        viewModel.undo("card-1")
-        viewModel.commit()
-        assertEquals(0, viewModel.uiState.value.blocked)
+    fun missingElectricityBillStaysUnpaid() {
+        val viewModel = PosViewModel(com.ledger.personal.core.LocalBillPay())
+        val biller = viewModel.uiState.value.billers.first { it.id == "electricity" }
+        viewModel.selectBill(biller)
+        viewModel.onBillNumber("999999")
+        viewModel.fetchBill()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.fetchFailed)
+        assertNull(viewModel.uiState.value.fetched)
+        assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
+        assertTrue(viewModel.uiState.value.errorMessage!!.contains("did not return a bill"))
     }
 
     @Test
@@ -220,28 +242,6 @@ class FeatureViewModelsTest {
     }
 
     @Test
-    fun posReadsLastFourAndQueuesOneForward() = runTest {
-        val viewModel = PosViewModel()
-        viewModel.onEvent(PayEvent.TAP)
-        viewModel.onEvent(PayEvent.APPROVE)
-        viewModel.onEvent(PayEvent.SETTLE)
-        advanceUntilIdle()
-        assertEquals(PayState.SETTLED, viewModel.uiState.value.pay)
-        assertEquals("1111", viewModel.uiState.value.lastFour)
-        assertEquals(1, viewModel.uiState.value.forwarded)
-        viewModel.onEvent(PayEvent.SETTLE)
-        advanceUntilIdle()
-        assertEquals(1, viewModel.uiState.value.forwarded)
-    }
-
-    @Test
-    fun customerCannotOpenTheFraudQueue() {
-        val viewModel = FraudViewModel()
-        viewModel.openAs("CUSTOMER")
-        assertEquals("Analyst role required", viewModel.uiState.value.errorMessage)
-    }
-
-    @Test
     fun bankingAcceptsMpinAndBlocksANewBeneficiary() {
         val viewModel = BankingViewModel()
         viewModel.signIn("1234")
@@ -251,8 +251,6 @@ class FeatureViewModelsTest {
         assertTrue(viewModel.uiState.value.signedIn)
         assertEquals("upi://pay?pa=asha@ok&am=10.50", viewModel.uiState.value.upi)
         assertTrue(viewModel.uiState.value.cooling)
-        viewModel.payBill("electricity", 50_000L)
-        assertEquals("electricity:50000", viewModel.uiState.value.bill)
     }
 
     @Test

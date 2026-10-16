@@ -1,6 +1,6 @@
 # LedgerOne (Personal Ledger)
 
-LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, and keeps working offline. The same app also runs as a shop counter (POS terminal) and as a fraud-review console for analysts.
+LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, pays bills, and keeps working offline.
 
 It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Ktor.
 
@@ -41,7 +41,7 @@ Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `ap
 
 ## What's in the app
 
-**Personal mode** has five tabs:
+The app has five tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
 - **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, and monthly statements you can download as a PDF.
@@ -52,11 +52,6 @@ Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `ap
 **Profile** has KYC, the security centre (MPIN, biometrics, device binding), notifications, settings (theme, privacy, language), transaction categories, your disputes, help, and the mock controls.
 
 From any transaction you can edit it, delete it, split it with friends, or report a problem (raise a dispute).
-
-**Other modes**, which you pick from Profile:
-
-- **POS terminal:** take card, UPI or cash at the counter, print receipts, refund a sale, and settle at the end of the day. Sales are queued and kept even when offline.
-- **Fraud ops:** review flagged card activity by severity, with a shadow mode for testing new rules.
 
 ## Project layout
 
@@ -69,13 +64,14 @@ core/designsystem/   Theme, colours, money formatting, shared Compose components
 core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples
 feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
-                     ticker, assistant, pos, fraud, banking
+                     ticker, assistant, pos, banking
 docs/                Architecture document and decision records
 ```
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 See [docs/LIBRARIES.md](docs/LIBRARIES.md) for the dependency choices and comparisons with alternatives.
+See [docs/POS-CRYPTO.md](docs/POS-CRYPTO.md) for why electricity bill lookup and payment use ECDH with AES-GCM, and when other algorithms are the better tool.
 
 ## Tests and checks
 

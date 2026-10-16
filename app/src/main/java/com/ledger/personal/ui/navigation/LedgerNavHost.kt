@@ -55,7 +55,6 @@ import com.ledger.personal.ui.app.HelpScreen
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.app.InsightsHub
 import com.ledger.personal.ui.app.InsightsHubViewModel
-import com.ledger.personal.ui.app.MOCK_ROLES
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
 import com.ledger.personal.ui.app.MockControlsScreen
@@ -67,10 +66,10 @@ import com.ledger.personal.ui.app.PromotionsHub
 import com.ledger.personal.ui.app.PromotionsViewModel
 import com.ledger.personal.ui.app.ProfileScreen
 import com.ledger.personal.ui.app.SecurityScreen
-import com.ledger.personal.ui.app.SessionState
 import com.ledger.personal.ui.app.SettingsScreen
 import com.ledger.personal.ui.feature.AssistantScreen
 import com.ledger.personal.ui.feature.BankingScreen
+import com.ledger.personal.ui.feature.PosScreen
 import com.ledger.personal.ui.feature.BudgetsScreen
 import com.ledger.personal.ui.feature.CardsScreen
 import com.ledger.personal.ui.feature.ChartsScreen
@@ -168,7 +167,7 @@ fun LedgerNavHost(
             tabRoutes(navController, prefs, flags, tools, home)
             ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
             productRoutes(navController, offline)
-            accountRoutes(navController, prefs, session, appViewModel)
+            accountRoutes(navController, prefs, appViewModel)
             toolRoutes(navController, tools, appViewModel, categories, defaultCategories, !categoriesReady)
         }
     }
@@ -205,7 +204,7 @@ private fun NavGraphBuilder.tabRoutes(
                 val route = when (action) {
                     "send" -> Screen.Wallet
                     "upi" -> Screen.Scan
-                    "bills" -> Screen.Banking
+                    "bills" -> Screen.Pos
                     "budgets" -> Screen.Budgets
                     "ask" -> Screen.Assistant
                     "offers" -> Screen.Promotions()
@@ -316,23 +315,21 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
     composable<Screen.Ticker> { TickerScreen(onBack = back) }
     composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = BuildConfig.FLAVOR != "mock") }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
-    composable<Screen.Banking> { BankingScreen(onBack = back) }
+    composable<Screen.Banking> { BankingScreen(onBack = back, onPayBills = { nav.navigate(Screen.Pos) }) }
+    composable<Screen.Pos> { PosScreen(onBack = back) }
     composable<Screen.Cards> { CardsScreen(onBack = back) }
     composable<Screen.Loans> { LoansScreen(onBack = back) }
     composable<Screen.Deposits> { DepositsScreen(onBack = back) }
 }
 
 /** Account routes. */
-private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPrefs, session: SessionState, app: AppViewModel) {
+private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPrefs, app: AppViewModel) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.Profile> {
         ProfileScreen(
             prefs = prefs,
-            session = session,
-            roles = MOCK_ROLES,
             showMockControls = BuildConfig.DEBUG && BuildConfig.FLAVOR == "mock",
             onBack = back,
-            onMode = app::setMode,
             onOpen = nav::navigate,
             onLock = app::lock,
             onLogOut = app::logOut,

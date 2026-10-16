@@ -13,7 +13,7 @@ flowchart TD
         ledger[":feature:ledger"]
         wallet[":feature:wallet"]
         banking[":feature:banking"]
-        others["budgets · fx · kyc · ticker<br/>assistant · pos · fraud"]
+        others["budgets · fx · kyc · ticker<br/>assistant · pos"]
     end
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
@@ -42,7 +42,7 @@ flowchart TD
 
 | Module | Owns |
 |--------|------|
-| `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, idempotency, fraud and KYC rules) |
+| `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, idempotency, and KYC rules) |
 | `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `KtorTransactionRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared components: amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`, `SecureWindow` |
@@ -50,14 +50,13 @@ flowchart TD
 | `:core:testing` | Sample objects shared by tests |
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
 | `:feature:wallet` | Send money, UPI request, split bill |
-| `:feature:banking` | Accounts, cards, loans, deposits, bills |
+| `:feature:banking` | Accounts, cards, loans, deposits |
 | `:feature:budgets` | Budgets and charts |
 | `:feature:fx` | Exchange-rate quotes and alerts |
 | `:feature:kyc` | KYC case flow with saved drafts |
 | `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |
 | `:feature:assistant` | On-device assistant that answers from the local ledger |
-| `:feature:pos` | Counter checkout, receipts, refunds, end-of-day settlement |
-| `:feature:fraud` | Flagged-activity review queue with severity and shadow mode |
+| `:feature:pos` | Bill payment |
 
 ## How data flows
 
@@ -94,7 +93,7 @@ What this means in practice:
 4. **During a pull, local edits win.** A server row never overwrites a row that still has pending local changes.
 5. **Conflicts** (the same transaction changed on the phone and elsewhere) go to `ConflictInbox`. The conflict screen shows each differing field side by side and saves the version you merge.
 
-The same pattern applies to POS sales (`PosForwardStore`: queued offline, settled later), KYC drafts and assistant history, which each have their own Room table.
+The same pattern applies to KYC drafts and assistant history, which each have their own Room table.
 
 ### Environments
 
@@ -112,7 +111,7 @@ Room, sync, view models, and screens are the same code in every flavor. Mock exe
 
 - **Compose only.** Each screen is a `@Composable` that receives state and callbacks. Screens with real logic have a Hilt `ViewModel` that exposes `StateFlow` UI state.
 - **Navigation** uses type-safe routes: the `Screen` sealed interface in `:app`, built with `@Serializable` objects and classes. `LedgerNavHost` is the only place that wires routes to screens, which is how features stay unaware of each other: a feature screen takes callbacks such as `onOpen(id)`, and the app decides where they go.
-- **App shell.** `LedgerOneApp` picks what to show: splash, then force-update, onboarding, MPIN login, a POS or Fraud mode frame, or the main tabbed app. The app locks itself after 30 seconds in the background.
+- **App shell.** `LedgerOneApp` picks what to show: splash, then force-update, onboarding, MPIN login, or the main tabbed app. The app locks itself after 30 seconds in the background.
 - **Design system.** Feature code takes colours from the theme and uses shared components. A hex colour in `feature/**` is a review failure.
 
 ## Security

@@ -146,7 +146,7 @@ fun PayHub(
         }
         SectionCard(title = "Bills and recharges") {
             HubLink(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", "Bills due this month", online) {
-                onOpen(Screen.Banking)
+                onOpen(Screen.Pos)
             }
         }
         SectionCard(title = "Recent people") {

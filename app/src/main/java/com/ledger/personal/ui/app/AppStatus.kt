@@ -18,7 +18,4 @@ sealed class AppStatus {
 
     /** Signed-in personal tabs. */
     data class Personal(val prefs: AppPrefs) : AppStatus()
-
-    /** Signed-in POS or fraud console. */
-    data class Work(val mode: AppMode) : AppStatus()
 }

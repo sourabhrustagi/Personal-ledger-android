@@ -3,33 +3,28 @@ package com.ledger.personal.ui.feature
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /** Allowed values of bank sheet. */
-enum class BankSheet { UPI, BILLS, PAYEE }
+enum class BankSheet { UPI, PAYEE }
 
 /** Shows banking sheet. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +40,6 @@ fun BankingSheet(sheet: BankSheet, state: BankingUiState, viewModel: BankingView
         ) {
             when (sheet) {
                 BankSheet.UPI -> UpiRequest(state.upi, viewModel::showUpi)
-                BankSheet.BILLS -> Bills(state, viewModel::payBill)
                 BankSheet.PAYEE -> AddPayee(state, viewModel)
             }
         }
@@ -73,24 +67,6 @@ private fun UpiRequest(payload: String?, onCreate: (String, Long) -> Unit) {
                 },
                 shape = RoundedCornerShape(12.dp),
             ) { Text("Share") }
-        }
-    }
-}
-
-/** Shows bills. */
-@Composable
-private fun Bills(state: BankingUiState, onPay: (String, Long) -> Unit) {
-    SheetTitle("Pay bills", "Bills due this month")
-    state.billers.forEach { biller ->
-        val paid = biller.id in state.paidBillers
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ListRow(
-                icon = if (paid) Icons.Outlined.CheckCircle else categoryIcon("utilities"),
-                title = biller.name,
-                subtitle = if (paid) "Paid" else "${biller.dueDate} · ${formatMoney(biller.dueMinor)}",
-                modifier = Modifier.weight(1f),
-            )
-            if (!paid) TextButton(onClick = { onPay(biller.id, biller.dueMinor) }) { Text("Pay") }
         }
     }
 }

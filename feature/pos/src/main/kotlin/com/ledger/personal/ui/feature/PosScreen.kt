@@ -1,29 +1,25 @@
 package com.ledger.personal.ui.feature
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.PointOfSale
-import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.QrCode2
-import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,240 +28,244 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ledger.personal.core.PayEvent
-import com.ledger.personal.core.PayState
-import kotlinx.coroutines.delay
+import com.ledger.personal.core.ElectricityBills
+import com.ledger.personal.domain.pay.FetchedBill
+import com.ledger.personal.mock.MockCatalog
+import com.ledger.personal.mock.SeedBiller
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.mock.SeedCard
 
-/** Shows the pos screen. */
+/** Pay a bill with a card and PIN. The PIN is sealed before it leaves the phone. */
 @Composable
 fun PosScreen(onBack: () -> Unit, viewModel: PosViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { viewModel.refreshPending() }
-    var waitingForCard by rememberSaveable(state.sale) { mutableStateOf(false) }
-    var tender by rememberSaveable(state.sale) { mutableStateOf<Tender?>(null) }
-    val completeOffCard = {
-        viewModel.onEvent(PayEvent.TAP)
-        viewModel.onEvent(PayEvent.APPROVE)
-        viewModel.onEvent(PayEvent.SETTLE)
+    when (state.step) {
+        PosStep.BILLS -> BillList(state, onBack, viewModel::selectBill)
+        PosStep.ACCOUNT -> BillAccount(state, viewModel::back, viewModel::onBillNumber, viewModel::fetchBill, viewModel::continueToPay)
+        PosStep.CARD -> CardList(state, viewModel::back, viewModel::selectCard)
+        PosStep.PIN -> PinPad(state, viewModel::back, viewModel::confirmPin)
     }
-    LaunchedEffect(waitingForCard) {
-        if (waitingForCard && state.pay == PayState.IDLE) {
-            delay(CARD_WAIT_MS)
-            viewModel.onEvent(PayEvent.TAP)
-            waitingForCard = false
+}
+
+/** Electricity bill number. Fetch can miss; the miss is the banner. */
+@Composable
+private fun BillAccount(
+    state: PosUiState,
+    onBack: () -> Unit,
+    onNumber: (String) -> Unit,
+    onFetch: () -> Unit,
+    onPay: () -> Unit,
+) {
+    val fetched = state.fetched
+    FeatureScaffold("Electricity bill", onBack, subtitle = "BESCOM · bill number") {
+        if (state.fetchFailed && state.errorMessage != null) {
+            StatusBanner(state.errorMessage, BannerTone.ERROR, title = "Bill not fetched")
         }
-    }
-    FeatureScaffold(
-        "Accept payment",
-        onBack,
-        subtitle = "Terminal · ${state.pendingCount} awaiting settlement",
-    ) {
-        HardwareStatus()
-        state.errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
-        when {
-            waitingForCard -> PresentCard(state.amountMinor) {
-                waitingForCard = false
-                tender = null
-            }
-            state.pay == PayState.IDLE && tender == Tender.UPI -> UpiTender(state.amountMinor, completeOffCard) { tender = null }
-            state.pay == PayState.IDLE && tender == Tender.CASH -> CashTender(state.amountMinor, completeOffCard) { tender = null }
-            state.pay == PayState.IDLE && tender == Tender.CHOOSING -> TenderPicker(state.amountMinor) { choice ->
-                tender = choice
-                if (choice == Tender.CARD) waitingForCard = true
-            }
-            state.pay == PayState.IDLE -> {
-                Keypad(state.amountMinor, viewModel) { tender = Tender.CHOOSING }
-                SettlementCard(state, viewModel::settle)
-            }
-            state.pay == PayState.READ -> CardRead(state) { viewModel.onEvent(PayEvent.APPROVE) }
-            state.pay == PayState.AUTHORIZED -> Approved(state) { viewModel.onEvent(PayEvent.SETTLE) }
-            else -> Receipt(state, tender ?: Tender.CARD, viewModel::refund, viewModel::newSale)
+        if (fetched == null) {
+            OutlinedTextField(
+                value = state.billNumber,
+                onValueChange = onNumber,
+                label = { Text("Bill number") },
+                singleLine = true,
+                enabled = !state.fetching,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (!state.fetchFailed) state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Text(
+                "On file in this demo: ${ElectricityBills.onFile.keys.sorted().joinToString()}. Any other number is not fetched.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            PrimaryButton(
+                text = if (state.fetching) "Fetching…" else "Fetch bill",
+                onClick = onFetch,
+                enabled = !state.fetching,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            DetailRow("Bill number", fetched.billNumber)
+            DetailRow("Account", fetched.holder)
+            DetailRow("Amount due", formatMoney(fetched.amountMinor), emphasize = true)
+            PrimaryButton("Pay this bill", onPay, modifier = Modifier.fillMaxWidth())
         }
     }
 }
 
-/** Shows keypad. */
+/** Bills due this month. */
 @Composable
-private fun Keypad(amountMinor: Long, viewModel: PosViewModel, onCharge: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Amount", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(formatMoney(amountMinor), style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+private fun BillList(state: PosUiState, onBack: () -> Unit, onPay: (SeedBiller) -> Unit) {
+    FeatureScaffold("Pay bills", onBack, subtitle = "Bills due this month") {
+        state.errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
+        state.bill?.let { bill ->
+            val biller = state.billers.firstOrNull { it.id == bill.substringBefore(':') }
+            StatusBanner(
+                "Paid ${formatMoney(bill.substringAfter(':').toLong())} to ${biller?.name ?: "biller"}.",
+                BannerTone.SUCCESS,
+            )
+        }
+        state.billers.forEach { biller ->
+            val paid = biller.id in state.paidBillers
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                ListRow(
+                    icon = if (paid) Icons.Outlined.CheckCircle else categoryIcon("utilities"),
+                    title = biller.name,
+                    subtitle = if (paid) "Paid" else "${biller.dueDate} · ${formatMoney(biller.dueMinor)}",
+                    modifier = Modifier.weight(1f),
+                )
+                if (!paid) TextButton(onClick = { onPay(biller) }) { Text("Pay") }
+            }
+        }
     }
-    listOf("123", "456", "789", "0⌫").forEach { row ->
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            row.forEach { key ->
-                FilledTonalButton(
-                    onClick = { if (key == '⌫') viewModel.onBackspace() else viewModel.onDigit(key) },
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(if (key == '0') 2f else 1f).height(64.dp),
-                ) {
-                    if (key == '⌫') {
-                        Icon(Icons.AutoMirrored.Outlined.Backspace, contentDescription = "Delete")
-                    } else {
-                        Text(key.toString(), style = MaterialTheme.typography.headlineSmall)
+}
+
+/** Card to charge. */
+@Composable
+private fun CardList(state: PosUiState, onBack: () -> Unit, onPick: (SeedCard) -> Unit) {
+    val due = state.fetched?.amountMinor ?: state.biller?.dueMinor
+    val name = state.biller?.name
+    FeatureScaffold("Pay with card", onBack, subtitle = if (name != null && due != null) "$name · ${formatMoney(due)}" else null) {
+        state.cards.forEach { card ->
+            ListRow(
+                Icons.Outlined.CreditCard,
+                card.name,
+                subtitle = "${card.network} •••• ${card.lastFour}",
+                onClick = { onPick(card) },
+            )
+        }
+    }
+}
+
+/** Four-digit PIN. Sealed on the next screen action. */
+@Composable
+private fun PinPad(state: PosUiState, onBack: () -> Unit, onPin: (String) -> Unit) {
+    var pin by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(pin, state.paying) {
+        if (pin.length == 4 && !state.paying) {
+            onPin(pin)
+            pin = ""
+        }
+    }
+    SecureWindow()
+    FeatureScaffold("Enter PIN", onBack, subtitle = state.card?.let { "${it.network} •••• ${it.lastFour}" }) {
+        Column(
+            Modifier.fillMaxWidth().padding(top = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            IconBadge(Icons.Outlined.Lock, size = 72)
+            Text("Card PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                repeat(4) { index ->
+                    val filled = index < pin.length
+                    Box(
+                        Modifier.size(16.dp).clip(CircleShape).background(
+                            if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                    )
+                }
+            }
+            state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        }
+        listOf("123", "456", "789", " 0<").forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                row.forEach { key ->
+                    Box(Modifier.weight(1f).height(64.dp), contentAlignment = Alignment.Center) {
+                        when (key) {
+                            ' ' -> Unit
+                            '<' -> TextButton(onClick = { pin = pin.dropLast(1) }) { Text("Delete") }
+                            else -> FilledTonalButton(
+                                onClick = { if (pin.length < 4 && !state.paying) pin += key },
+                                shape = CircleShape,
+                                modifier = Modifier.size(64.dp),
+                            ) { Text(key.toString(), style = MaterialTheme.typography.headlineSmall) }
+                        }
                     }
                 }
             }
         }
     }
-    PrimaryButton(
-        if (amountMinor > 0) "Charge ${formatMoney(amountMinor)}" else "Enter an amount",
-        onClick = onCharge,
-        enabled = amountMinor > 0,
-        icon = Icons.Outlined.PointOfSale,
-    )
 }
 
-/** Shows present card. */
+@PreviewLightDark
 @Composable
-private fun PresentCard(amountMinor: Long, onCancel: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(top = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        IconBadge(Icons.Outlined.Contactless, size = 120)
-        Text(formatMoney(amountMinor), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Tap, insert or swipe card", style = MaterialTheme.typography.titleMedium)
-        LinearProgressIndicator(Modifier.fillMaxWidth(0.6f))
-    }
-    OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+private fun BillListPreview() {
+    PersonalLedgerTheme { BillList(PosUiState(), onBack = {}, onPay = {}) }
 }
 
-/** Shows card read. */
+@PreviewLightDark
 @Composable
-private fun CardRead(state: PosUiState, onApprove: () -> Unit) {
-    PaymentCard(state.lastFour)
-    SectionCard {
-        DetailRow("Amount", formatMoney(state.amountMinor), emphasize = true)
-        DetailRow("Method", "Contactless")
-    }
-    PrimaryButton("Authorize payment", onClick = onApprove)
-}
-
-/** Shows approved. */
-@Composable
-private fun Approved(state: PosUiState, onSettle: () -> Unit) {
-    StatusBanner("The card issuer approved ${formatMoney(state.amountMinor)}.", BannerTone.SUCCESS, title = "Approved")
-    PaymentCard(state.lastFour)
-    PrimaryButton("Print receipt and finish", onClick = onSettle)
-}
-
-/** Shows receipt. */
-@Composable
-private fun Receipt(state: PosUiState, tender: Tender, onRefund: () -> Unit, onNewSale: () -> Unit) {
-    var confirmRefund by rememberSaveable(state.sale) { mutableStateOf(false) }
-    Column(
-        Modifier.fillMaxWidth().padding(top = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        IconBadge(Icons.Outlined.CheckCircle, size = 88)
-        Text("Payment complete", style = MaterialTheme.typography.titleMedium)
-        Text(formatMoney(state.amountMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-    }
-    SectionCard(title = "Receipt") {
-        DetailRow("Paid by", if (tender == Tender.CARD) "Card •••• ${state.lastFour ?: "----"}" else tender.label)
-        DetailRow("Reference", state.reference)
-        HorizontalDivider()
-        DetailRow("Total", formatMoney(state.amountMinor), emphasize = true)
-    }
-    if (state.refunded) {
-        StatusBanner("${formatMoney(state.amountMinor)} returned to the customer's ${tender.label.lowercase()}.", BannerTone.SUCCESS, title = "Refunded")
-    }
-    StatusBanner("Settlement runs at the end of the day. ${state.pendingCount} entries awaiting settlement.", BannerTone.INFO)
-    PrimaryButton("New sale", onClick = onNewSale)
-    if (!state.refunded) {
-        OutlinedButton(onClick = { confirmRefund = true }, modifier = Modifier.fillMaxWidth()) { Text("Refund this sale") }
-    }
-    if (confirmRefund) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmRefund = false },
-            title = { Text("Refund ${formatMoney(state.amountMinor)}?") },
-            text = { Text("The full amount goes back to the customer's ${tender.label.lowercase()}. This can't be undone.") },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    confirmRefund = false
-                    onRefund()
-                }) { Text("Refund") }
-            },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmRefund = false }) { Text("Cancel") } },
+private fun BillAccountPreview() {
+    PersonalLedgerTheme {
+        BillAccount(
+            PosUiState(biller = MockCatalog.billers.first { it.id == "electricity" }),
+            onBack = {},
+            onNumber = {},
+            onFetch = {},
+            onPay = {},
         )
     }
 }
 
-/** Shows settlement card. */
+@PreviewLightDark
 @Composable
-private fun SettlementCard(state: PosUiState, onSettle: () -> Unit) {
-    SectionCard(title = "End of day") {
-        DetailRow("Entries awaiting settlement", state.pendingCount.toString())
-        DetailRow("Net amount", formatMoney(state.pendingTotalMinor), emphasize = true)
-        state.settlement?.let { StatusBanner(it, BannerTone.SUCCESS, title = "Batch closed") }
-        OutlinedButton(onClick = onSettle, enabled = state.pendingCount > 0, modifier = Modifier.fillMaxWidth()) { Text("Settle now") }
+private fun BillNotFetchedPreview() {
+    PersonalLedgerTheme {
+        BillAccount(
+            PosUiState(
+                billNumber = "999999",
+                fetchFailed = true,
+                errorMessage = "The electricity board did not return a bill for this number. " +
+                    "Check the bill number and try again. Your card was not charged.",
+            ),
+            onBack = {},
+            onNumber = {},
+            onFetch = {},
+            onPay = {},
+        )
     }
 }
 
-/** Shows payment card. */
+@PreviewLightDark
 @Composable
-private fun PaymentCard(lastFour: String?) {
-    HeroCard(label = "Visa · Contactless", value = "•••• •••• •••• ${lastFour ?: "····"}", modifier = Modifier.aspectRatio(1.9f)) {
-        Icon(Icons.Outlined.CreditCard, contentDescription = null)
+private fun BillFetchedPreview() {
+    PersonalLedgerTheme {
+        BillAccount(
+            PosUiState(fetched = FetchedBill("104829", 50_000L, "BESCOM")),
+            onBack = {},
+            onNumber = {},
+            onFetch = {},
+            onPay = {},
+        )
     }
 }
 
-private const val CARD_WAIT_MS = 1_500L
-
-/** Allowed values of tender. */
-enum class Tender(val label: String) { CHOOSING("Choose"), CARD("Card"), UPI("UPI"), CASH("Cash") }
-
-/** Shows hardware status. */
+@PreviewLightDark
 @Composable
-private fun HardwareStatus() {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatusChip("Card reader connected", BannerTone.SUCCESS)
-        StatusChip("Printer ready", BannerTone.SUCCESS)
+private fun CardListPreview() {
+    PersonalLedgerTheme {
+        CardList(
+            PosUiState(
+                biller = MockCatalog.billers.first { it.id == "electricity" },
+                fetched = FetchedBill("104829", 50_000L, "BESCOM"),
+            ),
+            onBack = {},
+            onPick = {},
+        )
     }
 }
 
-/** Shows tender picker. */
+@PreviewLightDark
 @Composable
-private fun TenderPicker(amountMinor: Long, onPick: (Tender) -> Unit) {
-    Text("How is the customer paying?", style = MaterialTheme.typography.titleMedium)
-    Text(formatMoney(amountMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-    SectionCard {
-        ListRow(Icons.Outlined.Contactless, "Card", subtitle = "Tap, insert or swipe", onClick = { onPick(Tender.CARD) })
-        ListRow(Icons.Outlined.QrCode2, "UPI", subtitle = "Customer scans a QR code", onClick = { onPick(Tender.UPI) })
-        ListRow(Icons.Outlined.Payments, "Cash", subtitle = "Calculate change due", onClick = { onPick(Tender.CASH) })
+private fun PinPadPreview() {
+    PersonalLedgerTheme {
+        PinPad(PosUiState(card = MockCatalog.cards.first()), onBack = {}, onPin = {})
     }
-}
-
-/** Shows upi tender. */
-@Composable
-private fun UpiTender(amountMinor: Long, onReceived: () -> Unit, onCancel: () -> Unit) {
-    SectionCard(title = "Scan to pay") {
-        IconBadge(Icons.Outlined.QrCode2, size = 160)
-        Text(com.ledger.personal.core.upiPayload("store@ledgerone", amountMinor), style = MaterialTheme.typography.bodySmall)
-        Text("Waiting for the customer's UPI app to confirm…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    PrimaryButton("Payment received", onClick = onReceived)
-    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Choose another method") }
-}
-
-/** Shows cash tender. */
-@Composable
-private fun CashTender(amountMinor: Long, onDone: () -> Unit, onCancel: () -> Unit) {
-    var given by rememberSaveable { mutableStateOf("") }
-    val givenMinor = parseMinor(given)
-    SectionCard(title = "Cash") {
-        DetailRow("Amount due", formatMoney(amountMinor), emphasize = true)
-        AmountField(given, { given = it }, label = "Cash received")
-        if (givenMinor != null && givenMinor >= amountMinor) DetailRow("Change to return", formatMoney(givenMinor - amountMinor), emphasize = true)
-        if (givenMinor != null && givenMinor < amountMinor) StatusBanner("${formatMoney(amountMinor - givenMinor)} still due.", BannerTone.WARNING)
-    }
-    PrimaryButton("Complete sale", onClick = onDone, enabled = givenMinor != null && givenMinor >= amountMinor, icon = Icons.Outlined.Print)
-    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Choose another method") }
 }

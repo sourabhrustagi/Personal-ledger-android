@@ -106,29 +106,11 @@ class RulesTest {
     }
 
     @Test
-    fun undoWithinWindowSendsNoBlock() {
-        val blocker = FraudBlocker()
-        blocker.schedule("card-1")
-        blocker.undo("card-1")
-        blocker.commit()
-        assertTrue(blocker.blocked.isEmpty())
-    }
-
-    @Test
     fun logsDoNotKeepAPan() {
         val raw = "charge 4111111111111111 ok"
         val clean = redactPans(raw)
         assertFalse(clean.contains("4111111111111111"))
         assertTrue(luhn("4111111111111111"))
-    }
-
-    @Test
-    fun illegalPaymentTransitionIsRejected() {
-        assertThrows(IllegalStateException::class.java) {
-            PayState.IDLE.next(PayEvent.SETTLE)
-        }
-        val settled = PayState.IDLE.next(PayEvent.TAP).next(PayEvent.APPROVE).next(PayEvent.SETTLE)
-        assertEquals(PayState.SETTLED, settled)
     }
 
     @Test
@@ -140,12 +122,6 @@ class RulesTest {
         val elapsedMs = (System.nanoTime() - started) / 1_000_000
         assertEquals(2_000, dining.size)
         assertTrue(elapsedMs < 50)
-    }
-
-    @Test
-    fun customerCannotReviewFraud() {
-        assertFalse(canReviewFraud("CUSTOMER"))
-        assertTrue(canReviewFraud("ANALYST"))
     }
 
     @Test

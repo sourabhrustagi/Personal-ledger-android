@@ -47,7 +47,7 @@ import com.ledger.personal.mock.SeedAccount
 
 /** Shows the banking screen. */
 @Composable
-fun BankingScreen(onBack: () -> Unit, viewModel: BankingViewModel = viewModel()) {
+fun BankingScreen(onBack: () -> Unit, onPayBills: () -> Unit, viewModel: BankingViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (!state.signedIn) {
         MpinLock(onBack, state.errorMessage, viewModel::signIn)
@@ -72,12 +72,8 @@ fun BankingScreen(onBack: () -> Unit, viewModel: BankingViewModel = viewModel())
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QuickAction(Icons.Outlined.QrCode2, "Request", Modifier.weight(1f)) { sheet = BankSheet.UPI }
-            QuickAction(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", Modifier.weight(1f)) { sheet = BankSheet.BILLS }
+            QuickAction(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", Modifier.weight(1f), onPayBills)
             QuickAction(Icons.Outlined.PersonAdd, "Add payee", Modifier.weight(1f)) { sheet = BankSheet.PAYEE }
-        }
-        state.bill?.let { bill ->
-            val biller = state.billers.firstOrNull { it.id == bill.substringBefore(':') }
-            StatusBanner("Paid ${formatMoney(bill.substringAfter(':').toLong())} to ${biller?.name ?: "biller"}.", BannerTone.SUCCESS)
         }
         LoanCard(state)
     }

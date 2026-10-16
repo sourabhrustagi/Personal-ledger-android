@@ -52,6 +52,10 @@ sealed interface Screen {
     @Serializable
     data object Banking : Screen
 
+    /** Route to bill payment. */
+    @Serializable
+    data object Pos : Screen
+
     /** Route to the home screen. */
     @Serializable
     data object Home : Screen

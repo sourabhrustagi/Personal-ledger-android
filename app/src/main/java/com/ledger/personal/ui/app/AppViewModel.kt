@@ -27,9 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/** Allowed values of app mode. */
-enum class AppMode(val label: String) { PERSONAL("Personal"), POS("POS terminal"), FRAUD("Fraud ops") }
-
 /** Hub flags. */
 data class HubFlags(val offline: Boolean, val empty: Boolean, val reveal: Boolean, val onToggleReveal: () -> Unit)
 
@@ -38,7 +35,6 @@ data class SessionState(
     val unlocked: Boolean = false,
     val failedAttempts: Int = 0,
     val lockedUntilMs: Long = 0L,
-    val mode: AppMode = AppMode.PERSONAL,
     val revealBalances: Boolean = false,
     val signInMessage: String? = null,
 )
@@ -49,9 +45,6 @@ const val MOCK_MPIN = "1111"
 
 /** Mock builds accept this PIN on top of the one set during onboarding. Live builds never do. */
 fun mockPinUnlocks(pin: String, mockFlavor: Boolean): Boolean = mockFlavor && pin == MOCK_MPIN
-
-/** Mock user holds every role so the switcher is demonstrable; a live build would read roles from the session token. */
-val MOCK_ROLES = setOf("CUSTOMER", "MERCHANT", "ANALYST")
 
 /** True when the mock switch is on or the phone has no internet. */
 fun offlineNow(mockOffline: Boolean, connected: Boolean): Boolean = mockOffline || !connected
@@ -90,8 +83,7 @@ class AppViewModel @Inject constructor(
             blocked -> AppStatus.Update
             !prefs.onboarded -> AppStatus.Onboard
             !session.unlocked -> AppStatus.Locked(prefs, session)
-            session.mode == AppMode.PERSONAL -> AppStatus.Personal(prefs)
-            else -> AppStatus.Work(session.mode)
+            else -> AppStatus.Personal(prefs)
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppStatus.Loading)
 
@@ -146,7 +138,7 @@ class AppViewModel @Inject constructor(
     fun lock() {
         signIn.end()
         mutableSession.update {
-            it.copy(unlocked = false, revealBalances = false, mode = AppMode.PERSONAL, signInMessage = null)
+            it.copy(unlocked = false, revealBalances = false, signInMessage = null)
         }
     }
 
@@ -161,9 +153,6 @@ class AppViewModel @Inject constructor(
             false
         },
     )
-
-    /** Stores mode. */
-    fun setMode(mode: AppMode) = mutableSession.update { it.copy(mode = mode) }
 
     /** Toggles reveal. */
     fun toggleReveal() = mutableSession.update { it.copy(revealBalances = !it.revealBalances) }

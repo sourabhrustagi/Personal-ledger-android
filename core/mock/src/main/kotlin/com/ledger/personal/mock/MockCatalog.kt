@@ -18,16 +18,8 @@ data class SeedContact(val name: String, val handle: String)
 /** Seed biller. */
 data class SeedBiller(val id: String, val name: String, val dueMinor: Long, val dueDate: String)
 
-/** Seed fraud alert. */
-data class SeedFraudAlert(
-    val id: String,
-    val merchant: String,
-    val location: String,
-    val amountMinor: Long,
-    val time: String,
-    val reason: String,
-    val score: Int = 0,
-)
+/** Seed card. Last four only; the PAN never sits in the catalog. */
+data class SeedCard(val id: String, val name: String, val lastFour: String, val network: String)
 
 /** Shared mock catalog. */
 object MockCatalog {
@@ -51,21 +43,10 @@ object MockCatalog {
         SeedBiller("water", "Water · BWSSB", 32_000L, "Due 25 Oct"),
     )
 
-    val fraudAlerts: List<SeedFraudAlert> = listOf(
-        SeedFraudAlert("card-1", "Electronics Hub", "Lagos, NG", 2_49_999_00L, "Today, 02:14", "New country", 94),
-        SeedFraudAlert("card-2", "StreamPlus Subscription", "Online", 1_499_00L, "Today, 09:41", "Card not present", 41),
-        SeedFraudAlert("card-3", "Fuel Station 24x7", "Pune, IN", 9_800_00L, "Yesterday, 23:55", "Unusual hour", 58),
-        SeedFraudAlert("card-4", "Gift Cards Online", "Online", 50_000_00L, "Today, 03:02", "Rapid repeats", 88),
-        SeedFraudAlert("card-5", "Jewel Palace", "Dubai, AE", 1_85_000_00L, "Today, 01:47", "New country", 91),
-        SeedFraudAlert("card-6", "Metro Card Recharge", "Delhi, IN", 500_00L, "Today, 08:15", "Velocity", 22),
-        SeedFraudAlert("card-7", "Crypto Exchange", "Online", 75_000_00L, "Today, 04:30", "High-risk merchant", 83),
-        SeedFraudAlert("card-8", "Hotel Seaside", "Goa, IN", 18_400_00L, "Yesterday, 21:10", "Distance jump", 47),
-        SeedFraudAlert("card-9", "ATM Withdrawal", "Bengaluru, IN", 40_000_00L, "Today, 00:58", "Unusual hour", 64),
-        SeedFraudAlert("card-10", "App Store", "Online", 2_999_00L, "Today, 10:05", "Card not present", 18),
-        SeedFraudAlert("card-11", "Luxury Watches", "Singapore, SG", 3_10_000_00L, "Today, 02:40", "New country", 97),
-        SeedFraudAlert("card-12", "Food Delivery", "Mumbai, IN", 640_00L, "Today, 12:20", "Device change", 35),
+    val cards: List<SeedCard> = listOf(
+        SeedCard("debit-4821", "Savings debit", "4821", "Visa"),
+        SeedCard("credit-9034", "Rewards credit", "9034", "RuPay"),
     )
-
 
     private val categories = listOf("Groceries", "Dining", "Transport", "Salary", "Utilities", "Entertainment")
 

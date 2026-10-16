@@ -1,6 +1,5 @@
 package com.ledger.personal.data.tools
 
-import com.ledger.personal.data.local.MemoryPosForward
 import com.ledger.personal.data.security.LocalBindingServer
 import com.ledger.personal.data.security.SIGNATURE_ALGORITHM
 import com.ledger.personal.domain.model.Transaction
@@ -87,19 +86,6 @@ class ToolsTest {
         assertTrue(server.register(pair.public.encoded, challenge, signature).isFailure)
         val fresh = server.challenge()
         assertTrue(server.register(pair.public.encoded, fresh, signature).isFailure)
-    }
-
-    @Test
-    fun posRefundNetsAgainstSaleAtSettlement() = runTest {
-        val store = MemoryPosForward()
-        store.enqueue("pos-sale-1", 50_000L)
-        store.enqueue("refund-pos-sale-1", -50_000L)
-        store.enqueue("refund-pos-sale-1", -50_000L)
-        store.enqueue("pos-sale-2", 12_000L)
-        assertEquals(12_000L, store.unsettled().sum())
-        assertEquals(3, store.settleAll())
-        assertEquals(0, store.unsettled().size)
-        assertEquals(0, store.settleAll())
     }
 
     @Test

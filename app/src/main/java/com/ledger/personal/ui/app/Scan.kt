@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -62,6 +63,7 @@ import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import java.util.concurrent.Executors
 
 /** Shows the scan screen. */
@@ -80,29 +82,53 @@ fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) ->
         target?.let(onTarget)
     }
     LaunchedEffect(liveCamera) { if (liveCamera && !granted) launcher.launch(Manifest.permission.CAMERA) }
+    ScanForm(
+        liveCamera = liveCamera,
+        cameraGranted = granted,
+        invalid = invalid,
+        manual = manual,
+        onManual = { manual = it },
+        onAccept = accept,
+        onAllowCamera = { launcher.launch(Manifest.permission.CAMERA) },
+        onBack = onBack,
+    )
+}
+
+/** Scan layout. [cameraGranted] is separate so each branch can be previewed. */
+@Composable
+private fun ScanForm(
+    liveCamera: Boolean,
+    cameraGranted: Boolean,
+    invalid: Boolean,
+    manual: String,
+    onManual: (String) -> Unit,
+    onAccept: (String) -> Unit,
+    onAllowCamera: () -> Unit,
+    onBack: () -> Unit,
+) {
     FeatureScaffold("Scan to pay", onBack, subtitle = "Any UPI QR code") {
-        if (liveCamera && granted) {
-            CameraScanner(onCode = accept)
+        if (liveCamera && cameraGranted) {
+            CameraScanner(onCode = onAccept)
         } else {
             IconBadge(Icons.Outlined.QrCodeScanner, size = 120)
             Text(
                 if (liveCamera) "Allow camera access to scan QR codes." else "The demo build has no camera feed. Use the sample QR below.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (liveCamera) OutlinedButton(onClick = { launcher.launch(Manifest.permission.CAMERA) }) { Text("Allow camera") }
+            if (liveCamera) OutlinedButton(onClick = onAllowCamera) { Text("Allow camera") }
         }
         if (invalid) StatusBanner("That isn't a UPI payment code. Ask the payee for their UPI QR.", BannerTone.ERROR)
         OutlinedTextField(
             manual,
-            { manual = it },
+            onManual,
             label = { Text("Or paste a UPI link") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        PrimaryButton("Continue", onClick = { accept(manual) }, enabled = manual.isNotBlank(), modifier = Modifier.fillMaxWidth())
+        PrimaryButton("Continue", onClick = { onAccept(manual) }, enabled = manual.isNotBlank(), modifier = Modifier.fillMaxWidth())
         if (!liveCamera) {
             val sample = upiPayload("chai.point@okicici", 12_000) + "&pn=Chai%20Point"
-            OutlinedButton(onClick = { accept(sample) }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { onAccept(sample) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Use sample QR (Chai Point, ₹120)")
             }
         }
@@ -122,6 +148,7 @@ private fun CameraScanner(onCode: (String) -> Unit) {
     )
     Text("Point the camera at the QR code", color = MaterialTheme.colorScheme.onSurfaceVariant)
     DisposableEffect(owner) {
+        if (context !is android.app.Activity) return@DisposableEffect onDispose {}
         val executor = Executors.newSingleThreadExecutor()
         bindQrScanner(context, owner, preview, executor) { raw ->
             if (!done) {
@@ -199,4 +226,27 @@ private fun openStore(context: Context) {
     } catch (_: ActivityNotFoundException) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$id")))
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun ScanDemoPreview() {
+    PersonalLedgerTheme { ScanPreviewContent(liveCamera = false, cameraGranted = false, invalid = false) }
+}
+
+@PreviewLightDark
+@Composable
+private fun ScanPermissionPreview() {
+    PersonalLedgerTheme { ScanPreviewContent(liveCamera = true, cameraGranted = false, invalid = false) }
+}
+
+@PreviewLightDark
+@Composable
+private fun ScanRejectedPreview() {
+    PersonalLedgerTheme { ScanPreviewContent(liveCamera = false, cameraGranted = false, invalid = true, manual = "not-a-upi-link") }
+}
+
+@Composable
+private fun ScanPreviewContent(liveCamera: Boolean, cameraGranted: Boolean, invalid: Boolean, manual: String = "") {
+    ScanForm(liveCamera, cameraGranted, invalid, manual, onManual = {}, onAccept = {}, onAllowCamera = {}, onBack = {})
 }

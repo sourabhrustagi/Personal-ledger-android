@@ -1,6 +1,7 @@
 package com.ledger.personal.di
 
 import android.content.Context
+import com.ledger.personal.domain.pay.BillPay
 import com.ledger.personal.core.TRANSACTION_ATTEMPTS
 import com.ledger.personal.data.remote.certificatePinner
 import com.ledger.personal.data.remote.api.KtorStaticApi
@@ -125,6 +126,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSession(session: com.ledger.personal.data.remote.api.InterceptorSession): Session = session
+
+    /** Supplies bill pay. Both sides derive the AES key from ECDH; the key is never posted. */
+    @Provides
+    @Singleton
+    fun provideBillPay(pay: com.ledger.personal.data.remote.api.InterceptorBillPay): BillPay = pay
 
     /** Supplies the transaction API. */
     @Provides

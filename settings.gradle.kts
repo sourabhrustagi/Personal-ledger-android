@@ -30,6 +30,5 @@ include(
     ":feature:ticker",
     ":feature:assistant",
     ":feature:pos",
-    ":feature:fraud",
     ":feature:banking",
 )

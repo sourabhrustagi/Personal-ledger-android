@@ -1,29 +1,13 @@
 package com.ledger.personal.ui.app
 
 import android.app.Activity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.GppGood
-import androidx.compose.material.icons.outlined.PointOfSale
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -31,8 +15,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
-import com.ledger.personal.ui.feature.FraudScreen
-import com.ledger.personal.ui.feature.PosScreen
 import com.ledger.personal.ui.navigation.LedgerNavHost
 import com.ledger.personal.ui.theme.LedgerOneTheme
 import com.ledger.personal.ui.theme.ThemeMode
@@ -52,7 +34,6 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
             AppStatus.Onboard -> Onboard(viewModel)
             is AppStatus.Locked -> Locked(screen.prefs, screen.session, viewModel)
             is AppStatus.Personal -> LedgerNavHost(screen.prefs, viewModel)
-            is AppStatus.Work -> WorkMode(screen.mode, viewModel)
         }
     }
 }
@@ -78,15 +59,6 @@ private fun Locked(prefs: AppPrefs, session: SessionState, viewModel: AppViewMod
     )
 }
 
-/** POS or fraud console. */
-@Composable
-private fun WorkMode(mode: AppMode, viewModel: AppViewModel) {
-    val personal = { viewModel.setMode(AppMode.PERSONAL) }
-    ModeFrame(mode, personal) {
-        if (mode == AppMode.POS) PosScreen(onBack = personal) else FraudScreen(onBack = personal, role = "ANALYST")
-    }
-}
-
 /** Locks after 30 s in the background. */
 @Composable
 private fun LockWhenBackgrounded(onLock: () -> Unit) {
@@ -106,27 +78,5 @@ private fun LockWhenBackgrounded(onLock: () -> Unit) {
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
-    }
-}
-
-/** Banner around POS or fraud. */
-@Composable
-private fun ModeFrame(mode: AppMode, onExit: () -> Unit, content: @Composable () -> Unit) {
-    Scaffold(
-        topBar = {
-            Surface(color = MaterialTheme.colorScheme.inverseSurface, contentColor = MaterialTheme.colorScheme.inverseOnSurface) {
-                Row(Modifier.statusBarsPadding().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (mode == AppMode.POS) Icons.Outlined.PointOfSale else Icons.Outlined.GppGood, contentDescription = null)
-                    Text(
-                        "${mode.label} mode",
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
-                    )
-                    TextButton(onClick = onExit) { Text("Exit", color = MaterialTheme.colorScheme.inverseOnSurface) }
-                }
-            }
-        },
-    ) { inner ->
-        Box(Modifier.padding(inner).consumeWindowInsets(inner)) { content() }
     }
 }

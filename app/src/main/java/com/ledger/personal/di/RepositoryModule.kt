@@ -7,12 +7,8 @@ import com.ledger.personal.data.remote.api.KtorHomeBoard
 import com.ledger.personal.data.remote.api.KtorInsightsBackend
 import com.ledger.personal.data.remote.api.KtorPaymentsBackend
 import com.ledger.personal.data.remote.api.KtorPromotionsBackend
-import com.ledger.personal.data.local.CardReader
-import com.ledger.personal.data.local.MockCardReader
-import com.ledger.personal.data.local.MockReceiptPrinter
 import com.ledger.personal.data.local.MockTickerSocket
 import com.ledger.personal.data.local.KtorTickerSocket
-import com.ledger.personal.data.local.ReceiptPrinter
 import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.data.repository.MockTransactionRepository
 import com.ledger.personal.data.repository.KtorTransactionRepository
@@ -103,16 +99,6 @@ object RepositoryModule {
     @Singleton
     fun provideBindingServer(local: LocalBindingServer, ktor: KtorBindingServer): BindingServer =
         if (BuildConfig.FLAVOR == "mock") local else ktor
-
-    /** Supplies card reader. */
-    @Provides
-    @Singleton
-    fun provideCardReader(): CardReader = MockCardReader()
-
-    /** Supplies receipt printer. */
-    @Provides
-    @Singleton
-    fun provideReceiptPrinter(): ReceiptPrinter = MockReceiptPrinter()
 }
 
 /** Picks the mock or live backend for each team. Their response shapes stay inside the Ktor classes. */
@@ -183,9 +169,4 @@ abstract class OfflineModule {
     abstract fun bindAssistantHistory(
         store: com.ledger.personal.data.local.RoomAssistantHistory,
     ): com.ledger.personal.data.local.AssistantHistory
-
-    /** Binds pos forward. */
-    @Binds
-    @Singleton
-    abstract fun bindPosForward(store: com.ledger.personal.data.local.RoomPosForward): com.ledger.personal.data.local.PosForwardStore
 }

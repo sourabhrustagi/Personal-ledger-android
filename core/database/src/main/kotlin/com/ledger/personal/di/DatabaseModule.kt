@@ -11,7 +11,6 @@ import com.ledger.personal.data.local.LedgerDatabase
 import com.ledger.personal.data.local.MIGRATION_1_2
 import com.ledger.personal.data.local.MIGRATION_2_3
 import com.ledger.personal.data.local.MIGRATION_3_4
-import com.ledger.personal.data.local.PosForwardDao
 import com.ledger.personal.data.local.PromotionDao
 import com.ledger.personal.data.local.TransactionDao
 import com.ledger.personal.data.local.seedPromotions
@@ -54,10 +53,6 @@ object DatabaseModule {
     /** Supplies assistant dao. */
     @Provides
     fun provideAssistantDao(database: LedgerDatabase): AssistantDao = database.assistantDao()
-
-    /** Supplies pos forward dao. */
-    @Provides
-    fun providePosForwardDao(database: LedgerDatabase): PosForwardDao = database.posForwardDao()
 
     /** Supplies promotion dao. */
     @Provides

@@ -3,25 +3,19 @@ package com.ledger.personal.ui.app
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Gavel
-import androidx.compose.material.icons.outlined.GppGood
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.PointOfSale
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.data.prefs.AppPrefs
@@ -43,17 +36,12 @@ import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.StatusChip
 import com.ledger.personal.ui.navigation.Screen
 
-private val modeRole = mapOf(AppMode.PERSONAL to "CUSTOMER", AppMode.POS to "MERCHANT", AppMode.FRAUD to "ANALYST")
-
 /** Shows the profile screen. */
 @Composable
 fun ProfileScreen(
     prefs: AppPrefs,
-    session: SessionState,
-    roles: Set<String>,
     showMockControls: Boolean,
     onBack: () -> Unit,
-    onMode: (AppMode) -> Unit,
     onOpen: (Screen) -> Unit,
     onLock: () -> Unit,
     onLogOut: () -> Unit,
@@ -73,32 +61,6 @@ fun ProfileScreen(
                     Text("+91 ${prefs.phone.ifBlank { "—" }}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 StatusChip("KYC pending", BannerTone.WARNING)
-            }
-        }
-        SectionCard(title = "Mode") {
-            AppMode.entries.filter { modeRole[it] in roles }.forEach { mode ->
-                Row(
-                    Modifier.fillMaxWidth()
-                        .selectable(selected = session.mode == mode, onClick = { onMode(mode) }, role = Role.RadioButton)
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = session.mode == mode, onClick = null)
-                    ListRow(
-                        when (mode) {
-                            AppMode.PERSONAL -> Icons.Outlined.Person
-                            AppMode.POS -> Icons.Outlined.PointOfSale
-                            AppMode.FRAUD -> Icons.Outlined.GppGood
-                        },
-                        mode.label,
-                        Modifier.weight(1f),
-                        subtitle = when (mode) {
-                            AppMode.PERSONAL -> "Your money and payments"
-                            AppMode.POS -> "Accept card, UPI and cash at the counter"
-                            AppMode.FRAUD -> "Review flagged card activity (analysts)"
-                        },
-                    )
-                }
             }
         }
         SectionCard(title = "Account") {

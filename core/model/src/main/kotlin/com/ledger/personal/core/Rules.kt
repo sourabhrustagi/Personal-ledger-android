@@ -147,28 +147,6 @@ class StatementJob {
     fun run(cycleId: String): Boolean = done.add(cycleId)
 }
 
-/** Stages card blocks so they can be undone before they are committed. */
-class FraudBlocker {
-    private val pending = linkedSetOf<String>()
-    val blocked = mutableListOf<String>()
-
-    /** Queues a card id to be blocked. */
-    fun schedule(id: String) {
-        pending += id
-    }
-
-    /** Removes a queued block before it is committed. */
-    fun undo(id: String) {
-        pending -= id
-    }
-
-    /** Moves every queued block into the blocked list. */
-    fun commit() {
-        blocked += pending
-        pending.clear()
-    }
-}
-
 /** True when the digits are a plausible card number under the Luhn check. */
 fun luhn(number: String): Boolean {
     val digits = number.filter { it.isDigit() }
@@ -193,23 +171,6 @@ private val pan = Regex("(?<!\\d)(?:\\d[ -]?){13,19}")
 fun redactPans(line: String): String = pan.replace(line) { match ->
     if (luhn(match.value)) "****" else match.value
 }
-
-/** Steps of a card payment at the counter. */
-enum class PayState { IDLE, READ, AUTHORIZED, SETTLED }
-
-/** Something that moves a card payment to the next step. */
-enum class PayEvent { TAP, APPROVE, SETTLE }
-
-/** Moves a payment to the next legal state for this event. */
-fun PayState.next(event: PayEvent): PayState = when (this to event) {
-    PayState.IDLE to PayEvent.TAP -> PayState.READ
-    PayState.READ to PayEvent.APPROVE -> PayState.AUTHORIZED
-    PayState.AUTHORIZED to PayEvent.SETTLE -> PayState.SETTLED
-    else -> error("Illegal transition $this -> $event")
-}
-
-/** True only for the analyst role. */
-fun canReviewFraud(role: String): Boolean = role == "ANALYST"
 
 /** True when the PIN is exactly four digits. */
 fun mpinAccepted(pin: String): Boolean = pin.length == 4 && pin.all { it.isDigit() }

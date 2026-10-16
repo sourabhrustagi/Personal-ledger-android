@@ -41,15 +41,6 @@ class BankingViewModel : ViewModel() {
         state.update { it.copy(cooling = blocked, errorMessage = if (blocked) "Beneficiary is cooling" else null) }
     }
 
-    /** Pay bill. */
-    fun payBill(biller: String, amountMinor: Long) {
-        if (!state.value.signedIn) {
-            state.update { it.copy(errorMessage = "Sign in required") }
-            return
-        }
-        state.update { it.copy(bill = "$biller:$amountMinor", paidBillers = it.paidBillers + biller, errorMessage = null) }
-    }
-
     /** Dismiss message. */
     fun dismissMessage() = state.update { it.copy(errorMessage = null, cooling = false) }
 }

@@ -172,6 +172,55 @@ class FeatureViewModelsTest {
     }
 
     @Test
+    fun shortBillNumberIsNotSent() {
+        val viewModel = PosViewModel(com.ledger.personal.core.LocalBillPay())
+        val biller = viewModel.uiState.value.billers.first { it.id == "electricity" }
+        viewModel.selectBill(biller)
+        viewModel.onBillNumber("12ab345")
+        assertEquals("12345", viewModel.uiState.value.billNumber)
+        viewModel.fetchBill()
+        assertFalse(viewModel.uiState.value.fetchFailed)
+        assertNull(viewModel.uiState.value.fetched)
+        assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
+        assertTrue(viewModel.uiState.value.errorMessage!!.contains("Enter the bill number"))
+        viewModel.continueToPay()
+        assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
+    }
+
+    @Test
+    fun otherBillsSkipTheAccountStep() {
+        val viewModel = PosViewModel(com.ledger.personal.core.LocalBillPay())
+        val biller = viewModel.uiState.value.billers.first { it.id == "water" }
+        val card = viewModel.uiState.value.cards.first { it.id == "debit-4821" }
+        viewModel.selectBill(biller)
+        assertEquals(PosStep.CARD, viewModel.uiState.value.step)
+        viewModel.selectCard(card)
+        viewModel.confirmPin("12")
+        assertEquals("Enter a 4-digit PIN", viewModel.uiState.value.errorMessage)
+        viewModel.confirmPin("1234")
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals("water:32000", viewModel.uiState.value.bill)
+        assertEquals(setOf("water"), viewModel.uiState.value.paidBillers)
+    }
+
+    @Test
+    fun electricityBackReturnsToTheBillNumber() {
+        val viewModel = PosViewModel(com.ledger.personal.core.LocalBillPay())
+        val biller = viewModel.uiState.value.billers.first { it.id == "electricity" }
+        viewModel.selectBill(biller)
+        viewModel.onBillNumber("220184")
+        viewModel.fetchBill()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.continueToPay()
+        viewModel.back()
+        assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
+        assertEquals("220184", viewModel.uiState.value.fetched!!.billNumber)
+        viewModel.back()
+        assertEquals(PosStep.BILLS, viewModel.uiState.value.step)
+        assertNull(viewModel.uiState.value.fetched)
+    }
+
+    @Test
     fun unknownCategoryChartIsEmpty() {
         val viewModel = ChartsViewModel()
         viewModel.setCategory("No such category")

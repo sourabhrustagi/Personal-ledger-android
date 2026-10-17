@@ -40,4 +40,37 @@ class PayBoxTest {
         val packed = PayBox.seal(secret, PayBox.pack("debit-4821", "electricity", 50_000L, "12"))
         assertTrue(rail.submit(SealedPay(phone.public.encoded, packed.first, packed.second)).isFailure)
     }
+
+    @Test
+    fun electricityPayRequiresTheBillOnFile() = runBlocking {
+        val rail = LocalBillPay()
+        assertTrue(submit(rail, PayBox.pack("debit-4821", "electricity", 50_000L, "1234", "104829")).isSuccess)
+        assertTrue(submit(rail, PayBox.pack("debit-4821", "electricity", 1L, "1234", "104829")).isFailure)
+        assertTrue(submit(rail, PayBox.pack("debit-4821", "electricity", 50_000L, "1234")).isFailure)
+    }
+
+    @Test
+    fun otherBillerPaysWithoutABillNumber() = runBlocking {
+        val rail = LocalBillPay()
+        assertTrue(submit(rail, PayBox.pack("debit-4821", "water", 32_000L, "1234")).isSuccess)
+    }
+
+    @Test
+    fun tamperedCiphertextDoesNotOpen() {
+        val server = PayBox.keyPair()
+        val phone = PayBox.keyPair()
+        val secret = PayBox.agree(phone.private, server.public.encoded)
+        val packed = PayBox.seal(secret, PayBox.packLookup("electricity", "104829"))
+        val flipped = packed.second.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
+        assertTrue(runCatching { PayBox.open(secret, packed.first, flipped) }.isFailure)
+    }
+
+    private suspend fun submit(rail: LocalBillPay, plain: ByteArray) = rail.submit(seal(rail, plain))
+
+    private suspend fun seal(rail: LocalBillPay, plain: ByteArray): SealedPay {
+        val phone = PayBox.keyPair()
+        val secret = PayBox.agree(phone.private, rail.serverPublic())
+        val packed = PayBox.seal(secret, plain)
+        return SealedPay(phone.public.encoded, packed.first, packed.second)
+    }
 }

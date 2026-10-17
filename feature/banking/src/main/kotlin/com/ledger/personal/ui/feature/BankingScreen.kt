@@ -40,9 +40,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.remember
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.mock.SeedAccount
 
 /** Shows the banking screen. */
@@ -170,4 +173,17 @@ private fun MpinLock(onBack: () -> Unit, error: String?, onSubmit: (String) -> U
             }
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun BankingLockPreview() {
+    PersonalLedgerTheme { BankingScreen(onBack = {}, onPayBills = {}, viewModel = BankingViewModel()) }
+}
+
+@PreviewLightDark
+@Composable
+private fun BankingPreview() {
+    val signedIn = remember { BankingViewModel().also { it.signIn("1234") } }
+    PersonalLedgerTheme { BankingScreen(onBack = {}, onPayBills = {}, viewModel = signedIn) }
 }

@@ -26,7 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Which Ledger One text style to draw. */
 enum class LedgerOneTextRole { Display, Title, Body, Label }
@@ -123,5 +125,21 @@ fun LedgerOneCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LedgerOnePreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LedgerOneText("Ledger One", role = LedgerOneTextRole.Display)
+            LedgerOneCard {
+                LedgerOneText("Available balance", role = LedgerOneTextRole.Label)
+                LedgerOneText("₹12,450.00", role = LedgerOneTextRole.Title)
+                LedgerOneTextField("500", {}, label = "Amount", prefix = "₹")
+                LedgerOneButton("Continue", onClick = {})
+            }
+        }
     }
 }

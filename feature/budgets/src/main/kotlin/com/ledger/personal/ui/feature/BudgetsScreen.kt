@@ -28,7 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.theme.LedgerTheme
 
@@ -129,4 +131,10 @@ private fun BudgetRow(category: String, spentMinor: Long, limitMinor: Long) {
             Text(status, style = MaterialTheme.typography.bodySmall, color = color)
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun BudgetsPreview() {
+    PersonalLedgerTheme { BudgetsScreen(onBack = {}, onInsights = {}) }
 }

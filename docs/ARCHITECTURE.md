@@ -34,7 +34,7 @@ flowchart TD
     mock --> model
 ```
 
-- **`:app`** is the only module that knows about everything. It owns the `Application` class, the navigation graph, onboarding and login, settings, the screens that span several features (statements, disputes, sync conflicts, QR scanning), and the switch between mock and live data.
+- **`:app`** is the only module that knows about everything. It owns the `Application` class, the navigation graph, and the switch between mock and live data. Shell screens live under `ui/app/` in one folder per job: `auth/`, `update/`, `hubs/`, `account/`, `scan/`, and `tools/`. The root of `ui/app/` is only the process: which shell to show, session flags, and whether the phone is online.
 - **Feature modules** each own one area of the product: its screens and view models. A feature may use core modules but **never another feature**.
 - **Core modules** hold shared code. `:core:model` is plain Kotlin with no Android dependency, so the business rules in it are fast to unit test.
 

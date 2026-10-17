@@ -33,7 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -235,4 +237,78 @@ private fun authenticate(activity: FragmentActivity, onResult: (Boolean) -> Unit
         info.setNegativeButtonText("Cancel")
     }
     prompt.authenticate(info.build())
+}
+
+private val previewWallet = WalletViewModel(PaymentRail { 0L })
+
+private val reviewState = WalletUiState(
+    balanceMinor = 2_45_678_90L,
+    amountMinor = 50_000L,
+    recipient = "asha@okaxis",
+    note = "Dinner",
+    step = TransferStep.REVIEW,
+    status = TransferStatus.STEP_UP,
+)
+
+@PreviewLightDark
+@Composable
+private fun WalletPreview() {
+    PersonalLedgerTheme { WalletScreen(onBack = {}, viewModel = previewWallet) }
+}
+
+@PreviewLightDark
+@Composable
+private fun WalletInsufficientPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Send money", onBack = {}) {
+            TransferForm(
+                reviewState.copy(status = TransferStatus.INSUFFICIENT, errorMessage = "Insufficient funds"),
+                previewWallet,
+                offline = false,
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun WalletReviewPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Review transfer", onBack = {}) {
+            TransferReview(reviewState, debugStepUp = true, previewWallet)
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun WalletFailedPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Review transfer", onBack = {}) {
+            TransferReview(
+                reviewState.copy(status = TransferStatus.FAILED, errorMessage = "The bank did not confirm this payment."),
+                debugStepUp = true,
+                previewWallet,
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun WalletReceiptPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Transfer receipt", onBack = {}) {
+            TransferReceipt(
+                reviewState.copy(
+                    step = TransferStep.RECEIPT,
+                    status = TransferStatus.DONE,
+                    postedMinor = 50_000L,
+                    balanceMinor = 2_45_178_90L,
+                ),
+                onDone = {},
+                onSendAnother = {},
+            )
+        }
+    }
 }

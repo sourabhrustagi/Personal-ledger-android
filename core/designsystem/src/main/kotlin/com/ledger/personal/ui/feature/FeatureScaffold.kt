@@ -26,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows feature scaffold. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,5 +88,16 @@ fun LoadingOrEmpty(isLoading: Boolean, isEmpty: Boolean, errorMessage: String?, 
         }
         errorMessage != null -> StatusBanner(errorMessage, BannerTone.ERROR)
         isEmpty -> EmptyState(Icons.Outlined.Inbox, "No $label yet", "When there is something to show, it will appear here.")
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun FeatureScaffoldPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Payments", onBack = {}, subtitle = "UPI · Instant") {
+            HeroCard("Available", "₹2,45,678.90", supporting = "Savings •• 4821")
+            LoadingOrEmpty(isLoading = false, isEmpty = true, errorMessage = null, label = "payments")
+        }
     }
 }

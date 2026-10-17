@@ -1,7 +1,8 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.NumericKeypad
@@ -239,4 +242,49 @@ private fun BiometricStep(onBind: ((Result<String>) -> Unit) -> Unit, onDone: (B
         IconBadge(Icons.Outlined.Shield, size = 32)
         Text("You can finish KYC from Profile to unlock higher limits.", style = MaterialTheme.typography.bodySmall)
     }
+}
+
+@Composable
+private fun OnboardPreview(content: @Composable ColumnScope.() -> Unit) {
+    PersonalLedgerTheme {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(
+                Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun OnboardingPreview() {
+    PersonalLedgerTheme { OnboardingFlow(onFinish = { _, _, _, _, _ -> }, onBind = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun OnboardPhonePreview() {
+    OnboardPreview { PhoneStep("Asha Rao", "9876543210", {}, {}) {} }
+}
+
+@PreviewLightDark
+@Composable
+private fun OnboardOtpPreview() {
+    OnboardPreview { OtpStep("9876543210", onEdit = {}, onVerified = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun OnboardPinPreview() {
+    OnboardPreview {
+        PinStep("Create your 4-digit MPIN", "You'll use it to open LedgerOne and approve payments.") {}
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun OnboardBiometricPreview() {
+    OnboardPreview { BiometricStep(onBind = {}, onDone = {}) }
 }

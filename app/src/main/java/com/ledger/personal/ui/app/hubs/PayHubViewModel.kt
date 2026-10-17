@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.hubs
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

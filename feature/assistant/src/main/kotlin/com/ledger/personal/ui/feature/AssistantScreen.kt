@@ -35,7 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -176,6 +178,39 @@ private fun ConfirmCard(summary: String, onConfirm: () -> Unit, onCancel: () -> 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             androidx.compose.material3.OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
             androidx.compose.material3.Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("Review in Pay") }
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun AssistantPreview() {
+    PersonalLedgerTheme { AssistantScreen(onBack = {}, viewModel = AssistantViewModel()) }
+}
+
+@PreviewLightDark
+@Composable
+private fun AssistantOfflinePreview() {
+    PersonalLedgerTheme { AssistantScreen(onBack = {}, offline = true, viewModel = AssistantViewModel()) }
+}
+
+@PreviewLightDark
+@Composable
+private fun AssistantChatPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Assistant", onBack = {}, subtitle = "Answers from your ledger", scrollable = false) {
+            Bubble(ChatMessage("q1", ChatRole.USER, "How much did I spend on dining?"))
+            Bubble(ChatMessage("a1", ChatRole.ASSISTANT, "₹4,250 this month."))
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun AssistantConfirmPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Assistant", onBack = {}, scrollable = false) {
+            ConfirmCard("Send ₹500 to Asha", onConfirm = {}, onCancel = {})
         }
     }
 }

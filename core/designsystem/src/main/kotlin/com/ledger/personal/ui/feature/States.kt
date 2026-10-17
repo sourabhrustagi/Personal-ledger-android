@@ -36,8 +36,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Keeps reduced motion. */
 @Composable
@@ -158,6 +160,26 @@ fun Timeline(steps: List<TimelineStep>, modifier: Modifier = Modifier) {
                     }
                 }
             }
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun StatesPreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SkeletonRows(count = 2)
+            OfflineBanner("2:14 PM")
+            PaymentsOfflineNotice()
+            SyncIndicator(SyncState.SYNCING)
+            StepHeader(listOf("Details", "Scan", "Review"), current = 1)
+            Timeline(
+                listOf(
+                    TimelineStep("Submitted", "We've logged your dispute", true),
+                    TimelineStep("Under review", null, false),
+                ),
+            )
         }
     }
 }

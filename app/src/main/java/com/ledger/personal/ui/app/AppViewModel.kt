@@ -13,6 +13,7 @@ import com.ledger.personal.data.security.PIN_V2
 import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.updateRequired
 import com.ledger.personal.domain.session.Session
+import com.ledger.personal.ui.app.auth.promptWithCrypto
 import com.ledger.personal.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

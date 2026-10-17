@@ -16,7 +16,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.ledger.personal.core.splitEvenly
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.core.upiPayload
 import com.ledger.personal.mock.MockCatalog
 import java.math.BigDecimal
@@ -84,3 +86,9 @@ fun SplitBillScreen(onBack: () -> Unit, initialMinor: Long = 0L, note: String = 
 
 /** Name for. */
 private fun nameFor(handle: String): String = MockCatalog.contacts.firstOrNull { it.handle == handle }?.name ?: handle
+
+@PreviewLightDark
+@Composable
+private fun SplitBillPreview() {
+    PersonalLedgerTheme { SplitBillScreen(onBack = {}, initialMinor = 84_000L, note = "Dinner") }
+}

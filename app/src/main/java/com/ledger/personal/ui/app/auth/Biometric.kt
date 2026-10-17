@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.auth
 
 import android.content.Context
 import android.os.Build

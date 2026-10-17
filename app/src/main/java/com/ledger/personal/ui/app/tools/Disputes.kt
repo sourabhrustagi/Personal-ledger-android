@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.tools
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -26,7 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.data.tools.Dispute
 import com.ledger.personal.data.tools.DisputeReason
@@ -182,4 +184,28 @@ private fun ConflictCard(conflict: SyncConflict, onResolve: (Map<String, Boolean
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun DisputePreview() {
+    PersonalLedgerTheme { DisputeScreen("tx-1", previewTools(), onBack = {}, onTrack = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun DisputeMissingPreview() {
+    PersonalLedgerTheme { DisputeScreen("missing", previewTools(), onBack = {}, onTrack = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun DisputesPreview() {
+    PersonalLedgerTheme { DisputesScreen(previewTools(), onBack = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun ConflictPreview() {
+    PersonalLedgerTheme { ConflictScreen(previewTools(), onBack = {}) }
 }

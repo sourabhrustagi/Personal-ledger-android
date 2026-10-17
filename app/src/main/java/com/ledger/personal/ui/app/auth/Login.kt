@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,7 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.app.MAX_MPIN_ATTEMPTS
+import com.ledger.personal.ui.app.SessionState
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.NumericKeypad
@@ -154,6 +158,66 @@ fun MpinLoginScreen(
             text = { Text("You'll verify your phone with an OTP and set a new MPIN. Data on this device is cleared.") },
             confirmButton = { TextButton(onClick = onReset) { Text("Reset") } },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoginPreview() {
+    PersonalLedgerTheme {
+        MpinLoginScreen(
+            name = "Asha",
+            biometric = false,
+            session = SessionState(),
+            onPin = { _, done -> done(true) },
+            onBiometric = {},
+            onReset = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoginBiometricPreview() {
+    PersonalLedgerTheme {
+        MpinLoginScreen(
+            name = "Asha",
+            biometric = true,
+            session = SessionState(),
+            onPin = { _, done -> done(true) },
+            onBiometric = {},
+            onReset = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoginLockedPreview() {
+    PersonalLedgerTheme {
+        MpinLoginScreen(
+            name = "Asha",
+            biometric = false,
+            session = SessionState(failedAttempts = 3, lockedUntilMs = System.currentTimeMillis() + 20_000),
+            onPin = { _, done -> done(false) },
+            onBiometric = {},
+            onReset = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoginFailedPreview() {
+    PersonalLedgerTheme {
+        MpinLoginScreen(
+            name = "Asha",
+            biometric = false,
+            session = SessionState(failedAttempts = 2, signInMessage = "Couldn't reach the bank."),
+            onPin = { _, done -> done(false) },
+            onBiometric = {},
+            onReset = {},
         )
     }
 }

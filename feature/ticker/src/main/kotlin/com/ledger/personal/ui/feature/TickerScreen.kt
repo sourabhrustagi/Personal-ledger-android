@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,8 +29,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -54,28 +57,34 @@ fun TickerScreen(onBack: () -> Unit, viewModel: TickerViewModel = hiltViewModel(
             StatusChip(if (polling) "Delayed" else "Live", if (polling) BannerTone.WARNING else BannerTone.SUCCESS, Modifier.padding(end = 12.dp))
         },
     ) {
-        if (tick == 0L) {
-            Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CircularProgressIndicator()
-                    Text("Connecting to market feed…")
-                }
-            }
-            return@FeatureScaffold
-        }
-        val open = history.firstOrNull() ?: tick
-        HeroCard(label = "US Dollar · 1 USD", value = formatMoney(tick), supporting = changeLabel(open, tick))
-        if (polling) StatusBanner("The live feed dropped. Prices refresh every second until it reconnects.", BannerTone.WARNING)
-        SectionCard(title = "Today") {
-            Sparkline(history)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Stat("Open", formatMoney(open), Modifier.weight(1f))
-                Stat("High", formatMoney(history.maxOrNull() ?: tick), Modifier.weight(1f))
-                Stat("Low", formatMoney(history.minOrNull() ?: tick), Modifier.weight(1f))
-            }
-        }
-        Converter(tick)
+        TickerBody(tick, polling, history)
     }
+}
+
+/** Shows ticker body. */
+@Composable
+private fun ColumnScope.TickerBody(tick: Long, polling: Boolean, history: List<Long>) {
+    if (tick == 0L) {
+        Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator()
+                Text("Connecting to market feed…")
+            }
+        }
+        return
+    }
+    val open = history.firstOrNull() ?: tick
+    HeroCard(label = "US Dollar · 1 USD", value = formatMoney(tick), supporting = changeLabel(open, tick))
+    if (polling) StatusBanner("The live feed dropped. Prices refresh every second until it reconnects.", BannerTone.WARNING)
+    SectionCard(title = "Today") {
+        Sparkline(history)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Stat("Open", formatMoney(open), Modifier.weight(1f))
+            Stat("High", formatMoney(history.maxOrNull() ?: tick), Modifier.weight(1f))
+            Stat("Low", formatMoney(history.minOrNull() ?: tick), Modifier.weight(1f))
+        }
+    }
+    Converter(tick)
 }
 
 /** Shows converter. */
@@ -129,4 +138,52 @@ private fun changeLabel(open: Long, now: Long): String {
     val percent = if (open == 0L) BigDecimal.ZERO else BigDecimal(diff * 100).divide(BigDecimal(open), 2, RoundingMode.HALF_UP)
     val sign = if (diff >= 0) "+" else "−"
     return "$sign${formatMoney(kotlin.math.abs(diff))} ($sign${percent.abs()}%) since you opened"
+}
+
+private val ticks = listOf(8_300L, 8_310L, 8_325L, 8_318L, 8_342L)
+
+@PreviewLightDark
+@Composable
+private fun TickerPreview() {
+    PersonalLedgerTheme { TickerScreen(onBack = {}, viewModel = TickerViewModel()) }
+}
+
+@PreviewLightDark
+@Composable
+private fun TickerConnectingPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Markets", onBack = {}, subtitle = "USD → INR") {
+            TickerBody(0L, polling = false, history = emptyList())
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun TickerLivePreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold(
+            "Markets",
+            onBack = {},
+            subtitle = "USD → INR",
+            actions = { StatusChip("Live", BannerTone.SUCCESS, Modifier.padding(end = 12.dp)) },
+        ) {
+            TickerBody(8_342L, polling = false, history = ticks)
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun TickerDelayedPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold(
+            "Markets",
+            onBack = {},
+            subtitle = "USD → INR",
+            actions = { StatusChip("Delayed", BannerTone.WARNING, Modifier.padding(end = 12.dp)) },
+        ) {
+            TickerBody(8_342L, polling = true, history = ticks)
+        }
+    }
 }

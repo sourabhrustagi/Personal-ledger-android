@@ -31,6 +31,7 @@ dependencies {
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation("androidx.compose.foundation:foundation")
     implementation(libs.androidx.compose.material3)
     api(libs.androidx.compose.material.icons.extended)

@@ -32,9 +32,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows the charts screen. */
 @Composable
@@ -144,4 +146,10 @@ private fun SliceRow(slice: Slice, color: Color, fraction: Float, currency: Stri
             modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
         )
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun ChartsPreview() {
+    PersonalLedgerTheme { ChartsScreen(onBack = {}, viewModel = ChartsViewModel()) }
 }

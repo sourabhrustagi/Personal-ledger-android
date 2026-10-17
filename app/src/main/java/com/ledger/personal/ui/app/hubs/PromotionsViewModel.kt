@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.hubs
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

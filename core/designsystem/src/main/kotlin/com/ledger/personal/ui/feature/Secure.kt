@@ -39,8 +39,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.LedgerTheme
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows amount text. */
 @Composable
@@ -223,4 +225,19 @@ fun OtpField(value: String, onValueChange: (String) -> Unit, modifier: Modifier 
 @Composable
 fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(onClick = onClick, modifier = modifier.padding(0.dp)) { Text(text, fontWeight = FontWeight.SemiBold) }
+}
+
+@PreviewLightDark
+@Composable
+private fun SecurePreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            AmountText(45_500L, MoneyDirection.DEBIT, label = "Team lunch")
+            MaskedAmount(2_45_678_90L, revealed = false, onToggle = {})
+            ProtectedBadge()
+            PinDots(filled = 2, length = 4)
+            OtpField("12", {})
+            NumericKeypad(onDigit = {}, onDelete = {})
+        }
+    }
 }

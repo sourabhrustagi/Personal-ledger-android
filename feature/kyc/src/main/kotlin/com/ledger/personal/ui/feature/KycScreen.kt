@@ -44,8 +44,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.SavedStateHandle
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -199,4 +202,62 @@ private fun Submitted(humanReview: Boolean, onDone: () -> Unit) {
     }
     Box(Modifier.height(16.dp))
     PrimaryButton("Back to home", onClick = onDone)
+}
+
+@PreviewLightDark
+@Composable
+private fun KycPreview() {
+    PersonalLedgerTheme { KycScreen(onBack = {}, liveCapture = false, viewModel = KycViewModel(SavedStateHandle())) }
+}
+
+@PreviewLightDark
+@Composable
+private fun KycDocumentPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Verify identity", onBack = {}, subtitle = "Step 2 of 3 · Scan document") {
+            DocumentStep(KycUiState(), "PAN card", liveCapture = false, onCapture = {}, onBack = {}, onNext = {})
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun KycCapturedPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Verify identity", onBack = {}, subtitle = "Step 2 of 3 · Scan document") {
+            DocumentStep(
+                KycUiState(captureUri = "content://docs/capture.jpg", edge = 0..4),
+                "PAN card",
+                liveCapture = false,
+                onCapture = {},
+                onBack = {},
+                onNext = {},
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun KycReviewPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Verify identity", onBack = {}, subtitle = "Step 3 of 3 · Review") {
+            ReviewStep(
+                KycUiState(name = "Asha Rao", captureUri = "content://docs/capture.jpg", humanReview = true),
+                "PAN card",
+                onEdit = {},
+                onSubmit = {},
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun KycSubmittedPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Verify identity", onBack = {}) {
+            Submitted(humanReview = false, onDone = {})
+        }
+    }
 }

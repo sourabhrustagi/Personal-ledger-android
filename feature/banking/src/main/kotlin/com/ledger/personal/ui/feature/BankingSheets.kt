@@ -21,7 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Allowed values of bank sheet. */
 enum class BankSheet { UPI, PAYEE }
@@ -106,4 +108,34 @@ private fun AddPayee(state: BankingUiState, viewModel: BankingViewModel) {
 private fun SheetTitle(title: String, message: String) {
     Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@PreviewLightDark
+@Composable
+private fun UpiRequestPreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            UpiRequest("upi://pay?pa=you@okaxis&am=500.00", onCreate = { _, _ -> })
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun AddPayeePreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            AddPayee(BankingUiState(), BankingViewModel())
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun AddPayeeCoolingPreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            AddPayee(BankingUiState(payee = "Asha Rao", cooling = true), BankingViewModel())
+        }
+    }
 }

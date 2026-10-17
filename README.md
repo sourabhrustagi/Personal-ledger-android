@@ -39,6 +39,14 @@ One flavor dimension, `environment`. Debug and release stay build types: debug l
 
 Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` are empty on purpose. Fill them with your server's real SPKI hashes before shipping a `prod` release.
 
+## Force update
+
+On launch the app calls `GET static/version` and compares this install's `versionCode` to the published minimum. If this build is older, `LedgerOneApp` shows **Update required** and nothing else: onboarding, login, and the tabs stay blocked. **Update now** opens the Play listing for this application id (the `.debug` suffix is stripped so a debug build still points at the store app).
+
+If that call fails or returns no minimum, the app continues. A downed static API does not lock people out.
+
+Raise the published `versionCode` when a build must be retired (broken crypto, a payment bug, an unsupported Play services floor). The check is `current < required`; an equal or newer install is allowed through.
+
 ## What's in the app
 
 The app has five tabs:
@@ -56,7 +64,7 @@ From any transaction you can edit it, delete it, split it with friends, or repor
 ## Project layout
 
 ```
-app/                 App shell: navigation, onboarding, login, settings, flavors, DI wiring
+app/                 App shell: navigation, flavors, DI wiring, and ui/app (auth, hubs, account, scan, tools)
 core/model/          Plain Kotlin: domain types, repository interfaces, business rules
 core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, ticker socket
 core/database/       Room database, offline-first repository, sync worker, DataStore settings

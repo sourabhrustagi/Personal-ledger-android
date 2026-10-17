@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.tools
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -24,7 +24,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.paging.PagingData
+import com.ledger.personal.data.tools.DisputeDesk
+import com.ledger.personal.domain.model.Transaction
+import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.domain.sync.ConflictInbox
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.data.tools.statementFor
 import com.ledger.personal.ui.feature.AmountText
@@ -156,4 +165,40 @@ fun CategoriesScreen(
         )
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun CategoriesPreview() {
+    PersonalLedgerTheme { CategoriesScreen(listOf("Groceries", "Dining", "Utilities"), onBack = {}, onSave = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun CategoriesLoadingPreview() {
+    PersonalLedgerTheme { CategoriesScreen(emptyList(), onBack = {}, loading = true, onSave = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun StatementsPreview() {
+    PersonalLedgerTheme { StatementsScreen(onBack = {}, tools = previewTools()) }
+}
+
+internal fun previewTools() = ToolsViewModel(PreviewTransactions, DisputeDesk(null), ConflictInbox(null))
+
+internal object PreviewTransactions : TransactionRepository {
+    private val rows = listOf(Transaction("tx-1", 50_000L, "INR", "Utilities", "Electricity", 1_760_200_000_000L))
+
+    override fun observeTransactions() = flowOf(rows)
+    override fun observeTransaction(id: String) = flowOf(rows.find { it.id == id })
+    override fun pages(): Flow<PagingData<Transaction>> = flowOf(PagingData.from(rows))
+    override suspend fun getTransactions(page: Int, pageSize: Int) = Result.success(rows)
+    override suspend fun getTransactionById(id: String) =
+        rows.find { it.id == id }?.let { Result.success(it) } ?: Result.failure(NoSuchElementException(id))
+    override suspend fun createTransaction(amountInCents: Long, currency: String, category: String, description: String) =
+        Result.failure<Transaction>(UnsupportedOperationException())
+    override suspend fun patchTransaction(id: String, category: String?, description: String?, amountInCents: Long?) =
+        Result.failure<Transaction>(UnsupportedOperationException())
+    override suspend fun deleteTransaction(id: String) = Result.success(Unit)
 }

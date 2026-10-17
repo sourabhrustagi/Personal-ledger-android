@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Payments
@@ -46,8 +47,10 @@ import com.ledger.personal.ui.components.LedgerOneText
 import com.ledger.personal.ui.components.LedgerOneTextField
 import com.ledger.personal.ui.components.LedgerOneTextRole
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.LedgerTheme
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Allowed values of banner tone. */
 enum class BannerTone { INFO, SUCCESS, WARNING, ERROR }
@@ -267,4 +270,19 @@ fun categoryIcon(category: String): ImageVector = when (category.lowercase()) {
     "utilities" -> Icons.Outlined.Bolt
     "entertainment" -> Icons.Outlined.Movie
     else -> Icons.AutoMirrored.Outlined.ReceiptLong
+}
+
+@PreviewLightDark
+@Composable
+private fun ComponentsPreview() {
+    PersonalLedgerTheme {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ListRow(Icons.Outlined.ShoppingCart, "Groceries", subtitle = "Today", trailing = "₹1,240")
+            DetailRow("Reference", "transfer-1")
+            StatusBanner("You're offline. Showing the last saved copy.", BannerTone.WARNING, title = "No connection")
+            StatusChip("Triggered", BannerTone.SUCCESS)
+            EmptyState(Icons.Outlined.Inbox, "No bills yet", "When a bill is due, it will appear here.")
+            AmountField("500", {})
+        }
+    }
 }

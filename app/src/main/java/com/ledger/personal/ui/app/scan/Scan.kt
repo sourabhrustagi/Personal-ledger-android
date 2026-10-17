@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.scan
 
 import android.Manifest
 import android.content.pm.PackageManager

@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.update
 
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -22,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.PrimaryButton
@@ -64,4 +66,10 @@ private fun openStore(context: Context) {
     } catch (_: ActivityNotFoundException) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$id")))
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun ForceUpdatePreview() {
+    PersonalLedgerTheme { ForceUpdateScreen("2.0.0") }
 }

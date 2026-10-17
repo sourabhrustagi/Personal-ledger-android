@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.account
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
@@ -102,5 +104,13 @@ fun ProfileScreen(
             confirmButton = { TextButton(onClick = onLogOut) { Text("Log out") } },
             dismissButton = { TextButton(onClick = { confirmLogOut = false }) { Text("Cancel") } },
         )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun ProfilePreview() {
+    PersonalLedgerTheme {
+        ProfileScreen(AppPrefs(name = "Asha Rao"), showMockControls = true, onBack = {}, onOpen = {}, onLock = {}, onLogOut = {})
     }
 }

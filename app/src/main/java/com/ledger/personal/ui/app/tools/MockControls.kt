@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.tools
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
@@ -11,8 +11,11 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SyncProblem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.mock.MockSwitches
+import com.ledger.personal.ui.app.account.SwitchRow
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.ListRow
@@ -57,4 +60,10 @@ fun MockControlsScreen(onBack: () -> Unit, onSimulateConflict: () -> Unit) {
             ListRow(Icons.Outlined.RestartAlt, "Reset all switches", onClick = MockSwitches::reset)
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun MockControlsPreview() {
+    PersonalLedgerTheme { MockControlsScreen(onBack = {}, onSimulateConflict = {}) }
 }

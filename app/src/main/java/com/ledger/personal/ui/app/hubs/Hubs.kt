@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.hubs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -34,11 +34,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.domain.board.PayShortcut
+import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.SpendHighlight
 import com.ledger.personal.mock.SeedAccount
+import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.feature.EmptyState
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.AmountText
@@ -226,4 +230,74 @@ fun PromotionsHub(shelves: List<PromoTab>, selected: String, onSelect: (String) 
             }
         }
     }
+}
+
+private val previewFlags = HubFlags(offline = false, empty = false, reveal = true, onToggleReveal = {})
+
+@PreviewLightDark
+@Composable
+private fun MoneyHubPreview() {
+    PersonalLedgerTheme { MoneyHub(previewFlags, onProfile = {}, onOpen = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun MoneyHubEmptyPreview() {
+    PersonalLedgerTheme {
+        MoneyHub(HubFlags(offline = false, empty = true, reveal = true, onToggleReveal = {}), onProfile = {}, onOpen = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun PayHubPreview() {
+    PersonalLedgerTheme {
+        PayHub(previewFlags, Result.success(listOf(PayShortcut("Asha Rao", "asha@okaxis"))), onProfile = {}, onOpen = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun PayHubOfflinePreview() {
+    PersonalLedgerTheme {
+        PayHub(
+            HubFlags(offline = true, empty = false, reveal = true, onToggleReveal = {}),
+            Result.failure(IllegalStateException("offline")),
+            onProfile = {},
+            onOpen = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun InsightsHubPreview() {
+    PersonalLedgerTheme {
+        InsightsHub(Result.success(listOf(SpendHighlight("Groceries", 82_000L))), onProfile = {}, onOpen = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun InsightsHubEmptyPreview() {
+    PersonalLedgerTheme { InsightsHub(Result.success(emptyList()), onProfile = {}, onOpen = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun PromotionsPreview() {
+    PersonalLedgerTheme {
+        PromotionsHub(
+            shelves = listOf(PromoTab("bills", "Bills", listOf(PromoOffer("electricity", "₹25 cashback on electricity", "This week")))),
+            selected = "bills",
+            onSelect = {},
+            onProfile = {},
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun PromotionsEmptyPreview() {
+    PersonalLedgerTheme { PromotionsHub(shelves = emptyList(), selected = "", onSelect = {}, onProfile = {}) }
 }

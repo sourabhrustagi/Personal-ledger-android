@@ -25,7 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -113,4 +116,34 @@ private fun notificationsAllowed(context: Context): Boolean {
     val runtime = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     return runtime && NotificationManagerCompat.from(context).areNotificationsEnabled()
+}
+
+@PreviewLightDark
+@Composable
+private fun FxAlertsPreview() {
+    PersonalLedgerTheme { FxAlertsScreen(onBack = {}, viewModel = FxAlertsViewModel()) }
+}
+
+@PreviewLightDark
+@Composable
+private fun FxAlertsDeniedPreview() {
+    val vm = remember {
+        FxAlertsViewModel().also {
+            it.onPermission(false)
+            it.check(8_200L)
+        }
+    }
+    PersonalLedgerTheme { FxAlertsScreen(onBack = {}, viewModel = vm) }
+}
+
+@PreviewLightDark
+@Composable
+private fun FxAlertsTriggeredPreview() {
+    val vm = remember {
+        FxAlertsViewModel().also {
+            it.setThreshold(8_000L)
+            it.check(8_400L)
+        }
+    }
+    PersonalLedgerTheme { FxAlertsScreen(onBack = {}, viewModel = vm) }
 }

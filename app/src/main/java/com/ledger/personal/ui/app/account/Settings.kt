@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app
+package com.ledger.personal.ui.app.account
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,7 +37,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.ledger.personal.data.prefs.AppPrefs
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.ListRow
@@ -238,4 +240,30 @@ fun HelpScreen(onBack: () -> Unit) {
             ListRow(Icons.Outlined.Email, "care@ledgerone.in", subtitle = "Replies within a day")
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun SettingsPreview() {
+    PersonalLedgerTheme { SettingsScreen(AppPrefs(name = "Asha Rao"), onBack = {}, onTheme = {}, onHideBalances = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun SecurityPreview() {
+    PersonalLedgerTheme {
+        SecurityScreen(AppPrefs(name = "Asha Rao"), onBack = {}, onBiometric = {}, onChangeMpin = {}, onSignOutEverywhere = {}, onBind = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun NotificationsPreview() {
+    PersonalLedgerTheme { NotificationsScreen(onBack = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun HelpPreview() {
+    PersonalLedgerTheme { HelpScreen(onBack = {}) }
 }

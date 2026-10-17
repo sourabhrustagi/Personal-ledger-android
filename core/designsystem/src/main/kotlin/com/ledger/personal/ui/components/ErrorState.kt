@@ -20,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Full-screen failure, with an optional retry. */
 @Composable
@@ -59,4 +61,10 @@ fun ErrorState(
             }
         }
     }
+}
+
+@PreviewLightDark
+@Composable
+private fun ErrorStatePreview() {
+    PersonalLedgerTheme { ErrorState("The bank did not respond.", onRetry = {}) }
 }

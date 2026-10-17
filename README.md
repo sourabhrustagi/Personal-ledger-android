@@ -96,7 +96,7 @@ See [docs/POS-CRYPTO.md](docs/POS-CRYPTO.md) for why electricity bill lookup and
 ./gradlew connectedMockDebugAndroidTest    # Room, migration and sync tests (needs an emulator)
 ```
 
-CI (`.github/workflows/android.yml`) runs static analysis, the mock unit tests, and the `mockDebug` APK on every push.
+CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull request into `main`. It runs static analysis, the app mock unit tests, the core module unit tests, and assembles the `mockDebug` APK. A failing test fails the job.
 
 ## Contributing
 

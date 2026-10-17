@@ -50,7 +50,7 @@ fun ForceUpdateScreen(versionName: String) {
             StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
             PrimaryButton(
                 "Update now",
-                onClick = { openStore(context) },
+                onClick = { openStore(context, storeListingId(context.packageName)) },
                 icon = Icons.Outlined.SystemUpdate,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -58,9 +58,11 @@ fun ForceUpdateScreen(versionName: String) {
     }
 }
 
+/** Play listing id. Debug builds drop the `.debug` suffix so they open the store app. */
+fun storeListingId(packageName: String): String = packageName.removeSuffix(".debug")
+
 /** Opens the Play listing for this app. */
-private fun openStore(context: Context) {
-    val id = context.packageName.removeSuffix(".debug")
+private fun openStore(context: Context, id: String) {
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$id")))
     } catch (_: ActivityNotFoundException) {

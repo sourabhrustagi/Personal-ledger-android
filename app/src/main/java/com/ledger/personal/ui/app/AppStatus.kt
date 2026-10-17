@@ -19,3 +19,17 @@ sealed class AppStatus {
     /** Signed-in personal tabs. */
     data class Personal(val prefs: AppPrefs) : AppStatus()
 }
+
+/** Picks the shell. Force update wins as soon as the version check says this install is retired. */
+fun appStatus(
+    prefs: AppPrefs?,
+    session: SessionState,
+    releaseChecked: Boolean,
+    updateRequired: Boolean,
+): AppStatus = when {
+    prefs == null || !releaseChecked -> AppStatus.Loading
+    updateRequired -> AppStatus.Update
+    !prefs.onboarded -> AppStatus.Onboard
+    !session.unlocked -> AppStatus.Locked(prefs, session)
+    else -> AppStatus.Personal(prefs)
+}

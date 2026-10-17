@@ -79,13 +79,7 @@ class AppViewModel @Inject constructor(
         mutableReleaseChecked,
         mutableUpdateRequired,
     ) { prefs, session, ready, blocked ->
-        when {
-            prefs == null || !ready -> AppStatus.Loading
-            blocked -> AppStatus.Update
-            !prefs.onboarded -> AppStatus.Onboard
-            !session.unlocked -> AppStatus.Locked(prefs, session)
-            else -> AppStatus.Personal(prefs)
-        }
+        appStatus(prefs, session, ready, blocked)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppStatus.Loading)
 
     init {

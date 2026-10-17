@@ -27,8 +27,8 @@ jobs:
       - name: Check formatting and static analysis
         run: ./gradlew ktlintCheck detekt lintMockDebug --stacktrace
 
-      - name: Run Unit Tests
-        run: ./gradlew testMockDebugUnitTest --stacktrace
+      - name: Run unit tests
+        run: ./gradlew :app:testMockDebugUnitTest :core:model:test :core:network:test :core:mock:test :core:designsystem:testDebugUnitTest --stacktrace
 
       - name: Assemble the mock debug APK
         run: ./gradlew assembleMockDebug --stacktrace

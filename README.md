@@ -71,6 +71,72 @@ The app has five tabs:
 
 From any transaction you can edit it, delete it, split it with friends, or report a problem (raise a dispute).
 
+Screens below are the light theme on mock data.
+
+### Opening the app
+
+| Welcome | Sign in |
+| --- | --- |
+| <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with MPIN"> |
+
+### Tabs
+
+| Home | Money | Pay |
+| --- | --- | --- |
+| <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/money.png" width="200" alt="Money"> | <img src="docs/images/pay.png" width="200" alt="Pay"> |
+
+| Insights | Assistant | Offers |
+| --- | --- | --- |
+| <img src="docs/images/insights.png" width="200" alt="Insights"> | <img src="docs/images/assistant.png" width="200" alt="Assistant"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
+
+### Money
+
+| Send money | Cards | Loans |
+| --- | --- | --- |
+| <img src="docs/images/wallet.png" width="200" alt="Send money"> | <img src="docs/images/cards.png" width="200" alt="Cards"> | <img src="docs/images/loans.png" width="200" alt="Loans"> |
+
+| Deposits | Statements | Transactions |
+| --- | --- | --- |
+| <img src="docs/images/deposits.png" width="200" alt="Deposits"> | <img src="docs/images/statements.png" width="200" alt="Statements"> | <img src="docs/images/transactions.png" width="200" alt="Transactions"> |
+
+| Transaction | New transaction | Edit transaction |
+| --- | --- | --- |
+| <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
+
+### Pay
+
+| Scan | Split a bill | Pay bills |
+| --- | --- | --- |
+| <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> | <img src="docs/images/split.png" width="200" alt="Split a bill"> | <img src="docs/images/bills.png" width="200" alt="Pay bills"> |
+
+| Accounts and UPI | Report a problem | Your disputes |
+| --- | --- | --- |
+| <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> |
+
+### Insights
+
+| Budgets | Charts | Rate alerts |
+| --- | --- | --- |
+| <img src="docs/images/budgets.png" width="200" alt="Budgets"> | <img src="docs/images/charts.png" width="200" alt="Charts"> | <img src="docs/images/fx.png" width="200" alt="Rate alerts"> |
+
+| Markets |
+| --- |
+| <img src="docs/images/markets.png" width="200" alt="Markets"> |
+
+### Profile
+
+| Profile | Verify identity | Security |
+| --- | --- | --- |
+| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/kyc.png" width="200" alt="Verify identity"> | <img src="docs/images/security.png" width="200" alt="Security centre"> |
+
+| Notifications | Settings | Categories |
+| --- | --- | --- |
+| <img src="docs/images/notifications.png" width="200" alt="Notifications"> | <img src="docs/images/settings.png" width="200" alt="Settings"> | <img src="docs/images/categories.png" width="200" alt="Categories"> |
+
+| Help | Mock controls | Sync conflicts |
+| --- | --- | --- |
+| <img src="docs/images/help.png" width="200" alt="Help"> | <img src="docs/images/mock-controls.png" width="200" alt="Mock controls"> | <img src="docs/images/conflicts.png" width="200" alt="Sync conflicts"> |
+
 ## Project layout
 
 ```

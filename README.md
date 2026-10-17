@@ -41,11 +41,17 @@ Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `ap
 
 ## Force update
 
-On launch the app calls `GET static/version` and compares this install's `versionCode` to the published minimum. If this build is older, `LedgerOneApp` shows **Update required** and nothing else: onboarding, login, and the tabs stay blocked. **Update now** opens the Play listing for this application id (the `.debug` suffix is stripped so a debug build still points at the store app).
+Force update applies only when all of these are true:
 
-If that call fails or returns no minimum, the app continues. A downed static API does not lock people out.
+- the launch call to `GET static/version` succeeds;
+- that response includes a minimum `versionCode`;
+- this install's `versionCode` is **strictly less** than that minimum (`current < required`).
 
-Raise the published `versionCode` when a build must be retired (broken crypto, a payment bug, an unsupported Play services floor). The check is `current < required`; an equal or newer install is allowed through.
+It does **not** apply when the version call fails or omits a minimum (a downed static API must not lock people out), or when this install is equal to or newer than the published minimum.
+
+When it applies, `LedgerOneApp` shows **Update required** and nothing else: onboarding, login, and the tabs stay blocked. **Update now** opens the Play listing for this application id (the `.debug` suffix is stripped so a debug build still points at the store app).
+
+Raise the published `versionCode` only when a build must be retired — broken crypto, a payment bug, or an unsupported Play services floor. Regular store updates do not need a force update.
 
 ## What's in the app
 

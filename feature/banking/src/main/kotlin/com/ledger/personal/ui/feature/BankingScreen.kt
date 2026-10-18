@@ -175,6 +175,7 @@ private fun MpinLock(onBack: () -> Unit, error: String?, onSubmit: (String) -> U
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun BankingLockPreview() {

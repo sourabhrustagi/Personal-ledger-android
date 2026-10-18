@@ -25,7 +25,7 @@ class RulesTest {
                 ),
             )
         }
-        assertTrue(exception.message!!.contains("differ"))
+        assertTrue(exception.message.orEmpty().contains("differ"))
     }
 
     @Test
@@ -33,7 +33,7 @@ class RulesTest {
         val book = TransferBook()
         assertEquals(500L, book.submit("key-1", 500L))
         assertEquals(500L, book.submit("key-1", 500L))
-        assertEquals(1, book.size())
+        assertEquals(1, book.size)
     }
 
     @Test
@@ -57,7 +57,15 @@ class RulesTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             adaptQuote(mapOf("pair" to "USDINR"))
         }
-        assertTrue(exception.message!!.contains("ticks"))
+        assertTrue(exception.message.orEmpty().contains("ticks"))
+    }
+
+    @Test
+    fun adapterRejectsNonNumericTicks() {
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            adaptQuote(mapOf("pair" to "USDINR", "ticks" to "n/a"))
+        }
+        assertTrue(exception.message.orEmpty().contains("number"))
     }
 
     @Test
@@ -69,8 +77,8 @@ class RulesTest {
     @Test
     fun concurrentEditsConflictInsteadOfOverwrite() {
         val merged = mergeField(left = "12 Park St", right = "14 Park St")
-        assertTrue(merged is FieldMerge.Conflict)
-        assertEquals("12 Park St", (merged as FieldMerge.Conflict).left)
+        val conflict = merged as? FieldMerge.Conflict
+        assertEquals("12 Park St", conflict?.left)
     }
 
     @Test

@@ -120,6 +120,7 @@ private fun UpiRequestPreview() {
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun AddPayeePreview() {
@@ -130,6 +131,7 @@ private fun AddPayeePreview() {
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun AddPayeeCoolingPreview() {

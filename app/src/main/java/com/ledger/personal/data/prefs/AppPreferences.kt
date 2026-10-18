@@ -79,12 +79,12 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     /** Finishes onboarding. */
     suspend fun completeOnboarding(name: String, phone: String, pin: String, biometric: Boolean, language: String) {
-        val (salt, hash) = sealPin(pin)
+        val sealed = sealPin(pin)
         context.appStore.edit {
             it[NAME] = name
             it[PHONE] = phone
-            it[MPIN_SALT] = salt
-            it[MPIN_HASH] = hash
+            it[MPIN_SALT] = sealed.saltHex
+            it[MPIN_HASH] = sealed.verifier
             it[BIOMETRIC] = biometric
             it[LANGUAGE] = language
             it[ONBOARDED] = true
@@ -102,10 +102,10 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     /** Changes mpin. */
     suspend fun changeMpin(pin: String) {
-        val (salt, hash) = sealPin(pin)
+        val sealed = sealPin(pin)
         context.appStore.edit {
-            it[MPIN_SALT] = salt
-            it[MPIN_HASH] = hash
+            it[MPIN_SALT] = sealed.saltHex
+            it[MPIN_HASH] = sealed.verifier
         }
     }
 

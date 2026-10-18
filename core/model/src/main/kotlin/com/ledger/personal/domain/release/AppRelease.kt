@@ -8,7 +8,7 @@ data class ReleaseNotice(
 )
 
 /** Published version and status from the static API. */
-interface AppRelease {
+fun interface AppRelease {
     suspend fun notice(): ReleaseNotice
 }
 

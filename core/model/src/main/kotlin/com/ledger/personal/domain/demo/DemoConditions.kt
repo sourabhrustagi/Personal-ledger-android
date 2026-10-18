@@ -13,7 +13,7 @@ interface DemoConditions {
 }
 
 /** Live binding. Both levers stay off. */
-class SteadyConditions : DemoConditions {
+object SteadyConditions : DemoConditions {
     override val offline: StateFlow<Boolean> = MutableStateFlow(false)
     override val empty: StateFlow<Boolean> = MutableStateFlow(false)
 }

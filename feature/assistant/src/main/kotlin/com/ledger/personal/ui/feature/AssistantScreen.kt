@@ -182,12 +182,14 @@ private fun ConfirmCard(summary: String, onConfirm: () -> Unit, onCancel: () -> 
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun AssistantPreview() {
     PersonalLedgerTheme { AssistantScreen(onBack = {}, viewModel = AssistantViewModel()) }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun AssistantOfflinePreview() {

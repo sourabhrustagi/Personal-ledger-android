@@ -33,6 +33,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
+import kotlin.coroutines.cancellation.CancellationException
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -149,15 +150,27 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideCategoryCatalog(api: StaticApi): CategoryCatalog =
-        CategoryCatalog { runCatching { api.categories().categories }.getOrDefault(emptyList()) }
+        CategoryCatalog {
+            runCatching { api.categories().categories }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrDefault(emptyList())
+        }
 
     /** Supplies app release. A failed call yields null so a downed static API does not lock the app. */
     @Provides
     @Singleton
     fun provideAppRelease(api: StaticApi): AppRelease = AppRelease {
         coroutineScope {
-            val version = async { runCatching { api.version() }.getOrNull() }
-            val status = async { runCatching { api.status() }.getOrNull() }
+            val version = async {
+                runCatching { api.version() }
+                    .onFailure { if (it is CancellationException) throw it }
+                    .getOrNull()
+            }
+            val status = async {
+                runCatching { api.status() }
+                    .onFailure { if (it is CancellationException) throw it }
+                    .getOrNull()
+            }
             ReleaseNotice(version.await()?.versionCode, status.await()?.softUpdate == true, status.await()?.versionCode ?: 0)
         }
     }

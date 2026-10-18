@@ -30,6 +30,8 @@ import io.ktor.client.request.accept
 import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.OkHttpClient
@@ -146,18 +148,17 @@ object NetworkModule {
     /** Supplies category catalog. A failed call yields an empty list so a saved catalog is kept. */
     @Provides
     @Singleton
-    fun provideCategoryCatalog(api: StaticApi): CategoryCatalog = object : CategoryCatalog {
-        override suspend fun names(): List<String> = runCatching { api.categories().categories }.getOrDefault(emptyList())
-    }
+    fun provideCategoryCatalog(api: StaticApi): CategoryCatalog =
+        CategoryCatalog { runCatching { api.categories().categories }.getOrDefault(emptyList()) }
 
     /** Supplies app release. A failed call yields null so a downed static API does not lock the app. */
     @Provides
     @Singleton
-    fun provideAppRelease(api: StaticApi): AppRelease = object : AppRelease {
-        override suspend fun notice(): ReleaseNotice {
-            val version = runCatching { api.version() }.getOrNull()
-            val status = runCatching { api.status() }.getOrNull()
-            return ReleaseNotice(version?.versionCode, status?.softUpdate == true, status?.versionCode ?: 0)
+    fun provideAppRelease(api: StaticApi): AppRelease = AppRelease {
+        coroutineScope {
+            val version = async { runCatching { api.version() }.getOrNull() }
+            val status = async { runCatching { api.status() }.getOrNull() }
+            ReleaseNotice(version.await()?.versionCode, status.await()?.softUpdate == true, status.await()?.versionCode ?: 0)
         }
     }
 

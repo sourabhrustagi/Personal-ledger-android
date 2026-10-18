@@ -88,7 +88,7 @@ class KtorBindingServer @Inject constructor(
 /** Hardware-backed EC key that can only sign after a strong biometric check, and dies if biometrics are re-enrolled. */
 @Singleton
 class DeviceKeys @Inject constructor() {
-    private val store: KeyStore get() = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+    private val store by lazy { KeyStore.getInstance(KEYSTORE).apply { load(null) } }
 
     /** Creates key. */
     fun createKey(): ByteArray {
@@ -105,7 +105,8 @@ class DeviceKeys @Inject constructor() {
 
     /** Signer. */
     fun signer(): Signature = Signature.getInstance(SIGNATURE_ALGORITHM).apply {
-        initSign(store.getKey(ALIAS, null) as PrivateKey)
+        val key = requireNotNull(store.getKey(ALIAS, null) as? PrivateKey) { "Device binding key is missing" }
+        initSign(key)
     }
 
     /** Delete. */

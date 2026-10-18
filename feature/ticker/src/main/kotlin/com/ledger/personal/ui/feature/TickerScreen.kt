@@ -142,6 +142,7 @@ private fun changeLabel(open: Long, now: Long): String {
 
 private val ticks = listOf(8_300L, 8_310L, 8_325L, 8_318L, 8_342L)
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun TickerPreview() {

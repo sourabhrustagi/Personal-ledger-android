@@ -32,10 +32,10 @@ class TransferBook {
     fun submit(idempotencyKey: String, amountMinor: Long): Long = posted.getOrPut(idempotencyKey) { amountMinor }
 
     /** How many distinct transfers have been recorded. */
-    fun size(): Int = posted.size
+    val size: Int get() = posted.size
 
     /** Sum of every distinct transfer. */
-    fun total(): Long = posted.values.sum()
+    val total: Long get() = posted.values.sum()
 }
 
 /** Result of checking whether the actor may see a wallet. */
@@ -67,9 +67,10 @@ data class ProviderQuote(val pair: String, val ticks: Long)
 
 /** Reads the pair and the tick count out of a provider map. */
 fun adaptQuote(fields: Map<String, String?>): ProviderQuote {
-    val pair = fields["pair"] ?: throw IllegalArgumentException("missing pair")
-    val ticks = fields["ticks"] ?: throw IllegalArgumentException("missing ticks")
-    return ProviderQuote(pair, ticks.toLong())
+    val pair = requireNotNull(fields["pair"]) { "missing pair" }
+    val rawTicks = requireNotNull(fields["ticks"]) { "missing ticks" }
+    val ticks = requireNotNull(rawTicks.toLongOrNull()) { "ticks must be a number: $rawTicks" }
+    return ProviderQuote(pair, ticks)
 }
 
 /** One captured KYC field and how confident the read was. */

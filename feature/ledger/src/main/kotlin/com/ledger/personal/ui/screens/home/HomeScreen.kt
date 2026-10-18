@@ -436,8 +436,8 @@ private object IdleSync : SyncCoordinator {
     override fun observe(): Flow<SyncPhase> = flowOf(SyncPhase.SUCCEEDED)
 }
 
-private object PreviewBoard : HomeBoard {
-    override suspend fun layout() = Result.success(
+private val PreviewBoard = HomeBoard {
+    Result.success(
         HomeLayout(
             tabs = listOf(HomeTab("home", "Home")),
             sections = listOf(

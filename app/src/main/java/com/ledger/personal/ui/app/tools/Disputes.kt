@@ -168,13 +168,16 @@ private fun ConflictCard(conflict: SyncConflict, onResolve: (Map<String, Boolean
         diffs.forEach { diff ->
             Text(diff.field, style = MaterialTheme.typography.labelLarge)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                listOf(true to "This phone: ${diff.mine}", false to "Server: ${diff.theirs}").forEachIndexed { index, (mine, label) ->
-                    SegmentedButton(
-                        selected = keepMine[diff.field] == mine,
-                        onClick = { keepMine[diff.field] = mine },
-                        shape = SegmentedButtonDefaults.itemShape(index, 2),
-                    ) { Text(label, maxLines = 2) }
-                }
+                SegmentedButton(
+                    selected = keepMine[diff.field] == true,
+                    onClick = { keepMine[diff.field] = true },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                ) { Text("This phone: ${diff.mine}", maxLines = 2) }
+                SegmentedButton(
+                    selected = keepMine[diff.field] == false,
+                    onClick = { keepMine[diff.field] = false },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                ) { Text("Server: ${diff.theirs}", maxLines = 2) }
             }
         }
         PrimaryButton(

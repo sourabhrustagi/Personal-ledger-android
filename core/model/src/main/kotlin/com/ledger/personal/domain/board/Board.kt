@@ -25,7 +25,7 @@ sealed interface HomeSection {
 }
 
 /** Layout of the home screen, owned by the app team's dashboard API. */
-interface HomeBoard {
+fun interface HomeBoard {
     /** Returns the tabs and the home blocks in the order the dashboard wants them drawn. */
     suspend fun layout(): Result<HomeLayout>
 }
@@ -34,7 +34,7 @@ interface HomeBoard {
 data class PayShortcut(val name: String, val handle: String)
 
 /** Payments backend. Its JSON is not shared with the other teams. */
-interface PaymentsBackend {
+fun interface PaymentsBackend {
     /** Returns shortcuts. */
     suspend fun shortcuts(): Result<List<PayShortcut>>
 }
@@ -43,13 +43,13 @@ interface PaymentsBackend {
 data class SpendHighlight(val label: String, val spentMinor: Long)
 
 /** Insights backend. Amounts arrive in that team's own field, already in minor units. */
-interface InsightsBackend {
+fun interface InsightsBackend {
     /** Returns highlights. */
     suspend fun highlights(): Result<List<SpendHighlight>>
 }
 
 /** Assistant backend. Prompts are plain strings from that team's endpoint. */
-interface AssistantBackend {
+fun interface AssistantBackend {
     /** Returns prompts. */
     suspend fun prompts(): Result<List<String>>
 }
@@ -61,7 +61,7 @@ data class PromoOffer(val id: String, val pitch: String, val until: String)
 data class PromoTab(val id: String, val title: String, val offers: List<PromoOffer>)
 
 /** Promotions backend. Shelves are that team's own JSON, not the dashboard tiles. */
-interface PromotionsBackend {
+fun interface PromotionsBackend {
     /** Returns tabs. */
     suspend fun tabs(): Result<List<PromoTab>>
 }

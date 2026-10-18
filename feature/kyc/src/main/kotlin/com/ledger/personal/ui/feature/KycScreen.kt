@@ -204,6 +204,7 @@ private fun Submitted(humanReview: Boolean, onDone: () -> Unit) {
     PrimaryButton("Back to home", onClick = onDone)
 }
 
+@Suppress("ViewModelConstructorInComposable", "VisibleForTests")
 @PreviewLightDark
 @Composable
 private fun KycPreview() {

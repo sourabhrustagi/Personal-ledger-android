@@ -68,7 +68,7 @@ class TransactionSyncWorkerTest {
             .build()
         WorkManagerTestInitHelper.initializeTestWorkManager(context, config)
 
-        val constraints = TransactionSync.constraints()
+        val constraints = TransactionSync.constraints
         assertEquals(NetworkType.CONNECTED, constraints.requiredNetworkType)
         assertFalse(constraints.requiresBatteryNotLow())
 

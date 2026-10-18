@@ -31,7 +31,7 @@ class StaticCallTest {
                 .header("Content-Type", "application/json")
                 .build(),
         ).execute().close()
-        val request = retried!!
+        val request = requireNotNull(retried)
         assertEquals("application/json", request.header("Accept"))
         assertNull(request.header("Authorization"))
         assertNull(request.header("Content-Type"))

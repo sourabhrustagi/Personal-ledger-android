@@ -78,9 +78,8 @@ object RepositoryModule {
     @Singleton
     fun provideTicker(@AuthenticatedClient client: HttpClient): TickerSocket = if (BuildConfig.FLAVOR == "mock") {
         val mock = MockTickerSocket()
-        object : TickerSocket {
-            /** Prices. */
-            override fun prices() = mock.prices().onEach {
+        TickerSocket {
+            mock.prices().onEach {
                 if (MockSwitches.dropLive.value) throw IOException("Live connection dropped (mock)")
             }
         }
@@ -143,7 +142,7 @@ object DemoModule {
     @Provides
     @Singleton
     fun conditions(mock: SwitchConditions): DemoConditions =
-        if (BuildConfig.FLAVOR == "mock") mock else SteadyConditions()
+        if (BuildConfig.FLAVOR == "mock") mock else SteadyConditions
 
     /** Supplies the payment attempt. Only the mock flavor runs the flaky rail. */
     @Provides

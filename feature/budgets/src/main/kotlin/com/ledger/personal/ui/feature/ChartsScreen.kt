@@ -148,6 +148,7 @@ private fun SliceRow(slice: Slice, color: Color, fraction: Float, currency: Stri
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun ChartsPreview() {

@@ -21,6 +21,13 @@ data class VersionDto(
     @SerialName("versionCode") val versionCode: Int = 0,
 )
 
+/** Network payload for a skippable update. [versionCode] is the build being offered. */
+@Serializable
+data class StatusDto(
+    @SerialName("softUpdate") val softUpdate: Boolean = false,
+    @SerialName("versionCode") val versionCode: Int = 0,
+)
+
 /** Public reference-data contract. */
 interface StaticApi {
     /** Returns the default category names. */
@@ -28,6 +35,9 @@ interface StaticApi {
 
     /** Returns the versionCode this install must reach. */
     suspend fun version(): VersionDto
+
+    /** Returns whether a newer build can be skipped. */
+    suspend fun status(): StatusDto
 }
 
 /** Ktor implementation of the public static API. */
@@ -40,4 +50,7 @@ class KtorStaticApi @Inject constructor(
 
     /** Returns the versionCode this install must reach. */
     override suspend fun version(): VersionDto = client.get("static/version").body()
+
+    /** Returns whether a newer build can be skipped. */
+    override suspend fun status(): StatusDto = client.get("static/status").body()
 }

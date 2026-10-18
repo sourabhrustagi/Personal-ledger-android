@@ -80,7 +80,7 @@ private fun bindQrScanner(
     val future = ProcessCameraProvider.getInstance(context)
     future.addListener({
         val provider = future.get()
-        val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+        val preview = Preview.Builder().build().apply { surfaceProvider = previewView.surfaceProvider }
         provider.unbindAll()
         provider.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
     }, ContextCompat.getMainExecutor(context))

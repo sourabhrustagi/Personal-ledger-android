@@ -116,9 +116,7 @@ class AssistantViewModel @Inject constructor(
     }
 
     private companion object {
-        val QuietPrompts = object : AssistantBackend {
-            override suspend fun prompts() = Result.success(emptyList<String>())
-        }
+        val QuietPrompts = AssistantBackend { Result.success(emptyList()) }
         const val STREAM = "stream"
         const val SEP = "\u001F"
         const val THINKING_MS = 400L

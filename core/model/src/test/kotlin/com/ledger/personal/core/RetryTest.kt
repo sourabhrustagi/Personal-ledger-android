@@ -30,7 +30,7 @@ class RetryTest {
             throw TransactionRejected("Your bank declined this payment")
         }
         assertEquals(1, calls)
-        assertTrue(transactionFailureMessage(result.exceptionOrNull()!!).startsWith("Your bank declined"))
+        assertTrue(result.exceptionOrNull()?.let(::transactionFailureMessage).orEmpty().startsWith("Your bank declined"))
     }
 
     @Test

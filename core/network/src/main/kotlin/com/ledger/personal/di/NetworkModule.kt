@@ -9,6 +9,7 @@ import com.ledger.personal.data.remote.api.KtorTransactionApi
 import com.ledger.personal.data.remote.api.StaticApi
 import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.domain.release.AppRelease
+import com.ledger.personal.domain.release.ReleaseNotice
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.domain.settings.CategoryCatalog
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
@@ -153,7 +154,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAppRelease(api: StaticApi): AppRelease = object : AppRelease {
-        override suspend fun minimumVersionCode(): Int? = runCatching { api.version().versionCode }.getOrNull()
+        override suspend fun notice(): ReleaseNotice {
+            val version = runCatching { api.version() }.getOrNull()
+            val status = runCatching { api.status() }.getOrNull()
+            return ReleaseNotice(version?.versionCode, status?.softUpdate == true, status?.versionCode ?: 0)
+        }
     }
 
     /**

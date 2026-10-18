@@ -156,8 +156,36 @@ docs/                Architecture document and decision records
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
-See [docs/LIBRARIES.md](docs/LIBRARIES.md) for the dependency choices and comparisons with alternatives.
 See [docs/POS-CRYPTO.md](docs/POS-CRYPTO.md) for why electricity bill lookup and payment use ECDH with AES-GCM, and when other algorithms are the better tool.
+
+## Dependencies
+
+Versions live in `gradle/libs.versions.toml`. A library is added only when the Android or Kotlin standard library does not already solve the problem. Why this stack instead of Retrofit, SQLDelight, Koin, and the rest is in [docs/LIBRARIES.md](docs/LIBRARIES.md).
+
+| Dependency | Purpose |
+| --- | --- |
+| Kotlin, coroutines, Flow | Language, background work, and streams for Room, network, and UI state |
+| kotlinx.serialization | Compile-time JSON for Ktor DTOs and type-safe navigation routes |
+| Jetpack Compose, Material 3, Compose Foundation / Animation | Screens, theme, motion, and shared components |
+| Compose UI Tooling | `@Preview` / `@PreviewLightDark` in the app and library modules |
+| Navigation Compose | Back stack, deep links, and typed routes; only `:app` joins feature screens |
+| Lifecycle, Activity Compose, ViewModel | Configuration-change state and lifecycle-aware collection |
+| Hilt, Hilt Navigation, Hilt Work | Compile-time graphs for repositories, Ktor clients, ViewModels, and workers |
+| Room, Room Paging | Local source of truth, migrations, and paged transaction history |
+| DataStore Preferences | Small settings: theme, privacy, categories, skipped update code |
+| WorkManager | Durable sync and FX-alert work that survives process death |
+| Paging 3 | Incremental transaction lists from Room into Compose |
+| Ktor Client (OkHttp engine) | REST, static API, device binding, and the market WebSocket |
+| OkHttp, logging interceptor | TLS, certificate pinning, HTTP cache; debug-only request summaries |
+| CameraX | Lifecycle-aware camera for KYC and UPI QR capture |
+| ML Kit barcode scanning | On-device QR decode from CameraX frames |
+| AndroidX Biometric | System biometric prompt; keys stay in Android Keystore |
+| Timber | App logging; debug tree only on debug builds |
+| Chucker | On-device HTTP inspector in debug; no-op artifact in release |
+| LeakCanary | Debug-only leak detection for Activities and Compose hosts |
+| JUnit, AndroidX Test, Espresso, Compose UI Test, Ktor MockEngine | Local rules, instrumented UI, and HTTP tests without a server |
+| Detekt, ktlint | Complexity, correctness, and formatting in CI |
+| Android Gradle Plugin, Compose / serialization compiler, KSP | Variants, R8, Compose, serializers, Hilt, and Room codegen |
 
 ## Tests and checks
 

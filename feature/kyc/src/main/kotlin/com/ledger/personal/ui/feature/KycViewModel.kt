@@ -34,9 +34,9 @@ class KycViewModel @Inject constructor(
         viewModelScope.launch {
             if (!savedState.get<String>(NAME).isNullOrBlank()) return@launch
             val loaded = drafts.load() ?: return@launch
-            savedState[NAME] = loaded.first
+            savedState[NAME] = loaded.name
             state.update {
-                it.copy(name = loaded.first, confidence = loaded.second, captureUri = loaded.third)
+                it.copy(name = loaded.name, confidence = loaded.confidence, captureUri = loaded.captureUri)
             }
         }
     }
@@ -71,7 +71,12 @@ class KycViewModel @Inject constructor(
     fun incomingEdit(other: String) {
         val merged = mergeField(state.value.name, other)
         state.update {
-            it.copy(conflict = if (merged is FieldMerge.Conflict) "Sync conflict on name" else null)
+            it.copy(
+                conflict = when (merged) {
+                    is FieldMerge.Conflict -> "Sync conflict on name"
+                    is FieldMerge.Kept -> null
+                },
+            )
         }
     }
 

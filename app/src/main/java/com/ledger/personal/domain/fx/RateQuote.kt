@@ -21,8 +21,8 @@ fun disposeQuote(historyTicks: List<Long>, quote: RateQuote): RateDisposition {
     require(historyTicks.size >= 2) { "Need at least two prior ticks to measure sigma" }
     val n = historyTicks.size.toLong()
     val sum = historyTicks.sum()
-    val sumSquares = historyTicks.sumOf { diff ->
-        val scaled = n * diff - sum
+    val sumSquares = historyTicks.sumOf {
+        val scaled = n * it - sum
         scaled * scaled
     }
     val candidate = n * quote.ticks - sum

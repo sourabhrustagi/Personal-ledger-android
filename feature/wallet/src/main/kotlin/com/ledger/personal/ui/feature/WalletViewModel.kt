@@ -76,13 +76,13 @@ class WalletViewModel @Inject constructor(
                             status = TransferStatus.DONE,
                             step = TransferStep.RECEIPT,
                             postedMinor = posted,
-                            balanceMinor = openingMinor - book.total(),
+                            balanceMinor = openingMinor - book.total,
                         )
                     },
                     onFailure = { error ->
                         latest.copy(
                             status = TransferStatus.FAILED,
-                            balanceMinor = openingMinor - book.total(),
+                            balanceMinor = openingMinor - book.total,
                             errorMessage = transactionFailureMessage(error),
                         )
                     },
@@ -105,5 +105,5 @@ class WalletViewModel @Inject constructor(
     }
 
     /** Posted count. */
-    fun postedCount(): Int = book.size()
+    val postedCount: Int get() = book.size
 }

@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ledger.personal.data.security.PinSealer
@@ -32,6 +33,7 @@ data class AppPrefs(
     val categories: List<String> = emptyList(),
     val defaultCategories: List<String> = emptyList(),
     val deviceId: String = "",
+    val ignoredUpdateCode: Int = 0,
 )
 
 private val Context.appStore: DataStore<Preferences> by preferencesDataStore(name = "ledgerone_prefs")
@@ -48,6 +50,7 @@ private val LANGUAGE = stringPreferencesKey("language")
 private val CATEGORIES = stringPreferencesKey("categories")
 private val DEFAULT_CATEGORY_KEY = stringPreferencesKey("default_categories")
 private val DEVICE_ID = stringPreferencesKey("device_id")
+private val IGNORED_UPDATE = intPreferencesKey("ignored_update")
 private const val SEP = "\u001F"
 
 /** App preferences. */
@@ -67,6 +70,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             categories = p[CATEGORIES]?.split(SEP)?.filter { it.isNotBlank() }.orEmpty(),
             defaultCategories = p[DEFAULT_CATEGORY_KEY]?.split(SEP)?.filter { it.isNotBlank() }.orEmpty(),
             deviceId = p[DEVICE_ID].orEmpty(),
+            ignoredUpdateCode = p[IGNORED_UPDATE] ?: 0,
         )
     }
 
@@ -126,6 +130,9 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     /** Stores device id. */
     suspend fun setDeviceId(id: String) = context.appStore.edit { it[DEVICE_ID] = id }
+
+    /** Remembers a skipped soft-update versionCode. */
+    suspend fun ignoreUpdate(versionCode: Int) = context.appStore.edit { it[IGNORED_UPDATE] = versionCode }
 
     /** Reset. */
     suspend fun reset() {

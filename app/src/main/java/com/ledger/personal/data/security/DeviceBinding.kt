@@ -16,6 +16,7 @@ import java.security.SecureRandom
 import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
@@ -34,7 +35,7 @@ interface BindingServer {
 /** Mock-flavor server: issues random challenges and really verifies the ECDSA signature. */
 @Singleton
 class LocalBindingServer @Inject constructor() : BindingServer {
-    private val issued = mutableSetOf<String>()
+    private val issued = ConcurrentHashMap.newKeySet<String>()
     private val random = SecureRandom()
 
     /** Challenge. */

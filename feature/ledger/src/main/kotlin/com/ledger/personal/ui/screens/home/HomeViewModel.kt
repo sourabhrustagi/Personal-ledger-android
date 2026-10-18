@@ -106,9 +106,9 @@ class HomeViewModel @Inject constructor(
         val visible = all.filter { it.id != held?.id }
         val month = YearMonth.now()
         val thisMonth = visible.filter { it.currency == "INR" && YearMonth.from(it.date()) == month }
-        val filtered = visible.filter { tx ->
-            (cat == null || tx.category == cat) &&
-                (q.isBlank() || tx.description.contains(q, true) || tx.category.contains(q, true))
+        val filtered = visible.filter {
+            (cat == null || it.category == cat) &&
+                (q.isBlank() || it.description.contains(q, true) || it.category.contains(q, true))
         }
         HomeUiState(
             loading = false,

@@ -7,7 +7,6 @@ import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.settings.UserSettings
 import com.ledger.personal.domain.sync.SyncCoordinator
-import com.ledger.personal.domain.sync.label
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +31,7 @@ class TransactionListViewModel @Inject constructor(
         TransactionListUiState(
             isLoading = false,
             isEndReached = true,
-            syncStatus = phase.label(),
+            syncStatus = phase.label,
         )
     }.stateIn(
         viewModelScope,

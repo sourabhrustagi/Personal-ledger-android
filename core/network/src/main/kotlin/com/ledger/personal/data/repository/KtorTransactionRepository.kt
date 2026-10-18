@@ -86,7 +86,7 @@ class KtorTransactionRepository @Inject constructor(
         }
 
     /** Call. */
-    private suspend fun call(block: suspend () -> TransactionDto): Transaction = try {
+    private suspend inline fun call(block: suspend () -> TransactionDto): Transaction = try {
         block().toDomain()
     } catch (error: ClientRequestException) {
         throw conflictOrNull(error.response.status.value, error.response.bodyAsText()) ?: error

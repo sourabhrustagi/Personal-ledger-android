@@ -52,23 +52,23 @@ class DisputeDesk internal constructor(private val file: File?) {
     val disputes: StateFlow<List<Dispute>> = rows.asStateFlow()
 
     /** File. */
-    fun file(tx: Transaction, reason: DisputeReason, details: String, now: Long = System.currentTimeMillis()): Dispute {
-        rows.value.firstOrNull { it.transactionId == tx.id }?.let { return it }
-        val dispute = Dispute(
-            reference = "DSP-${(now % 1_000_000).toString().padStart(6, '0')}",
-            transactionId = tx.id,
-            title = tx.description,
-            amountMinor = tx.amountInCents,
-            currency = tx.currency,
-            reason = reason,
-            details = details.trim(),
-            filedAtEpochMs = now,
-        )
-        val next = rows.value + dispute
-        rows.value = next
-        write(next)
-        return dispute
-    }
+    fun file(tx: Transaction, reason: DisputeReason, details: String, now: Long = System.currentTimeMillis()): Dispute =
+        rows.value.firstOrNull { it.transactionId == tx.id } ?: run {
+            val dispute = Dispute(
+                reference = "DSP-${(now % 1_000_000).toString().padStart(6, '0')}",
+                transactionId = tx.id,
+                title = tx.description,
+                amountMinor = tx.amountInCents,
+                currency = tx.currency,
+                reason = reason,
+                details = details.trim(),
+                filedAtEpochMs = now,
+            )
+            val next = rows.value + dispute
+            rows.value = next
+            write(next)
+            dispute
+        }
 
     /** Read. */
     private fun read(): List<Dispute> = file?.takeIf { it.isFile }?.readLines()?.mapNotNull { line ->
@@ -93,14 +93,16 @@ private fun Dispute.encode(): String = Base64.getEncoder().encodeToString(
 private fun decodeDispute(line: String): Dispute {
     val parts = String(Base64.getDecoder().decode(line)).split("\u001F").map { URLDecoder.decode(it, "UTF-8") }
     return Dispute(
-        parts[0],
-        parts[1],
-        parts[2],
-        parts[3].toLong(),
-        parts[4],
-        DisputeReason.valueOf(parts[5]),
-        parts[6],
-        parts[7].toLong(),
+        requireNotNull(parts.getOrNull(0)) { "missing reference" },
+        requireNotNull(parts.getOrNull(1)) { "missing transaction id" },
+        requireNotNull(parts.getOrNull(2)) { "missing title" },
+        requireNotNull(parts.getOrNull(3)?.toLongOrNull()) { "amount is not a number" },
+        requireNotNull(parts.getOrNull(4)) { "missing currency" },
+        requireNotNull(parts.getOrNull(5)?.let { name -> DisputeReason.entries.firstOrNull { it.name == name } }) {
+            "unknown reason"
+        },
+        requireNotNull(parts.getOrNull(6)) { "missing details" },
+        requireNotNull(parts.getOrNull(7)?.toLongOrNull()) { "filed-at is not a number" },
     )
 }
 
@@ -108,13 +110,14 @@ private fun decodeDispute(line: String): Dispute {
 data class FieldDiff(val field: String, val mine: String, val theirs: String)
 
 /** Conflict fields. */
-fun conflictFields(local: Transaction, server: Transaction): List<FieldDiff> = listOf(
-    Triple("Description", local.description, server.description),
-    Triple("Category", local.category, server.category),
-    Triple("Amount (minor units)", local.amountInCents.toString(), server.amountInCents.toString()),
-).mapNotNull { (field, mine, theirs) ->
+fun conflictFields(local: Transaction, server: Transaction): List<FieldDiff> = listOfNotNull(
+    fieldDiff("Description", local.description, server.description),
+    fieldDiff("Category", local.category, server.category),
+    fieldDiff("Amount (minor units)", local.amountInCents.toString(), server.amountInCents.toString()),
+)
+
+private fun fieldDiff(field: String, mine: String, theirs: String): FieldDiff? =
     (mergeField(mine, theirs) as? FieldMerge.Conflict)?.let { FieldDiff(field, it.left, it.right) }
-}
 
 /** Builds the merged record from per-field choices; `true` keeps this device's value. */
 fun resolveConflict(local: Transaction, server: Transaction, keepMine: Map<String, Boolean>): Transaction = server.copy(

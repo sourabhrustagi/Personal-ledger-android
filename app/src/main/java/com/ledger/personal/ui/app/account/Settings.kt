@@ -71,7 +71,7 @@ fun SettingsScreen(prefs: AppPrefs, onBack: () -> Unit, onTheme: (ThemeMode) -> 
                         selected = prefs.theme == mode,
                         onClick = { onTheme(mode) },
                         shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
-                    ) { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                    ) { Text(mode.label) }
                 }
             }
         }

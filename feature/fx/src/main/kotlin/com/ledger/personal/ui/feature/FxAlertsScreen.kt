@@ -129,9 +129,9 @@ private fun FxAlertsPreview() {
 @Composable
 private fun FxAlertsDeniedPreview() {
     val vm = remember {
-        FxAlertsViewModel().also {
-            it.onPermission(false)
-            it.check(8_200L)
+        FxAlertsViewModel().apply {
+            onPermission(false)
+            check(8_200L)
         }
     }
     PersonalLedgerTheme { FxAlertsScreen(onBack = {}, viewModel = vm) }
@@ -141,9 +141,9 @@ private fun FxAlertsDeniedPreview() {
 @Composable
 private fun FxAlertsTriggeredPreview() {
     val vm = remember {
-        FxAlertsViewModel().also {
-            it.setThreshold(8_000L)
-            it.check(8_400L)
+        FxAlertsViewModel().apply {
+            setThreshold(8_000L)
+            check(8_400L)
         }
     }
     PersonalLedgerTheme { FxAlertsScreen(onBack = {}, viewModel = vm) }

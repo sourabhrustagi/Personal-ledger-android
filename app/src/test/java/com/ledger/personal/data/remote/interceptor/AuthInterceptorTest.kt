@@ -59,6 +59,6 @@ class AuthInterceptorTest {
             }
             .build()
         client.newCall(original).execute().close()
-        return captured!!
+        return requireNotNull(captured)
     }
 }

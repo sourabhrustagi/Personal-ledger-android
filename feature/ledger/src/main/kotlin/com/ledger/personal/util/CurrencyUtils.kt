@@ -47,9 +47,9 @@ fun String.toMinorUnits(): Long? {
                 val fraction = parts[1]
                 when {
                     fraction.isEmpty() -> 0L
-                    fraction.length == 1 -> (fraction + "0").toLong()
-                    fraction.length == 2 -> fraction.toLong()
-                    else -> fraction.substring(0, 2).toLong()
+                    fraction.length == 1 -> (fraction + "0").toLongOrNull() ?: return null
+                    fraction.length == 2 -> fraction.toLongOrNull() ?: return null
+                    else -> fraction.substring(0, 2).toLongOrNull() ?: return null
                 }
             }
             else -> return null

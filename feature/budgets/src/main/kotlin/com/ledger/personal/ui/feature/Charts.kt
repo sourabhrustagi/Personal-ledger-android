@@ -1,7 +1,10 @@
 package com.ledger.personal.ui.feature
 
 /** Allowed values of chart tab. */
-enum class ChartTab { MONTH, CATEGORY }
+enum class ChartTab(val label: String, val section: String) {
+    MONTH("By month", "Months"),
+    CATEGORY("By category", "Categories"),
+}
 
 /** Slice. */
 data class Slice(val label: String, val amountMinor: Long, val count: Int = 0)

@@ -29,7 +29,6 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.ui.tooling.preview)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -43,5 +42,4 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)
     implementation(project(":core:mock"))
-    debugImplementation(libs.androidx.ui.tooling)
 }

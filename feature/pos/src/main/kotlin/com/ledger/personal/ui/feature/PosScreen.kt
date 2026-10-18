@@ -106,8 +106,9 @@ private fun BillList(state: PosUiState, onBack: () -> Unit, onPay: (SeedBiller) 
         state.errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
         state.bill?.let { bill ->
             val biller = state.billers.firstOrNull { it.id == bill.substringBefore(':') }
+            val paidMinor = bill.substringAfter(':').toLongOrNull() ?: return@let
             StatusBanner(
-                "Paid ${formatMoney(bill.substringAfter(':').toLong())} to ${biller?.name ?: "biller"}.",
+                "Paid ${formatMoney(paidMinor)} to ${biller?.name ?: "biller"}.",
                 BannerTone.SUCCESS,
             )
         }

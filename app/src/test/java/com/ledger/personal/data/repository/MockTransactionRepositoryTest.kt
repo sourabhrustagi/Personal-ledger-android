@@ -135,13 +135,13 @@ class MockTransactionRepositoryTest {
             repository.getTransactions(page = 0, pageSize = 10)
             throw AssertionError("expected require failure")
         } catch (error: IllegalArgumentException) {
-            assertTrue(error.message!!.contains("Page number"))
+            assertTrue(error.message.orEmpty().contains("Page number"))
         }
         try {
             repository.getTransactions(page = 1, pageSize = 0)
             throw AssertionError("expected require failure")
         } catch (error: IllegalArgumentException) {
-            assertTrue(error.message!!.contains("Page size"))
+            assertTrue(error.message.orEmpty().contains("Page size"))
         }
     }
 

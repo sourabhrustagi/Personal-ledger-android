@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Reads and writes offline transaction. */
 @Singleton
@@ -144,7 +145,7 @@ class OfflineTransactionRepository @Inject constructor(
     suspend fun sync(): Result<Unit> = runCatching {
         pushPending()
         pullRemote()
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 
     /** Push pending. */
     private suspend fun pushPending() {

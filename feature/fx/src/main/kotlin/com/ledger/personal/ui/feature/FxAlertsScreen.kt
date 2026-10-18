@@ -118,6 +118,7 @@ private fun notificationsAllowed(context: Context): Boolean {
     return runtime && NotificationManagerCompat.from(context).areNotificationsEnabled()
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun FxAlertsPreview() {

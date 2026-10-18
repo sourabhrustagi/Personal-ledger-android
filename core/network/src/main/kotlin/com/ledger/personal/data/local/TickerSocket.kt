@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /** Contract for ticker socket. */
-interface TickerSocket {
+fun interface TickerSocket {
     /** Prices. */
     fun prices(): Flow<Long>
 }

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Hub flags. */
 data class HubFlags(val offline: Boolean, val empty: Boolean, val reveal: Boolean, val onToggleReveal: () -> Unit)
@@ -191,7 +192,9 @@ class AppViewModel @Inject constructor(
     /** Binds this phone: Keystore key, biometric-unlocked signature over a server challenge, then registration. */
     fun bindDevice(context: Context, onDone: (Result<String>) -> Unit) {
         viewModelScope.launch {
-            val challenge = runCatching { server.challenge() }.getOrElse { return@launch onDone(Result.failure(it)) }
+            val challenge = runCatching { server.challenge() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrElse { return@launch onDone(Result.failure(it)) }
             val publicKey = runCatching { keys.createKey() }.getOrElse { return@launch onDone(Result.failure(it)) }
             val unsigned = runCatching { keys.signer() }.getOrElse { return@launch onDone(Result.failure(it)) }
             promptWithCrypto(context, "Bind this phone", unsigned) { signer ->

@@ -22,7 +22,7 @@ object MockSwitches {
     /** Next rolls for [transaction] and [payment], 0–99. Tests drain this; the app uses [Random]. */
     val nextRolls = ArrayDeque<Int>()
 
-    suspend fun <T> gate(block: () -> Result<T>): Result<T> {
+    suspend inline fun <T> gate(block: () -> Result<T>): Result<T> {
         if (slow.value) delay(SLOW_MS)
         return when {
             offline.value -> Result.failure(IOException("No connection"))

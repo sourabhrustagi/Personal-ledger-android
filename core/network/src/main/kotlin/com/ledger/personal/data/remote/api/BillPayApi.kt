@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
 data class PayKeyDto(val publicKey: String = "")
@@ -45,7 +46,7 @@ class InterceptorBillPay @Inject constructor(
         runCatching {
             val posted = client.post("bills/lookup") { setBody(sealed.toDto()) }.body<FetchedBillDto>()
             FetchedBill(posted.billNumber, posted.amountMinor, posted.holder)
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     override suspend fun submit(sealed: SealedPay): Result<Unit> = if (config.localSession) {
@@ -54,7 +55,7 @@ class InterceptorBillPay @Inject constructor(
         runCatching {
             client.post("bills/pay") { setBody(sealed.toDto()) }
             Unit
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 }
 

@@ -12,7 +12,7 @@ class TransactionTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             transaction(amountInCents = 0L)
         }
-        assertTrue(exception.message!!.contains("Amount must be strictly positive"))
+        assertTrue(exception.message.orEmpty().contains("Amount must be strictly positive"))
     }
 
     @Test
@@ -20,7 +20,7 @@ class TransactionTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             transaction(amountInCents = -500L)
         }
-        assertTrue(exception.message!!.contains("Amount must be strictly positive"))
+        assertTrue(exception.message.orEmpty().contains("Amount must be strictly positive"))
     }
 
     @Test
@@ -28,7 +28,7 @@ class TransactionTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             transaction(id = "  ")
         }
-        assertTrue(exception.message!!.contains("Transaction ID must not be blank"))
+        assertTrue(exception.message.orEmpty().contains("Transaction ID must not be blank"))
     }
 
     @Test
@@ -36,7 +36,7 @@ class TransactionTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             transaction(currency = "")
         }
-        assertTrue(exception.message!!.contains("Currency code must not be blank"))
+        assertTrue(exception.message.orEmpty().contains("Currency code must not be blank"))
     }
 
     @Test
@@ -44,7 +44,7 @@ class TransactionTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             transaction(category = "   ")
         }
-        assertTrue(exception.message!!.contains("Category must not be blank"))
+        assertTrue(exception.message.orEmpty().contains("Category must not be blank"))
     }
 
     @Test

@@ -1,7 +1,11 @@
 package com.ledger.personal.ui.feature
 
 /** Allowed values of transfer step. */
-enum class TransferStep { FORM, REVIEW, RECEIPT }
+enum class TransferStep(val title: String) {
+    FORM("Send money"),
+    REVIEW("Review transfer"),
+    RECEIPT("Transfer receipt"),
+}
 
 /** Allowed values of transfer status. */
 enum class TransferStatus { IDLE, INSUFFICIENT, STEP_UP, PENDING, FAILED, DONE }

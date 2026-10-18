@@ -6,20 +6,19 @@ import com.ledger.personal.data.local.MockTickerSocket
 import com.ledger.personal.data.local.TickerSocket
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /** State and actions for the ticker screen. */
 @OptIn(FlowPreview::class)
@@ -31,21 +30,21 @@ class TickerViewModel @Inject constructor(socket: TickerSocket) : ViewModel() {
     val polling: StateFlow<Boolean> = usingPoll.asStateFlow()
 
     val ticks: StateFlow<Long> = socket.prices()
-        .catch {
+        .catch { error ->
+            if (error is CancellationException) throw error
             usingPoll.value = true
             emitAll(poll())
         }
         .sample(200)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
 
-    /** Poll. */
-    private fun poll(): Flow<Long> = callbackFlow {
+    /** Poll. `delay` is the cancellation check; a cancelled collector stops the loop. */
+    private fun poll(): Flow<Long> = flow {
         var price = 8_300L
-        while (isActive) {
-            trySend(price)
+        while (true) {
+            emit(price)
             price += 1L
             delay(1_000)
         }
-        awaitClose { }
     }
 }

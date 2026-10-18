@@ -141,6 +141,6 @@ class PosViewModel @Inject constructor(private val rail: BillPay) : ViewModel() 
         val mine = PayBox.keyPair()
         val secret = PayBox.agree(mine.private, rail.serverPublic())
         val packed = PayBox.seal(secret, plain)
-        return SealedPay(mine.public.encoded, packed.first, packed.second)
+        return SealedPay(mine.public.encoded, packed.iv, packed.body)
     }
 }

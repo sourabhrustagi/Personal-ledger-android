@@ -91,7 +91,7 @@ class ToolsTest {
     @Test
     fun splitGivesExactSharesWithYouFirst() {
         val shares = splitShares(100_00L, listOf("You", "asha@okaxis", "rahul@oksbi"))
-        assertEquals(listOf(33_34L, 33_33L, 33_33L), shares.map { it.second })
-        assertEquals("You", shares.first().first)
+        assertEquals(listOf(33_34L, 33_33L, 33_33L), shares.map { it.amountMinor })
+        assertEquals("You", shares.first().name)
     }
 }

@@ -185,6 +185,6 @@ private fun BankingLockPreview() {
 @PreviewLightDark
 @Composable
 private fun BankingPreview() {
-    val signedIn = remember { BankingViewModel().also { it.signIn("1234") } }
+    val signedIn = remember { BankingViewModel().apply { signIn("1234") } }
     PersonalLedgerTheme { BankingScreen(onBack = {}, onPayBills = {}, viewModel = signedIn) }
 }

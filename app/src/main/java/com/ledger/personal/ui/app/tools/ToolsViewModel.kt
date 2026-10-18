@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.coroutines.cancellation.CancellationException
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,6 +67,7 @@ class ToolsViewModel @Inject constructor(
     fun shareStatement(context: Context, summary: StatementSummary, onError: (String) -> Unit) {
         viewModelScope.launch {
             val file = runCatching { withContext(Dispatchers.IO) { writeStatementPdf(context, summary) } }
+                .onFailure { if (it is CancellationException) throw it }
                 .getOrElse { return@launch onError(it.message ?: "Couldn't create the statement") }
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val send = Intent(Intent.ACTION_SEND)

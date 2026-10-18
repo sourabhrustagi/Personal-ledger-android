@@ -1,7 +1,6 @@
 package com.ledger.personal.domain.fx
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RateQuarantineTest {
@@ -13,7 +12,7 @@ class RateQuarantineTest {
 
         val disposition = disposeQuote(history, jump)
 
-        assertTrue(disposition is RateDisposition.Quarantined)
-        assertEquals(jump, (disposition as RateDisposition.Quarantined).quote)
+        val quarantined = disposition as? RateDisposition.Quarantined
+        assertEquals(jump, quarantined?.quote)
     }
 }

@@ -15,8 +15,8 @@ class CaseTransitionTest {
             open.transitionTo(CaseStatus.APPROVED)
         }
 
-        assertTrue(exception.message!!.contains("NEW"))
-        assertTrue(exception.message!!.contains("APPROVED"))
+        assertTrue(exception.message.orEmpty().contains("NEW"))
+        assertTrue(exception.message.orEmpty().contains("APPROVED"))
         assertEquals(CaseStatus.NEW, open.status)
     }
 }

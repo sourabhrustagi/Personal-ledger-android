@@ -68,7 +68,7 @@ fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
 
 /** Shows skeleton rows. */
 @Composable
-fun SkeletonRows(count: Int = 5, modifier: Modifier = Modifier) {
+fun SkeletonRows(modifier: Modifier = Modifier, count: Int = 5) {
     Column(modifier.semantics { contentDescription = "Loading" }, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         repeat(count) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

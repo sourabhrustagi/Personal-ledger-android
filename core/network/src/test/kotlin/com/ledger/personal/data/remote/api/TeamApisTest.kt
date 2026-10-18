@@ -38,12 +38,12 @@ class TeamApisTest {
         assertNull(SectionDto(kind = "note", title = "Empty").toSection())
         assertNull(SectionDto(kind = "shortcuts", items = listOf(TileDto("", "Send"))).toSection())
         assertTrue(SectionDto(kind = "balance").toSection() is HomeSection.Balance)
-        val note = SectionDto(kind = "note", title = "UPI cashback", body = "5% back").toSection()
-        assertEquals("5% back", (note as HomeSection.Note).body)
+        val note = SectionDto(kind = "note", title = "UPI cashback", body = "5% back").toSection() as? HomeSection.Note
+        assertEquals("5% back", note?.body)
         val shortcuts = SectionDto(
             kind = "shortcuts",
             items = listOf(TileDto("", "Nope"), TileDto("send", "Send")),
-        ).toSection() as HomeSection.Shortcuts
-        assertEquals(listOf("send"), shortcuts.tiles.map { it.id })
+        ).toSection() as? HomeSection.Shortcuts
+        assertEquals(listOf("send"), shortcuts?.tiles?.map { it.id })
     }
 }

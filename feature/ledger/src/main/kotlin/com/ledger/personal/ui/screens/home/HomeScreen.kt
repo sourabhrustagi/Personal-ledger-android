@@ -370,6 +370,7 @@ private fun SyncPhase.toUi(offline: Boolean): SyncState = when {
     else -> SyncState.SYNCED
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun HomePreview() {
@@ -390,6 +391,7 @@ private fun HomePreview() {
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun HomeOfflinePreview() {

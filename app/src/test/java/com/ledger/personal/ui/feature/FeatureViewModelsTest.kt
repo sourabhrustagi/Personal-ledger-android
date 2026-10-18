@@ -5,7 +5,6 @@ import com.ledger.personal.data.local.MemoryAssistantHistory
 import com.ledger.personal.data.local.MemoryKycDraftStore
 import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.mock.MockCatalog
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +52,7 @@ class FeatureViewModelsTest {
         viewModel.retry()
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(TransferStep.RECEIPT, viewModel.uiState.value.step)
-        assertEquals(1, viewModel.postedCount())
+        assertEquals(1, viewModel.postedCount)
     }
 
     @Test
@@ -75,7 +74,7 @@ class FeatureViewModelsTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(TransferStatus.DONE, viewModel.uiState.value.status)
         assertEquals(2, calls)
-        assertEquals(1, viewModel.postedCount())
+        assertEquals(1, viewModel.postedCount)
         assertEquals(opening - 100L, viewModel.uiState.value.balanceMinor)
     }
 
@@ -95,8 +94,8 @@ class FeatureViewModelsTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(TransferStatus.FAILED, viewModel.uiState.value.status)
         assertEquals(1, calls)
-        assertEquals(0, viewModel.postedCount())
-        assertTrue(viewModel.uiState.value.errorMessage!!.contains("Nothing was changed on the server"))
+        assertEquals(0, viewModel.postedCount)
+        assertTrue(viewModel.uiState.value.errorMessage.orEmpty().contains("Nothing was changed on the server"))
     }
 
     @Test
@@ -125,7 +124,7 @@ class FeatureViewModelsTest {
         viewModel.capture()
         viewModel.incomingEdit("Other")
         assertTrue(viewModel.uiState.value.humanReview)
-        assertTrue(viewModel.uiState.value.captureUri!!.startsWith("content://"))
+        assertTrue(viewModel.uiState.value.captureUri.orEmpty().startsWith("content://"))
         assertEquals("Sync conflict on name", viewModel.uiState.value.conflict)
         assertEquals("Asha", viewModel.uiState.value.name)
     }
@@ -139,7 +138,7 @@ class FeatureViewModelsTest {
         viewModel.onBillNumber("104829")
         viewModel.fetchBill()
         dispatcher.scheduler.advanceUntilIdle()
-        assertEquals(50_000L, viewModel.uiState.value.fetched!!.amountMinor)
+        assertEquals(50_000L, requireNotNull(viewModel.uiState.value.fetched).amountMinor)
         viewModel.continueToPay()
         viewModel.selectCard(card)
         viewModel.confirmPin("1234")
@@ -168,7 +167,7 @@ class FeatureViewModelsTest {
         assertTrue(viewModel.uiState.value.fetchFailed)
         assertNull(viewModel.uiState.value.fetched)
         assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
-        assertTrue(viewModel.uiState.value.errorMessage!!.contains("did not return a bill"))
+        assertTrue(viewModel.uiState.value.errorMessage.orEmpty().contains("did not return a bill"))
     }
 
     @Test
@@ -182,7 +181,7 @@ class FeatureViewModelsTest {
         assertFalse(viewModel.uiState.value.fetchFailed)
         assertNull(viewModel.uiState.value.fetched)
         assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
-        assertTrue(viewModel.uiState.value.errorMessage!!.contains("Enter the bill number"))
+        assertTrue(viewModel.uiState.value.errorMessage.orEmpty().contains("Enter the bill number"))
         viewModel.continueToPay()
         assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
     }
@@ -214,7 +213,7 @@ class FeatureViewModelsTest {
         viewModel.continueToPay()
         viewModel.back()
         assertEquals(PosStep.ACCOUNT, viewModel.uiState.value.step)
-        assertEquals("220184", viewModel.uiState.value.fetched!!.billNumber)
+        assertEquals("220184", requireNotNull(viewModel.uiState.value.fetched).billNumber)
         viewModel.back()
         assertEquals(PosStep.BILLS, viewModel.uiState.value.step)
         assertNull(viewModel.uiState.value.fetched)
@@ -281,9 +280,7 @@ class FeatureViewModelsTest {
 
     @Test
     fun tickerPollsAfterTheSocketDrops() = runTest {
-        val viewModel = TickerViewModel(object : TickerSocket {
-            override fun prices(): Flow<Long> = flow { error("socket down") }
-        })
+        val viewModel = TickerViewModel(TickerSocket { flow { error("socket down") } })
         backgroundScope.launch { viewModel.ticks.collect { } }
         advanceTimeBy(1_500)
         assertTrue(viewModel.polling.value)

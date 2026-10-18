@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /** State and actions for the transaction detail screen. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -88,6 +89,7 @@ class TransactionDetailViewModel @Inject constructor(
             repository.observeTransaction(id)
                 .map { tx -> TransactionDetailUiState(isLoading = false, transaction = tx) }
                 .catch { error ->
+                    if (error is CancellationException) throw error
                     emit(
                         TransactionDetailUiState(
                             isLoading = false,

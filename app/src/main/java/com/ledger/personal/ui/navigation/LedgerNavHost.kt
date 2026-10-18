@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -132,11 +133,11 @@ fun LedgerNavHost(
     val bar = homeState.tabs.mapNotNull { tab ->
         val route = routeFor(tab.id) ?: return@mapNotNull null
         val icon = iconFor(tab.id) ?: return@mapNotNull null
-        Triple(tab.title, route, icon)
+        BarItem(tab.title, route, icon)
     }
     val activity = LocalActivity.current as? ComponentActivity
     if (activity != null) DisposableEffect(activity, navController) {
-        val listener = Consumer<Intent> { incoming -> navController.handleDeepLink(incoming) }
+        val listener = Consumer<Intent> { navController.handleDeepLink(it) }
         activity.addOnNewIntentListener(listener)
         onDispose { activity.removeOnNewIntentListener(listener) }
     }
@@ -146,14 +147,14 @@ fun LedgerNavHost(
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            if (bar.any { (_, route, _) -> destination?.hasRoute(route::class) == true }) {
+            if (bar.any { destination?.hasRoute(it.route::class) == true }) {
                 NavigationBar {
-                    bar.forEach { (label, route, icon) ->
+                    bar.forEach { item ->
                         NavigationBarItem(
-                            selected = destination?.hierarchy?.any { it.hasRoute(route::class) } == true,
-                            onClick = { navController.navigateTab(route) },
-                            icon = { Icon(icon, contentDescription = null) },
-                            label = { Text(label) },
+                            selected = destination?.hierarchy?.any { it.hasRoute(item.route::class) } == true,
+                            onClick = { navController.navigateTab(item.route) },
+                            icon = { Icon(item.icon, contentDescription = null) },
+                            label = { Text(item.title) },
                         )
                     }
                 }
@@ -387,6 +388,8 @@ private fun NavGraphBuilder.toolRoutes(
         SplitBillScreen(onBack = back, initialMinor = route.amountMinor, note = route.note)
     }
 }
+
+private data class BarItem(val title: String, val route: Screen, val icon: ImageVector)
 
 /** Shows detail actions. */
 @Composable

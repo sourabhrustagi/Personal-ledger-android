@@ -8,7 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class ServerBusy(message: String = "The bank's server is busy") : IOException(message)
 
 /** The server answered and refused. Sending again gets the same answer, so it is never retried. */
-class TransactionRejected(message: String) : Exception(message)
+class TransactionRejected(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 const val TRANSACTION_ATTEMPTS = 3
 
@@ -17,7 +17,7 @@ const val TRANSACTION_ATTEMPTS = 3
  * waiting [firstDelayMs] and then doubling. Any other failure returns at once.
  * [block] must be idempotent: it is called again after a response may have been lost.
  */
-suspend fun <T> withRetry(
+suspend inline fun <T> withRetry(
     attempts: Int = TRANSACTION_ATTEMPTS,
     firstDelayMs: Long = 1_000,
     onAttempt: (Int) -> Unit = {},

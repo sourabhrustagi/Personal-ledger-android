@@ -33,21 +33,21 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     init {
         // Seed some initial data for interactive testing
         val seeds = listOf(
-            Triple("Groceries", "BigBasket", 1_842_50L), Triple("Dining", "Swiggy", 450_00L),
-            Triple("Transport", "Uber", 312_00L), Triple("Utilities", "Electricity bill", 1_290_00L),
-            Triple("Entertainment", "BookMyShow", 760_00L), Triple("Groceries", "DMart", 2_315_75L),
-            Triple("Dining", "Starbucks", 385_00L), Triple("Transport", "Metro card", 500_00L),
+            Seed("Groceries", "BigBasket", 1_842_50L), Seed("Dining", "Swiggy", 450_00L),
+            Seed("Transport", "Uber", 312_00L), Seed("Utilities", "Electricity bill", 1_290_00L),
+            Seed("Entertainment", "BookMyShow", 760_00L), Seed("Groceries", "DMart", 2_315_75L),
+            Seed("Dining", "Starbucks", 385_00L), Seed("Transport", "Metro card", 500_00L),
         )
         val now = System.currentTimeMillis()
         for (i in 1..25) {
             val id = "tx-seed-$i"
-            val (category, merchant, amount) = if (i == 12) Triple("Salary", "Salary · Acme Corp", 85_000_00L) else seeds[i % seeds.size]
+            val seed = if (i == 12) Seed("Salary", "Salary · Acme Corp", 85_000_00L) else seeds[i % seeds.size]
             storage[id] = Transaction(
                 id = id,
-                amountInCents = amount,
+                amountInCents = seed.amount,
                 currency = if (i % 9 == 0) "USD" else "INR",
-                category = category,
-                description = merchant,
+                category = seed.category,
+                description = seed.merchant,
                 timestampEpochMs = now - (i * 9 * 3600000L)
             )
         }
@@ -66,7 +66,7 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     }
 
     /** Streams transactions. */
-    override fun observeTransactions(): Flow<List<Transaction>> = revisions.map { sortedSnapshot() }
+    override fun observeTransactions(): Flow<List<Transaction>> = revisions.map { _ -> sortedSnapshot() }
 
     /** Pages. */
     override fun pages(): Flow<PagingData<Transaction>> = Pager(
@@ -93,7 +93,7 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     }
 
     /** Streams transaction. */
-    override fun observeTransaction(id: String): Flow<Transaction?> = revisions.map { storage[id] }
+    override fun observeTransaction(id: String): Flow<Transaction?> = revisions.map { _ -> storage[id] }
 
     /** Sorted snapshot. */
     private fun sortedSnapshot(): List<Transaction> = storage.values.sortedWith(
@@ -199,3 +199,5 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
         }
     }
 }
+
+private data class Seed(val category: String, val merchant: String, val amount: Long)

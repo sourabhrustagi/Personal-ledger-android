@@ -51,6 +51,7 @@ fun LedgerHistoryScreen(onBack: () -> Unit, viewModel: LedgerHistoryViewModel = 
     }
 }
 
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun LedgerHistoryPreview() {

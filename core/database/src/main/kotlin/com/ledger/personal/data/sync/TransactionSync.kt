@@ -12,13 +12,13 @@ object TransactionSync {
     const val WORK_NAME = "ledger-transaction-sync"
 
     /** Any connection is enough. A low battery must not hold a write that is already queued. */
-    fun constraints(): Constraints = Constraints.Builder()
+    val constraints: Constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()
 
     /** Request. */
     fun request(): OneTimeWorkRequest = OneTimeWorkRequestBuilder<TransactionSyncWorker>()
-        .setConstraints(constraints())
+        .setConstraints(constraints)
         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
         .build()
 }

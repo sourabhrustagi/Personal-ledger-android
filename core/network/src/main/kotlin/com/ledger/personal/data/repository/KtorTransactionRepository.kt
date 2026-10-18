@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Reads and writes transactions through Ktor. */
 @Singleton
@@ -30,7 +31,7 @@ class KtorTransactionRepository @Inject constructor(
             runCatching {
                 val response = apiService.getTransactions(page = page, pageSize = pageSize)
                 response.items.map { it.toDomain() }
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /** Returns transaction by id. */
@@ -39,7 +40,7 @@ class KtorTransactionRepository @Inject constructor(
             runCatching {
                 val dto = apiService.getTransactionById(id = id)
                 dto.toDomain()
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /** Creates transaction. */
@@ -57,7 +58,7 @@ class KtorTransactionRepository @Inject constructor(
                 description = description
             )
             call { apiService.createTransaction(request) }
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     /** Patch transaction. */
@@ -74,7 +75,7 @@ class KtorTransactionRepository @Inject constructor(
                 amountInCents = amountInCents
             )
             call { apiService.patchTransaction(id = id, request = request) }
-        }
+        }.onFailure { if (it is CancellationException) throw it }
     }
 
     /** Deletes transaction. */
@@ -82,7 +83,7 @@ class KtorTransactionRepository @Inject constructor(
         withContext(ioDispatcher) {
             runCatching {
                 apiService.deleteTransaction(id = id)
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /** Call. */

@@ -10,6 +10,7 @@ import io.ktor.client.request.post
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
 data class SessionDto(val token: String = "")
@@ -29,5 +30,5 @@ class InterceptorSession @Inject constructor(
         val token = if (config.localSession) MOCK_SESSION_TOKEN else client.post("session").body<SessionDto>().token
         require(token.isNotBlank()) { "Empty session" }
         auth.updateToken(token)
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }

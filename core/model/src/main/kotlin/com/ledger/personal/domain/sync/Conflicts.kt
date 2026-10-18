@@ -10,7 +10,8 @@ import java.net.URLEncoder
 import java.util.Base64
 
 /** The server rejected a push because it already has a different copy. */
-class VersionConflict(val server: Transaction) : Exception("Server has a newer copy of ${server.id}")
+class VersionConflict(val server: Transaction, cause: Throwable? = null) :
+    Exception("Server has a newer copy of ${server.id}", cause)
 
 /** Sync conflict. */
 data class SyncConflict(val local: Transaction, val server: Transaction)
@@ -64,5 +65,12 @@ private fun Transaction.pack(): String =
 /** Converts this value to transaction. */
 private fun String.toTransaction(): Transaction {
     val parts = split("\u001F").map { URLDecoder.decode(it, "UTF-8") }
-    return Transaction(parts[0], parts[1].toLong(), parts[2], parts[3], parts[4], parts[5].toLong())
+    return Transaction(
+        requireNotNull(parts.getOrNull(0)) { "missing id" },
+        requireNotNull(parts.getOrNull(1)?.toLongOrNull()) { "amount is not a number" },
+        requireNotNull(parts.getOrNull(2)) { "missing currency" },
+        requireNotNull(parts.getOrNull(3)) { "missing category" },
+        requireNotNull(parts.getOrNull(4)) { "missing description" },
+        requireNotNull(parts.getOrNull(5)?.toLongOrNull()) { "timestamp is not a number" },
+    )
 }

@@ -30,11 +30,14 @@ fun legacyPinHash(pin: String, salt: String): String =
 fun legacyMatches(pin: String, salt: String, hash: String): Boolean =
     MessageDigest.isEqual(legacyPinHash(pin, salt).toByteArray(), hash.toByteArray())
 
+/** Salt hex plus a Keystore-sealed verifier. */
+data class SealedPin(val saltHex: String, val verifier: String)
+
 /** Fresh salt plus a Keystore-sealed verifier. The DataStore file alone cannot be checked offline. */
-fun sealPin(pin: String): Pair<String, String> {
+fun sealPin(pin: String): SealedPin {
     val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
     val hex = salt.joinToString("") { "%02x".format(it) }
-    return hex to (PIN_V2 + PinSealer.seal(derivePin(pin, salt)))
+    return SealedPin(hex, PIN_V2 + PinSealer.seal(derivePin(pin, salt)))
 }
 
 /** Pin matches. */
@@ -72,16 +75,16 @@ object PinSealer {
     /** Key. */
     private fun key(): SecretKey {
         val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        (store.getKey(ALIAS, null) as? SecretKey)?.let { return it }
-        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
-        generator.init(
-            KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setKeySize(256)
-                .build(),
-        )
-        return generator.generateKey()
+        return (store.getKey(ALIAS, null) as? SecretKey)
+            ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply {
+                init(
+                    KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .setKeySize(256)
+                        .build(),
+                )
+            }.generateKey()
     }
 
     private const val KEYSTORE = "AndroidKeyStore"

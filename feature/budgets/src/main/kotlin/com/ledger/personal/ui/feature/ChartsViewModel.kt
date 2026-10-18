@@ -54,8 +54,8 @@ class ChartsViewModel : ViewModel() {
             it.copy(
                 isLoading = false,
                 slices = slices,
-                categories = spending.map { row -> row.category }.distinct().sorted(),
-                incomeMinor = inCurrency.filter { row -> row.category == INCOME }.sumOf { row -> row.amountMinor },
+                categories = spending.map { it.category }.distinct().sorted(),
+                incomeMinor = inCurrency.filter { it.category == INCOME }.sumOf { it.amountMinor },
                 errorMessage = null,
             )
         }

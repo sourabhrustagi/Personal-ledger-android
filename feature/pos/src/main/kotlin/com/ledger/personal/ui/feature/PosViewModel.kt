@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /** State and actions for bill payment. */
 @HiltViewModel
@@ -59,7 +60,7 @@ class PosViewModel @Inject constructor(private val rail: BillPay) : ViewModel() 
             state.update { it.copy(fetching = true, fetchFailed = false, errorMessage = null) }
             val result = runCatching {
                 rail.fetch(seal(PayBox.packLookup(biller.id, number))).getOrThrow()
-            }
+            }.onFailure { if (it is CancellationException) throw it }
             state.update { current ->
                 result.fold(
                     onSuccess = { bill -> current.copy(fetching = false, fetched = bill, fetchFailed = false) },
@@ -117,7 +118,7 @@ class PosViewModel @Inject constructor(private val rail: BillPay) : ViewModel() 
             state.update { it.copy(paying = true, errorMessage = null) }
             val result = runCatching {
                 rail.submit(seal(PayBox.pack(card.id, biller.id, amount, pin, billNumber))).getOrThrow()
-            }
+            }.onFailure { if (it is CancellationException) throw it }
             state.update {
                 if (result.isSuccess) {
                     it.copy(

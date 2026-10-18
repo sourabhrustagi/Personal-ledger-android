@@ -33,25 +33,25 @@ class OfflineTransactionRepository @Inject constructor(
 
     /** Streams transactions. */
     override fun observeTransactions(): Flow<List<Transaction>> =
-        dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+        dao.observeAll().map { it.map(TransactionEntity::toDomain) }
 
     /** Streams transaction. */
     override fun observeTransaction(id: String): Flow<Transaction?> =
-        dao.observeById(id).map { row -> row?.toDomain() }
+        dao.observeById(id).map { it?.toDomain() }
 
     /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> = runCatching {
         require(page >= 1) { "Page number must be >= 1" }
         require(pageSize >= 1) { "Page size must be >= 1" }
         val from = (page - 1) * pageSize
-        dao.page(pageSize, from).map { it.toDomain() }
+        dao.page(pageSize, from).map(TransactionEntity::toDomain)
     }
 
     /** Pages. */
     override fun pages(): Flow<PagingData<Transaction>> =
         Pager(PagingConfig(pageSize = 20)) { dao.pagingSource() }
             .flow
-            .map { page -> page.map { entity -> entity.toDomain() } }
+            .map { it.map(TransactionEntity::toDomain) }
 
     /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> {
@@ -184,24 +184,21 @@ class OfflineTransactionRepository @Inject constructor(
     }
 
     /** Pull remote. */
-    private suspend fun pullRemote() {
-        var page = 1
-        while (true) {
-            val batch = remote.getTransactions(page, PAGE_SIZE).getOrThrow()
-            if (batch.isEmpty()) return
-            batch.forEach { incoming ->
-                val local = dao.find(incoming.id)
-                if (local != null && local.syncState != SyncState.SYNCED) return@forEach
-                dao.upsert(
-                    incoming.toEntity(
-                        SyncState.SYNCED,
-                        local?.updatedAtEpochMs ?: incoming.timestampEpochMs,
-                    ),
-                )
-            }
-            if (batch.size < PAGE_SIZE) return
-            page++
+    private tailrec suspend fun pullRemote(page: Int = 1) {
+        val batch = remote.getTransactions(page, PAGE_SIZE).getOrThrow()
+        if (batch.isEmpty()) return
+        batch.forEach { incoming ->
+            val local = dao.find(incoming.id)
+            if (local != null && local.syncState != SyncState.SYNCED) return@forEach
+            dao.upsert(
+                incoming.toEntity(
+                    SyncState.SYNCED,
+                    local?.updatedAtEpochMs ?: incoming.timestampEpochMs,
+                ),
+            )
         }
+        if (batch.size < PAGE_SIZE) return
+        pullRemote(page + 1)
     }
 
     /** A 409 parks the row in the conflict inbox and leaves it pending. Anything else still throws. */

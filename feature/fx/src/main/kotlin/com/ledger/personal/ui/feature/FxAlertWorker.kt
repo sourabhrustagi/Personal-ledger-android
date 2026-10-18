@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -76,9 +77,13 @@ class FxAlertWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, params) {
     /** Do work. */
     override suspend fun doWork(): Result {
-        val granted = ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED &&
-            NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
+        val runtimeGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val granted = runtimeGranted && NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
         val breached = inputData.getBoolean(KEY_BREACH, false)
         return when (fxNotifyDecision(granted, breached)) {
             FxNotify.SKIP -> Result.success(workDataOf(KEY_PERMISSION to "denied"))
@@ -92,6 +97,12 @@ class FxAlertWorker @AssistedInject constructor(
 
     /** Notify breach. */
     private fun notifyBreach() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val manager = NotificationManagerCompat.from(applicationContext)
         val channel = NotificationChannel(CHANNEL, "FX alerts", NotificationManager.IMPORTANCE_DEFAULT)
         manager.createNotificationChannel(channel)
@@ -110,7 +121,11 @@ class FxAlertWorker @AssistedInject constructor(
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()
-        manager.notify(1, notification)
+        try {
+            manager.notify(1, notification)
+        } catch (_: SecurityException) {
+            return
+        }
     }
 
     companion object {

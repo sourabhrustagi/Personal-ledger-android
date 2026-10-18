@@ -43,7 +43,7 @@ object FxAlertSchedule {
     const val NOW = "ledger-fx-alert-now"
 
     /** Constraints. */
-    private fun constraints() = Constraints.Builder()
+    private val constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .setRequiresBatteryNotLow(true)
         .build()
@@ -51,7 +51,7 @@ object FxAlertSchedule {
     /** Queues periodic. */
     fun enqueuePeriodic(context: Context) {
         val request = PeriodicWorkRequestBuilder<FxAlertWorker>(15, TimeUnit.MINUTES)
-            .setConstraints(constraints())
+            .setConstraints(constraints)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
             .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
@@ -60,7 +60,7 @@ object FxAlertSchedule {
     /** Queues now. */
     fun enqueueNow(context: Context) {
         val request = OneTimeWorkRequestBuilder<FxAlertWorker>()
-            .setConstraints(constraints())
+            .setConstraints(constraints)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
             .setInputData(workDataOf(FxAlertWorker.KEY_BREACH to true))

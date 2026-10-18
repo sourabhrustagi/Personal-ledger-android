@@ -3,25 +3,28 @@ package com.ledger.personal.data.local
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** One saved KYC draft. */
+data class KycDraft(val name: String, val confidence: Double, val captureUri: String?)
+
 /** Contract for kyc draft store. */
 interface KycDraftStore {
     /** Save. */
     suspend fun save(name: String, confidence: Double, captureUri: String?)
     /** Load. */
-    suspend fun load(): Triple<String, Double, String?>?
+    suspend fun load(): KycDraft?
 }
 
 /** Memory kyc draft store. */
 class MemoryKycDraftStore : KycDraftStore {
-    private var saved: Triple<String, Double, String?>? = null
+    private var saved: KycDraft? = null
 
     /** Save. */
     override suspend fun save(name: String, confidence: Double, captureUri: String?) {
-        saved = Triple(name, confidence, captureUri)
+        saved = KycDraft(name, confidence, captureUri)
     }
 
     /** Load. */
-    override suspend fun load(): Triple<String, Double, String?>? = saved
+    override suspend fun load(): KycDraft? = saved
 }
 
 /** Room kyc draft store. */
@@ -33,6 +36,6 @@ class RoomKycDraftStore @Inject constructor(private val dao: KycDraftDao) : KycD
     }
 
     /** Load. */
-    override suspend fun load(): Triple<String, Double, String?>? =
-        dao.find("draft")?.let { Triple(it.name, it.confidence, it.captureUri) }
+    override suspend fun load(): KycDraft? =
+        dao.find("draft")?.let { KycDraft(it.name, it.confidence, it.captureUri) }
 }

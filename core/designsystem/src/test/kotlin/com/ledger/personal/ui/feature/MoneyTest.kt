@@ -18,9 +18,11 @@ class MoneyTest {
 
     @Test
     fun formatsMinorUnitsInTheAccountCurrency() {
+        assertTrue(formatMoney(10_000L).contains("100.00"))
         assertTrue(formatMoney(1_660_715L).contains("16,607.15"))
         assertEquals("$120.00 USD", formatMoney(12_000L, "USD"))
         assertTrue(formatMoney(12_990_050L).contains("1,29,900.50"))
+        assertTrue(formatMoney(1_00_00_000_00L).contains("1,00,00,000.00"))
     }
 
     @Test

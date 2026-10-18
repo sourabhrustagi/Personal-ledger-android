@@ -11,6 +11,7 @@ import com.ledger.personal.data.security.BindingServer
 import com.ledger.personal.data.security.DeviceKeys
 import com.ledger.personal.data.security.PIN_V2
 import com.ledger.personal.domain.release.AppRelease
+import com.ledger.personal.domain.release.softUpdateDue
 import com.ledger.personal.domain.release.updateRequired
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.ui.app.auth.promptWithCrypto
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -69,6 +71,8 @@ class AppViewModel @Inject constructor(
 
     private val mutableReleaseChecked = MutableStateFlow(false)
     private val mutableUpdateRequired = MutableStateFlow(false)
+    private val mutableSoftUpdate = MutableStateFlow(false)
+    private var offeredVersionCode = 0
     private val mutableSession = MutableStateFlow(SessionState())
     val session: StateFlow<SessionState> = mutableSession.asStateFlow()
 
@@ -78,8 +82,9 @@ class AppViewModel @Inject constructor(
         session,
         mutableReleaseChecked,
         mutableUpdateRequired,
-    ) { prefs, session, ready, blocked ->
-        appStatus(prefs, session, ready, blocked)
+        mutableSoftUpdate,
+    ) { prefs, session, ready, blocked, softUpdate ->
+        appStatus(prefs, session, ready, blocked, softUpdate)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppStatus.Loading)
 
     init {
@@ -88,9 +93,25 @@ class AppViewModel @Inject constructor(
             mutableCategoriesReady.value = true
         }
         viewModelScope.launch {
-            mutableUpdateRequired.value = updateRequired(BuildConfig.VERSION_CODE, release.minimumVersionCode())
+            val notice = release.notice()
+            val ignored = store.prefs.first().ignoredUpdateCode
+            offeredVersionCode = notice.softVersionCode
+            mutableUpdateRequired.value = updateRequired(BuildConfig.VERSION_CODE, notice.minimumVersionCode)
+            mutableSoftUpdate.value = softUpdateDue(notice.softUpdate, notice.softVersionCode, ignored)
             mutableReleaseChecked.value = true
         }
+    }
+
+    /** Hides the soft-update prompt until the next launch. */
+    fun dismissUpdateOffer() {
+        mutableSoftUpdate.value = false
+    }
+
+    /** Remembers the versionCode from GET static/status so that offer stays hidden. */
+    fun ignoreUpdate() {
+        val code = offeredVersionCode
+        mutableSoftUpdate.value = false
+        if (code > 0) viewModelScope.launch { store.ignoreUpdate(code) }
     }
 
     /** Finishes onboarding. */

@@ -3,7 +3,7 @@ package com.ledger.personal.ui.app.update
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,12 +64,31 @@ fun ForceUpdateScreen(versionName: String) {
 /** Play listing id. Debug builds drop the `.debug` suffix so they open the store app. */
 fun storeListingId(packageName: String): String = packageName.removeSuffix(".debug")
 
+/** A newer build the person can install now or keep using this one. */
+@Composable
+fun SoftUpdateDialog(onUpdate: () -> Unit, onLater: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onLater,
+        icon = { Icon(Icons.Outlined.SystemUpdate, contentDescription = null) },
+        title = { Text("Update available") },
+        text = { Text("A newer version of LedgerOne is ready. You can update now, or keep using this one.") },
+        confirmButton = {
+            TextButton(onClick = {
+                openStore(context, storeListingId(context.packageName))
+                onUpdate()
+            }) { Text("Update") }
+        },
+        dismissButton = { TextButton(onClick = onLater) { Text("Not now") } },
+    )
+}
+
 /** Opens the Play listing for this app. */
 private fun openStore(context: Context, id: String) {
     try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$id")))
+        context.startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=$id".toUri()))
     } catch (_: ActivityNotFoundException) {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$id")))
+        context.startActivity(Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$id".toUri()))
     }
 }
 
@@ -74,4 +96,10 @@ private fun openStore(context: Context, id: String) {
 @Composable
 private fun ForceUpdatePreview() {
     PersonalLedgerTheme { ForceUpdateScreen("2.0.0") }
+}
+
+@PreviewLightDark
+@Composable
+private fun SoftUpdatePreview() {
+    PersonalLedgerTheme { SoftUpdateDialog(onUpdate = {}, onLater = {}) }
 }

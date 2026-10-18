@@ -2,6 +2,7 @@ package com.ledger.personal.ui.navigation
 
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -133,8 +134,8 @@ fun LedgerNavHost(
         val icon = iconFor(tab.id) ?: return@mapNotNull null
         Triple(tab.title, route, icon)
     }
-    val activity = LocalContext.current as ComponentActivity
-    DisposableEffect(activity, navController) {
+    val activity = LocalActivity.current as? ComponentActivity
+    if (activity != null) DisposableEffect(activity, navController) {
         val listener = Consumer<Intent> { incoming -> navController.handleDeepLink(incoming) }
         activity.addOnNewIntentListener(listener)
         onDispose { activity.removeOnNewIntentListener(listener) }

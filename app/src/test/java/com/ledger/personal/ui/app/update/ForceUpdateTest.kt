@@ -35,4 +35,13 @@ class ForceUpdateTest {
         assertTrue(appStatus(prefs, SessionState(unlocked = true), releaseChecked = true, updateRequired = false) is AppStatus.Personal)
         assertTrue(appStatus(AppPrefs(), SessionState(), releaseChecked = true, updateRequired = false) is AppStatus.Onboard)
     }
+
+    @Test
+    fun aSoftUpdateStaysOnTheShell() {
+        val prefs = AppPrefs(onboarded = true, name = "Asha")
+        val personal = appStatus(prefs, SessionState(unlocked = true), releaseChecked = true, updateRequired = false, softUpdate = true)
+        assertTrue(personal is AppStatus.Personal && personal.softUpdate)
+        val blocked = appStatus(prefs, SessionState(unlocked = true), releaseChecked = true, updateRequired = true, softUpdate = true)
+        assertEquals(AppStatus.Update, blocked)
+    }
 }

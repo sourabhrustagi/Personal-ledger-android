@@ -22,6 +22,7 @@ import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Dashboard payload. Tabs and sections are drawn in this order. Unknown fields are ignored. */
 @Serializable
@@ -124,7 +125,7 @@ class KtorHomeBoard @Inject constructor(
     /** Returns layout. */
     override suspend fun layout(): Result<HomeLayout> = runCatching {
         client.get("dashboard").body<DashboardDto>().toLayout()
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Reads payees from the payments host. */
@@ -136,7 +137,7 @@ class KtorPaymentsBackend @Inject constructor(
     /** Returns shortcuts. */
     override suspend fun shortcuts(): Result<List<PayShortcut>> = runCatching {
         client.get("${config.paymentsBaseUrl}pay/shortcuts").body<PaymentsDto>().payees.mapNotNull { it.toShortcut() }
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Reads spending lines from the insights host. */
@@ -148,7 +149,7 @@ class KtorInsightsBackend @Inject constructor(
     /** Returns highlights. */
     override suspend fun highlights(): Result<List<SpendHighlight>> = runCatching {
         client.get("${config.insightsBaseUrl}spend/highlights").body<InsightsDto>().highlights.mapNotNull { it.toHighlight() }
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Reads starter prompts from the assistant host. */
@@ -160,7 +161,7 @@ class KtorAssistantBackend @Inject constructor(
     /** Returns prompts. */
     override suspend fun prompts(): Result<List<String>> = runCatching {
         client.get("${config.assistantBaseUrl}chat/starters").body<AssistantDto>().prompts.filter { it.isNotBlank() }
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Reads shelves from the promotions host. */
@@ -172,5 +173,5 @@ class KtorPromotionsBackend @Inject constructor(
     /** Returns tabs. */
     override suspend fun tabs(): Result<List<PromoTab>> = runCatching {
         client.get("${config.promotionsBaseUrl}campaigns/shelves").body<PromotionsDto>().shelves.mapNotNull { it.toTab() }
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }

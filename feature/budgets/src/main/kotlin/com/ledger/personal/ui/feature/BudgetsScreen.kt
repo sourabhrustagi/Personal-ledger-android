@@ -25,6 +25,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -37,8 +39,10 @@ import com.ledger.personal.ui.theme.LedgerTheme
 private const val NEAR_LIMIT = 0.8f
 private val seedFactors = listOf(1.25, 0.9, 1.5, 1.05)
 
+private data class BudgetLook(val color: Color, val icon: ImageVector, val status: String)
+
 /** Month spend by category. */
-fun monthSpendByCategory(): Map<String, Long> = MockCatalog.transactions
+private val monthSpendByCategory: Map<String, Long> = MockCatalog.transactions
     .filter { it.currency == "INR" && it.category != "Salary" && it.dayOffset < 30 }
     .groupBy { it.category }
     .mapValues { (_, rows) -> rows.sumOf { it.amountMinor } }
@@ -52,7 +56,7 @@ private fun seedLimit(spent: Long, index: Int): Long {
 /** Shows the budgets screen. */
 @Composable
 fun BudgetsScreen(onBack: () -> Unit, onInsights: () -> Unit) {
-    val spent = remember { monthSpendByCategory() }
+    val spent = monthSpendByCategory
     val limits = remember {
         mutableStateMapOf<String, Long>().apply {
             spent.entries.sortedByDescending { it.value }.forEachIndexed { i, (cat, value) -> put(cat, seedLimit(value, i)) }
@@ -106,14 +110,14 @@ fun BudgetsScreen(onBack: () -> Unit, onInsights: () -> Unit) {
 @Composable
 private fun BudgetRow(category: String, spentMinor: Long, limitMinor: Long) {
     val ratio = if (limitMinor == 0L) 0f else spentMinor.toFloat() / limitMinor
-    val (color, icon, status) = when {
-        ratio > 1f -> Triple(MaterialTheme.colorScheme.error, Icons.Outlined.ErrorOutline, "Over by ${formatMoney(spentMinor - limitMinor)}")
-        ratio >= NEAR_LIMIT -> Triple(LedgerTheme.colors.warning, Icons.Outlined.WarningAmber, "Near limit · ${formatMoney(limitMinor - spentMinor)} left")
-        else -> Triple(LedgerTheme.colors.success, Icons.Outlined.CheckCircle, "${formatMoney(limitMinor - spentMinor)} left")
+    val look = when {
+        ratio > 1f -> BudgetLook(MaterialTheme.colorScheme.error, Icons.Outlined.ErrorOutline, "Over by ${formatMoney(spentMinor - limitMinor)}")
+        ratio >= NEAR_LIMIT -> BudgetLook(LedgerTheme.colors.warning, Icons.Outlined.WarningAmber, "Near limit · ${formatMoney(limitMinor - spentMinor)} left")
+        else -> BudgetLook(LedgerTheme.colors.success, Icons.Outlined.CheckCircle, "${formatMoney(limitMinor - spentMinor)} left")
     }
     Column(
         Modifier.fillMaxWidth().padding(vertical = 4.dp).clearAndSetSemantics {
-            contentDescription = "$category budget: spent ${spokenAmount(spentMinor)} of ${spokenAmount(limitMinor)}. $status"
+            contentDescription = "$category budget: spent ${spokenAmount(spentMinor)} of ${spokenAmount(limitMinor)}. ${look.status}"
         },
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -125,10 +129,10 @@ private fun BudgetRow(category: String, spentMinor: Long, limitMinor: Long) {
             }
             Text("${(ratio * 100).toInt()}%", fontWeight = FontWeight.Bold)
         }
-        LinearProgressIndicator(progress = { ratio.coerceAtMost(1f) }, color = color, modifier = Modifier.fillMaxWidth())
+        LinearProgressIndicator(progress = { ratio.coerceAtMost(1f) }, color = look.color, modifier = Modifier.fillMaxWidth())
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.padding(end = 2.dp))
-            Text(status, style = MaterialTheme.typography.bodySmall, color = color)
+            Icon(look.icon, contentDescription = null, tint = look.color, modifier = Modifier.padding(end = 2.dp))
+            Text(look.status, style = MaterialTheme.typography.bodySmall, color = look.color)
         }
     }
 }

@@ -18,6 +18,7 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
@@ -82,7 +83,7 @@ class KtorBindingServer @Inject constructor(
         val encoder = Base64.getEncoder()
         val body = BindRequestDto(encoder.encodeToString(publicKey), encoder.encodeToString(challenge), encoder.encodeToString(signature))
         client.post("devices/bind") { setBody(body) }.body<BindResponseDto>().deviceId
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Hardware-backed EC key that can only sign after a strong biometric check, and dies if biometrics are re-enrolled. */

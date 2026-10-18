@@ -60,12 +60,7 @@ fun WalletScreen(
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     SecureWindow()
-    val title = when (state.step) {
-        TransferStep.FORM -> "Send money"
-        TransferStep.REVIEW -> "Review transfer"
-        TransferStep.RECEIPT -> "Transfer receipt"
-    }
-    FeatureScaffold(title, onBack, subtitle = "UPI · Instant", actions = { ProtectedBadge(Modifier.padding(end = 12.dp)) }) {
+    FeatureScaffold(state.step.title, onBack, subtitle = "UPI · Instant", actions = { ProtectedBadge(Modifier.padding(end = 12.dp)) }) {
         if (offline && state.step != TransferStep.RECEIPT) PaymentsOfflineNotice()
         when (state.step) {
             TransferStep.FORM -> TransferForm(state, viewModel, offline)
@@ -207,7 +202,7 @@ private fun StepUpButton(debugStepUp: Boolean, onResult: (Boolean) -> Unit) {
     }
     PrimaryButton(
         "Confirm and send",
-        onClick = { authenticate(context as FragmentActivity, onResult) },
+        onClick = { (context as? FragmentActivity)?.let { authenticate(it, onResult) } },
         icon = Icons.Outlined.Fingerprint,
     )
 }

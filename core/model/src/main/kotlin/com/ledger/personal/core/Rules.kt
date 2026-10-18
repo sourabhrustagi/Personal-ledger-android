@@ -1,5 +1,6 @@
 package com.ledger.personal.core
 
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
@@ -26,10 +27,10 @@ fun post(legs: List<Leg>) {
 
 /** Records a transfer once per idempotency key. */
 class TransferBook {
-    private val posted = LinkedHashMap<String, Long>()
+    private val posted = ConcurrentHashMap<String, Long>()
 
     /** Stores the amount the first time this key is seen and returns that same amount afterwards. */
-    fun submit(idempotencyKey: String, amountMinor: Long): Long = posted.getOrPut(idempotencyKey) { amountMinor }
+    fun submit(idempotencyKey: String, amountMinor: Long): Long = posted.computeIfAbsent(idempotencyKey) { amountMinor }
 
     /** How many distinct transfers have been recorded. */
     val size: Int get() = posted.size
@@ -94,11 +95,12 @@ fun mergeField(left: String, right: String): FieldMerge =
 
 /** Counts a charge id only the first time it is replayed. */
 class ChargeQueue {
-    private val posted = mutableSetOf<String>()
+    private val posted = ConcurrentHashMap.newKeySet<String>()
     var charges: Int = 0
         private set
 
     /** Increments the charge count for ids that have not been seen yet. */
+    @Synchronized
     fun replay(ids: List<String>) {
         ids.forEach { id -> if (posted.add(id)) charges += 1 }
     }
@@ -142,7 +144,7 @@ fun amortize(principalMinor: Long, annualBps: Int, months: Int): List<EmiLeg> {
 
 /** Runs a statement cycle only once. */
 class StatementJob {
-    private val done = mutableSetOf<String>()
+    private val done = ConcurrentHashMap.newKeySet<String>()
 
     /** Returns true the first time this cycle id is run. */
     fun run(cycleId: String): Boolean = done.add(cycleId)

@@ -30,7 +30,8 @@ class KtorTransactionRepositoryTest {
         val items = repo.getTransactions(1, 15).getOrThrow()
         assertEquals(listOf("a", "b"), items.map { it.id })
         assertEquals(100L, items[1].amountInCents)
-        assertEquals(1 to 15, api.lastListArgs)
+        assertEquals(1, api.lastPage)
+        assertEquals(15, api.lastPageSize)
     }
 
     @Test
@@ -89,7 +90,7 @@ class KtorTransactionRepositoryTest {
         }
         val result = KtorTransactionRepository(api, dispatcher).deleteTransaction("missing")
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()!!.message!!.contains("HTTP 404"))
+        assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("HTTP 404"))
     }
 
     private class MockTransactionApi : TransactionApi {
@@ -101,7 +102,8 @@ class KtorTransactionRepositoryTest {
         var patchResponse = sampleDto()
         var deleteError: Throwable? = null
 
-        var lastListArgs: Pair<Int, Int>? = null
+        var lastPage: Int? = null
+        var lastPageSize: Int? = null
         var lastGetId: String? = null
         var lastCreate: CreateTransactionRequestDto? = null
         var lastPatchId: String? = null
@@ -109,7 +111,8 @@ class KtorTransactionRepositoryTest {
         var lastDeleteId: String? = null
 
         override suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto {
-            lastListArgs = page to pageSize
+            lastPage = page
+            lastPageSize = pageSize
             listError?.let { throw it }
             return listResponse
         }

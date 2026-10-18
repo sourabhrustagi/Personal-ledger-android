@@ -16,6 +16,9 @@ import javax.crypto.KeyAgreement
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+/** AES-GCM output. IV and body are different values, not a Pair. */
+data class CipherText(val iv: ByteArray, val body: ByteArray)
+
 /** ECDH P-256 plus AES-GCM. Both sides derive the same AES key from the two public keys. */
 object PayBox {
     /** Fresh P-256 pair for one payment or for a mock server. */
@@ -36,12 +39,12 @@ object PayBox {
         return MessageDigest.getInstance("SHA-256").digest(shared)
     }
 
-    /** AES-GCM seal. Returns IV then body. */
-    fun seal(secret: ByteArray, plain: ByteArray): Pair<ByteArray, ByteArray> {
+    /** AES-GCM seal. */
+    fun seal(secret: ByteArray, plain: ByteArray): CipherText {
         val iv = ByteArray(IV_BYTES).also { SecureRandom().nextBytes(it) }
         val cipher = Cipher.getInstance(TRANSFORM)
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(secret, "AES"), GCMParameterSpec(TAG_BITS, iv))
-        return iv to cipher.doFinal(plain)
+        return CipherText(iv, cipher.doFinal(plain))
     }
 
     /** AES-GCM open. */

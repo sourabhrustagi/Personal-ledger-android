@@ -25,9 +25,12 @@ import java.math.BigDecimal
 
 const val MY_VPA = "me@ledgerone"
 
+/** One person's share of a split bill. */
+data class SplitShare(val name: String, val amountMinor: Long)
+
 /** Shares per person, "You" first; the remainder paise go to the earliest people so the total is exact. */
-fun splitShares(totalMinor: Long, people: List<String>): List<Pair<String, Long>> =
-    people.zip(splitEvenly(totalMinor, people.size))
+fun splitShares(totalMinor: Long, people: List<String>): List<SplitShare> =
+    people.zip(splitEvenly(totalMinor, people.size)) { name, amount -> SplitShare(name, amount) }
 
 /** Shows the split bill screen. */
 @Composable
@@ -44,8 +47,8 @@ fun SplitBillScreen(onBack: () -> Unit, initialMinor: Long = 0L, note: String = 
         if (sent) {
             StatusBanner("Requests sent to ${picked.size} people. You'll be notified as they pay.", BannerTone.SUCCESS, title = "Requests sent")
             SectionCard(title = "Requested") {
-                shares.drop(1).forEach { (handle, share) ->
-                    ListRow(Icons.Outlined.CheckCircle, nameFor(handle), subtitle = upiPayload(MY_VPA, share), trailing = formatMoney(share))
+                shares.drop(1).forEach { share ->
+                    ListRow(Icons.Outlined.CheckCircle, nameFor(share.name), subtitle = upiPayload(MY_VPA, share.amountMinor), trailing = formatMoney(share.amountMinor))
                 }
             }
             PrimaryButton("Done", onClick = onBack, modifier = Modifier.fillMaxWidth())
@@ -70,7 +73,9 @@ fun SplitBillScreen(onBack: () -> Unit, initialMinor: Long = 0L, note: String = 
         }
         if (shares.isNotEmpty()) {
             SectionCard(title = "Equal split · ${people.size} people") {
-                shares.forEach { (who, share) -> DetailRow(if (who == "You") "You pay" else nameFor(who), formatMoney(share)) }
+                shares.forEach { share ->
+                    DetailRow(if (share.name == "You") "You pay" else nameFor(share.name), formatMoney(share.amountMinor))
+                }
             }
         } else {
             Text("Enter an amount and pick at least one person.")

@@ -1,6 +1,6 @@
 package com.ledger.personal.ui.app
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -18,6 +18,7 @@ import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.ui.app.auth.MpinLoginScreen
 import com.ledger.personal.ui.app.auth.OnboardingFlow
 import com.ledger.personal.ui.app.update.ForceUpdateScreen
+import com.ledger.personal.ui.app.update.SoftUpdateDialog
 import com.ledger.personal.ui.navigation.LedgerNavHost
 import com.ledger.personal.ui.theme.LedgerOneTheme
 import com.ledger.personal.ui.theme.ThemeMode
@@ -34,9 +35,12 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
         when (val screen = status) {
             AppStatus.Loading -> Surface(Modifier.fillMaxSize()) {}
             AppStatus.Update -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
-            AppStatus.Onboard -> Onboard(viewModel)
+            is AppStatus.Onboard -> Onboard(viewModel)
             is AppStatus.Locked -> Locked(screen.prefs, screen.session, viewModel)
             is AppStatus.Personal -> LedgerNavHost(screen.prefs, viewModel)
+        }
+        if (status.softUpdate) {
+            SoftUpdateDialog(onUpdate = viewModel::dismissUpdateOffer, onLater = viewModel::ignoreUpdate)
         }
     }
 }
@@ -66,7 +70,7 @@ private fun Locked(prefs: AppPrefs, session: SessionState, viewModel: AppViewMod
 @Composable
 private fun LockWhenBackgrounded(onLock: () -> Unit) {
     val owner = LocalLifecycleOwner.current
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     DisposableEffect(owner) {
         var stoppedAt = 0L
         val observer = LifecycleEventObserver { _, event ->

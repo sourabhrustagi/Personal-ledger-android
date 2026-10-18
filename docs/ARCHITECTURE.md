@@ -137,7 +137,7 @@ Room, sync, view models, and screens are the same code in every flavor. Mock exe
 These are deliberate shortcuts. Search the code for `ponytail:` to find the ones marked inline.
 
 - Disputes are stored on this phone until a disputes endpoint exists. Sync conflicts are stored on this phone too. A live sync records one when the server answers `409` with the current transaction and then stops pushing that row; the mock flavor still creates one from Mock controls.
-- Force update comes from `GET static/version`. The screen blocks the app when `versionCode` is higher than `BuildConfig.VERSION_CODE`. A failed call does not block.
+- Force update comes from `GET static/version`. The screen blocks the app when `versionCode` is higher than `BuildConfig.VERSION_CODE`. `GET static/status` sets `AppStatus.softUpdate` for a prompt the person can skip. A failed call does neither.
 - The dev, staging, and prod device-binding endpoints are assumed. Confirm the paths and payloads with the backend team.
 - The camera QR scanner runs unless the flavor is `mock`. Mock uses a sample QR so it works on emulators without a camera.
 - Statements cover INR transactions only.

@@ -68,12 +68,12 @@ fun ChartsScreen(onBack: () -> Unit, viewModel: ChartsViewModel = viewModel()) {
             }
         }
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            listOf(ChartTab.CATEGORY to "By category", ChartTab.MONTH to "By month").forEachIndexed { index, (tab, label) ->
+            listOf(ChartTab.CATEGORY, ChartTab.MONTH).forEachIndexed { index, tab ->
                 SegmentedButton(
                     selected = state.tab == tab,
                     onClick = { viewModel.selectTab(tab) },
                     shape = SegmentedButtonDefaults.itemShape(index, 2),
-                ) { Text(label) }
+                ) { Text(tab.label) }
             }
         }
         LoadingOrEmpty(state.isLoading, state.isEmpty, state.errorMessage, "spending in this view")
@@ -81,7 +81,7 @@ fun ChartsScreen(onBack: () -> Unit, viewModel: ChartsViewModel = viewModel()) {
             if (state.tab == ChartTab.CATEGORY) {
                 SectionCard { Donut(state.slices, palette, state.totalMinor, state.currency) }
             }
-            SectionCard(title = if (state.tab == ChartTab.CATEGORY) "Categories" else "Months") {
+            SectionCard(title = state.tab.section) {
                 val max = state.slices.maxOf { it.amountMinor }.coerceAtLeast(1L)
                 state.slices.forEachIndexed { index, slice ->
                     SliceRow(slice, palette[index % palette.size], slice.amountMinor.toFloat() / max, state.currency, state.tab)

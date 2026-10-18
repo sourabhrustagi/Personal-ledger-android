@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /** State and actions for the fx alerts screen. */
 @HiltViewModel
@@ -27,7 +28,10 @@ class FxAlertsViewModel @Inject constructor(private val socket: TickerSocket) : 
     fun startWatching() {
         viewModelScope.launch {
             socket.prices()
-                .catch { state.update { it.copy(errorMessage = "Rate feed unavailable") } }
+                .catch { error ->
+                    if (error is CancellationException) throw error
+                    state.update { it.copy(errorMessage = "Rate feed unavailable") }
+                }
                 .collect { check(it) }
         }
     }

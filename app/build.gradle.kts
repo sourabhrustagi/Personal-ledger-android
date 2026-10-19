@@ -145,6 +145,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:database"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:ui"))
     implementation(project(":core:mock"))
     implementation(project(":feature:ledger"))
     implementation(project(":feature:budgets"))

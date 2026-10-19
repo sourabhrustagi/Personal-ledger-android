@@ -39,7 +39,7 @@ import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.NumericKeypad
 import com.ledger.personal.ui.feature.PinDots
-import com.ledger.personal.ui.feature.SecureWindow
+import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.TextLink
 import kotlinx.coroutines.delay

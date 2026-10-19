@@ -45,7 +45,8 @@ flowchart TD
 | `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, idempotency, and KYC rules) |
 | `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `KtorTransactionRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
-| `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), shared components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`), and window security (`ui.security.SecureWindow`) |
+| `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared visual components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`) |
+| `:core:ui` | Shared Compose UI effects and window security utilities (`SecureWindow`) |
 | `:core:mock` | `MockTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty, live-drop) |
 | `:core:testing` | Sample objects shared by tests |
 | `:feature:ledger` | Home, transaction list, detail, create and edit |

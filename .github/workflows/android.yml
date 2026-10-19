@@ -28,7 +28,7 @@ jobs:
         run: ./gradlew ktlintCheck detekt lintMockDebug --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew :app:testMockDebugUnitTest :core:model:test :core:network:test :core:mock:test :core:designsystem:testDebugUnitTest --stacktrace
+        run: ./gradlew :app:testMockDebugUnitTest :core:model:test :core:network:test :core:mock:test :core:designsystem:testDebugUnitTest :core:ui:testDebugUnitTest --stacktrace
 
       - name: Assemble the mock debug APK
         run: ./gradlew assembleMockDebug --stacktrace

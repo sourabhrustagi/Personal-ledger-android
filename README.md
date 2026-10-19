@@ -158,6 +158,33 @@ Feature modules never depend on each other; `ModuleBoundaryTest` fails the build
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 See [docs/POS-CRYPTO.md](docs/POS-CRYPTO.md) for why electricity bill lookup and payment use ECDH with AES-GCM, and when other algorithms are the better tool.
 
+## View models
+
+Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back stack or the Activity lifecycle. State is exposed as read-only `StateFlow`s, and all asynchronous work runs structured in `viewModelScope`.
+
+| Module | ViewModel | Responsibility |
+| --- | --- | --- |
+| `:app` | `AppViewModel` | Session lifecycle, force update, MPIN & biometric auth, device binding, and preferences |
+| `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
+| `:app` | `ToolsViewModel` | Database export/import, monthly statement PDF generation, and dispute logs |
+| `:app` | `PayHubViewModel` | Quick payment shortcuts and actions on the Pay hub |
+| `:app` | `InsightsHubViewModel` | Spend highlights and financial insights on the Insights hub |
+| `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
+| `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and swipe-to-delete with undo |
+| `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
+| `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and deletion |
+| `:feature:ledger` | `CreateTransactionViewModel` | Transaction creation form validation and submission |
+| `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
+| `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
+| `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
+| `:feature:pos` | `PosViewModel` | Utility bill lookup and MPIN payments encrypted with `PayBox` (ECDH + AES-GCM) |
+| `:feature:assistant` | `AssistantViewModel` | In-app AI assistant chat with SSE streaming, prompt suggestions, and history replay |
+| `:feature:kyc` | `KycViewModel` | Identity verification steps, OCR drafts, confidence validation, and camera captures |
+| `:feature:fx` | `FxAlertsViewModel` | Exchange rate threshold alerts and background trigger rules |
+| `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
+| `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
+| `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual budget trend curves |
+
 ## Dependencies
 
 Versions live in `gradle/libs.versions.toml`. A library is added only when the Android or Kotlin standard library does not already solve the problem. Why this stack instead of Retrofit, SQLDelight, Koin, and the rest is in [docs/LIBRARIES.md](docs/LIBRARIES.md).

@@ -17,7 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.ui.feature.SecureWindow
+import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 

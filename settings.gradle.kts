@@ -20,6 +20,7 @@ include(
     ":core:network",
     ":core:database",
     ":core:designsystem",
+    ":core:ui",
     ":core:testing",
     ":core:mock",
     ":feature:ledger",

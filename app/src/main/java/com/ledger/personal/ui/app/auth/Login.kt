@@ -1,5 +1,7 @@
 package com.ledger.personal.ui.app.auth
 
+import com.ledger.personal.mock.MockValues
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -95,7 +97,7 @@ fun MpinLoginScreen(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                if (demoPin) "Enter your MPIN. Demo: 1111" else "Enter your MPIN",
+                if (demoPin) "Enter your MPIN. Demo: ${MockValues.MPIN}" else "Enter your MPIN",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             PinDots(entry.length, PIN_LENGTH, Modifier.padding(vertical = 16.dp), error = wrong)

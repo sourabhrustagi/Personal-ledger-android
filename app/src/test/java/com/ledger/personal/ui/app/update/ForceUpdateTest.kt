@@ -11,9 +11,9 @@ import org.junit.Test
 class ForceUpdateTest {
     @Test
     fun debugBuildsOpenTheStoreApp() {
-        assertEquals("com.ledger.personal", storeListingId("com.ledger.personal.debug"))
-        assertEquals("com.ledger.personal.mock", storeListingId("com.ledger.personal.mock.debug"))
-        assertEquals("com.ledger.personal", storeListingId("com.ledger.personal"))
+        assertEquals("com.ledger.personal", PlayStore.storeListingId("com.ledger.personal.debug"))
+        assertEquals("com.ledger.personal.mock", PlayStore.storeListingId("com.ledger.personal.mock.debug"))
+        assertEquals("com.ledger.personal", PlayStore.storeListingId("com.ledger.personal"))
     }
 
     @Test

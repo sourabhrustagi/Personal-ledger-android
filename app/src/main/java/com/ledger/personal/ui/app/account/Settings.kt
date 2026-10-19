@@ -46,7 +46,7 @@ import com.ledger.personal.ui.feature.ListRow
 import com.ledger.personal.ui.feature.NumericKeypad
 import com.ledger.personal.ui.feature.PinDots
 import com.ledger.personal.ui.feature.SectionCard
-import com.ledger.personal.ui.feature.SecureWindow
+import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.StatusChip
 import com.ledger.personal.ui.theme.ThemeMode

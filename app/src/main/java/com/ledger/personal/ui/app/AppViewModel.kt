@@ -2,6 +2,7 @@ package com.ledger.personal.ui.app
 
 import android.content.Context
 import com.ledger.personal.BuildConfig
+import com.ledger.personal.mock.MockValues
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.data.prefs.AppPreferences
@@ -45,7 +46,7 @@ data class SessionState(
 
 const val MAX_MPIN_ATTEMPTS = 3
 const val LOCKOUT_MS = 30_000L
-const val MOCK_MPIN = "1111"
+const val MOCK_MPIN = MockValues.MPIN
 
 /** Mock builds accept this PIN on top of the one set during onboarding. Live builds never do. */
 fun mockPinUnlocks(pin: String, mockFlavor: Boolean): Boolean = mockFlavor && pin == MOCK_MPIN

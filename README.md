@@ -20,24 +20,50 @@ Or open the folder in Android Studio, pick the `mockDebug` build variant, and pr
 
 In the mock build:
 
-- the sign-up code is `123456`;
-- you choose your own 4-digit MPIN during onboarding, and `1111` also unlocks this build;
+- the sign-up code is `123456` (`MockValues.OTP`);
+- you choose your own 4-digit MPIN during onboarding, and `1111` (`MockValues.MPIN`) also unlocks this build;
 - Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, or a sync conflict.
 
-## Build variants
+## Build flavors
 
-One flavor dimension, `environment`. Debug and release stay build types: debug logs HTTP and adds `.debug` to the application id; release is minified and does not.
+The project defines one flavor dimension, `environment`, with four distinct flavors, combined with `debug` and `release` build types:
 
-| Variant | Application id | API | Data |
-|---------|----------------|-----|------|
-| `mockDebug` (default) | `com.ledger.personal.mock.debug` | `http://10.0.2.2:8080/retail/v1/` | In-app mock backend |
-| `devDebug` / `devRelease` | `com.ledger.personal.dev` (plus `.debug` on debug) | `https://dev-api.personal-ledger.com/retail/v1/` | Real API |
-| `stagingDebug` / `stagingRelease` | `com.ledger.personal.staging` (plus `.debug` on debug) | `https://staging-api.personal-ledger.com/retail/v1/` | Real API |
-| `prodDebug` / `prodRelease` | `com.ledger.personal` (plus `.debug` on debug) | `https://api.personal-ledger.com/retail/v1/` | Real API |
+| Flavor | Variant | Application id | API Endpoint | Purpose & Data Source |
+|---|---|---|---|---|
+| `mock` | `mockDebug` (default) | `com.ledger.personal.mock.debug` | `http://10.0.2.2:8080/retail/v1/` | Fully in-memory & offline mock backend using seeded catalog; no network connection required |
+| `dev` | `devDebug` / `devRelease` | `com.ledger.personal.dev` (plus `.debug` on debug) | `https://dev-api.personal-ledger.com/retail/v1/` | Development environment for active integration testing against real services |
+| `staging` | `stagingDebug` / `stagingRelease` | `com.ledger.personal.staging` (plus `.debug` on debug) | `https://staging-api.personal-ledger.com/retail/v1/` | Pre-production QA environment for release qualification and staging tests |
+| `prod` | `prodDebug` / `prodRelease` | `com.ledger.personal` (plus `.debug` on debug) | `https://api.personal-ledger.com/retail/v1/` | Live production banking infrastructure |
 
-`mock` is the only flavor on the mock backend. Dev, staging, and prod call their own host. The four apps install side by side, each with its own launcher name and app-link host.
+All four flavor apps can be installed side by side on the same device or emulator because each has a unique package name. Debug builds enable HTTP inspection (Chucker), Timber debug logging, and attach `.debug` to the application id. Release builds enable R8 shrinking and ProGuard optimization.
 
-Certificate pinning is wired up, but `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` are empty on purpose. Fill them with your server's real SPKI hashes before shipping a `prod` release.
+Certificate pinning is pre-configured, with `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` to be filled with server SPKI hashes before releasing to `prod`.
+
+## Mock values & demo credentials
+
+All mock values and seed catalogs are centralized in `:core:mock` so they can be easily reviewed, edited, or extended in one place without touching UI or business logic files:
+
+### Central constants (`MockValues.kt`)
+
+Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt):
+
+- **SMS OTP Verification Code (`MockValues.OTP`):** `123456` — used on the Onboarding OTP screen.
+- **Universal Demo MPIN (`MockValues.MPIN`):** `1111` — unlocks the mock build flavor instantly on login.
+- **Default User Name (`MockValues.DEFAULT_NAME`):** `Asha Rao` — used for demo profiles and previews.
+- **Default Phone Number (`MockValues.DEFAULT_PHONE`):** `9876543210` — used for onboarding phone input and previews.
+- **Default Session Token (`MockValues.SESSION_TOKEN`):** `mock-session` — used for local authenticated requests.
+
+### Central mock catalog (`MockCatalog.kt`)
+
+Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt):
+
+- **Bank Accounts:** Savings (`...4821`, balance ₹2,45,678.90), Salary (`...1093`, balance ₹86,420.15), and Fixed Deposit (`...7710`, balance ₹5,00,000.00).
+- **Contacts & Payees:** `Asha Rao` (`asha@okaxis`), `Rahul Mehta` (`rahul.m@okicici`), `Priya Shah` (`priya@oksbi`), `Vikram Iyer` (`vikram@okhdfc`).
+- **Utility Billers:** Electricity BESCOM (`₹500.00`), Airtel Postpaid (`₹799.00`), ACT Broadband (`₹1,179.00`), BWSSB Water (`₹320.00`).
+- **Cards:** Savings Debit (Visa `...4821`), Rewards Credit (RuPay `...9034`).
+- **Historical Transactions:** 200 seeded transactions across Groceries, Dining, Transport, Salary, Utilities, and Entertainment.
+
+To customize test data, simply update the constants in `MockValues.kt` or records in `MockCatalog.kt`.
 
 ## Force update
 

@@ -1,9 +1,5 @@
 package com.ledger.personal.ui.app.update
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -53,16 +49,13 @@ fun ForceUpdateScreen(versionName: String) {
             StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
             PrimaryButton(
                 "Update now",
-                onClick = { openStore(context, storeListingId(context.packageName)) },
+                onClick = { PlayStore.openStore(context) },
                 icon = Icons.Outlined.SystemUpdate,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
-
-/** Play listing id. Debug builds drop the `.debug` suffix so they open the store app. */
-fun storeListingId(packageName: String): String = packageName.removeSuffix(".debug")
 
 /** A newer build the person can install now or keep using this one. */
 @Composable
@@ -75,21 +68,12 @@ fun SoftUpdateDialog(onUpdate: () -> Unit, onLater: () -> Unit) {
         text = { Text("A newer version of LedgerOne is ready. You can update now, or keep using this one.") },
         confirmButton = {
             TextButton(onClick = {
-                openStore(context, storeListingId(context.packageName))
+                PlayStore.openStore(context)
                 onUpdate()
             }) { Text("Update") }
         },
         dismissButton = { TextButton(onClick = onLater) { Text("Not now") } },
     )
-}
-
-/** Opens the Play listing for this app. */
-private fun openStore(context: Context, id: String) {
-    try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=$id".toUri()))
-    } catch (_: ActivityNotFoundException) {
-        context.startActivity(Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$id".toUri()))
-    }
 }
 
 @PreviewLightDark

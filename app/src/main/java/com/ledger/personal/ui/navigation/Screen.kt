@@ -125,9 +125,6 @@ sealed interface Screen {
     @Serializable
     data class PayTo(val handle: String, val amountMinor: Long) : Screen
 
-    /** Route to the split bill screen. */
-    @Serializable
-    data class SplitBill(val amountMinor: Long = 0L, val note: String = "") : Screen
 
     /** Offers. [tab] selects a shelf key from the promotions API. Blank opens the first shelf. */
     @Serializable

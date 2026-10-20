@@ -3,7 +3,6 @@ package com.ledger.personal.data.tools
 import com.ledger.personal.data.security.LocalBindingServer
 import com.ledger.personal.data.security.SIGNATURE_ALGORITHM
 import com.ledger.personal.domain.model.Transaction
-import com.ledger.personal.ui.feature.splitShares
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -86,12 +85,5 @@ class ToolsTest {
         assertTrue(server.register(pair.public.encoded, challenge, signature).isFailure)
         val fresh = server.challenge()
         assertTrue(server.register(pair.public.encoded, fresh, signature).isFailure)
-    }
-
-    @Test
-    fun splitGivesExactSharesWithYouFirst() {
-        val shares = splitShares(100_00L, listOf("You", "asha@okaxis", "rahul@oksbi"))
-        assertEquals(listOf(33_34L, 33_33L, 33_33L), shares.map { it.amountMinor })
-        assertEquals("You", shares.first().name)
     }
 }

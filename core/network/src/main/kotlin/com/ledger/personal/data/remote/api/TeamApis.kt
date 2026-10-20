@@ -3,7 +3,6 @@ package com.ledger.personal.data.remote.api
 import com.ledger.personal.di.AuthenticatedClient
 import com.ledger.personal.di.ApiConfig
 import com.ledger.personal.di.TeamClient
-import com.ledger.personal.domain.board.AssistantBackend
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
@@ -54,10 +53,6 @@ data class PaymentsDto(val payees: List<PayeeDto> = emptyList())
 @Serializable
 data class PayeeDto(val displayName: String = "", val vpa: String = "")
 
-
-/** Assistant payload. */
-@Serializable
-data class AssistantDto(val prompts: List<String> = emptyList())
 
 /** Promotions payload. Field names are this team's, not the dashboard's. */
 @Serializable
@@ -130,17 +125,6 @@ class KtorPaymentsBackend @Inject constructor(
 }
 
 
-/** Reads starter prompts from the assistant host. */
-@Singleton
-class KtorAssistantBackend @Inject constructor(
-    @param:TeamClient private val client: HttpClient,
-    private val config: ApiConfig,
-) : AssistantBackend {
-    /** Returns prompts. */
-    override suspend fun prompts(): Result<List<String>> = runCatching {
-        client.get("${config.assistantBaseUrl}chat/starters").body<AssistantDto>().prompts.filter { it.isNotBlank() }
-    }.onFailure { if (it is CancellationException) throw it }
-}
 
 /** Reads shelves from the promotions host. */
 @Singleton

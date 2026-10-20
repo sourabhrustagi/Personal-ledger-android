@@ -8,7 +8,9 @@ class ModuleBoundaryTest {
 
     @Test
     fun featuresDoNotDependOnEachOther() {
-        val features = repoRoot().resolve("feature").listFiles { file -> file.isDirectory }.orEmpty()
+        val features = repoRoot().resolve("feature")
+            .listFiles { file -> file.isDirectory && file.resolve("build.gradle.kts").exists() }
+            .orEmpty()
         features.forEach { feature ->
             val gradle = feature.resolve("build.gradle.kts").readText()
             features.filter { it != feature }.forEach { other ->
@@ -26,7 +28,7 @@ class ModuleBoundaryTest {
     }
 
     private fun repoRoot(): File {
-        val dir = File(System.getProperty("user.dir"))
-        return if (dir.resolve("settings.gradle.kts").exists()) dir else dir.parentFile
+        val dir = File(System.getProperty("user.dir").orEmpty())
+        return if (dir.resolve("settings.gradle.kts").exists()) dir else checkNotNull(dir.parentFile)
     }
 }

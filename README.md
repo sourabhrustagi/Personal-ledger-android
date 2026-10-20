@@ -90,12 +90,12 @@ Raise the published `versionCode` only when a build must be retired — broken c
 The app has three tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
-- **Pay:** scan a UPI QR code, send money, split a bill, request money, manage beneficiaries, accounts, cards, loans, deposits, and statements.
+- **Pay:** scan a UPI QR code, send money, request money, manage beneficiaries, accounts, cards, loans, deposits, and statements.
 - **Offers:** promotional partner deals and cashback offers.
 
 **Profile** has KYC, the security centre (MPIN, biometrics, device binding), notifications, settings (theme, privacy, language), transaction categories, your disputes, help, and the mock controls.
 
-From any transaction you can edit it, delete it, split it with friends, or report a problem (raise a dispute).
+From any transaction you can edit it, delete it, or report a problem (raise a dispute).
 
 Screens below are the light theme on mock data.
 
@@ -127,9 +127,9 @@ Screens below are the light theme on mock data.
 
 ### Pay
 
-| Scan | Split a bill | Pay bills |
-| --- | --- | --- |
-| <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> | <img src="docs/images/split.png" width="200" alt="Split a bill"> | <img src="docs/images/bills.png" width="200" alt="Pay bills"> |
+| Scan |
+| --- |
+| <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> |
 
 | Accounts and UPI | Report a problem | Your disputes |
 | --- | --- | --- |

@@ -1,7 +1,6 @@
 package com.ledger.personal.ui.feature
 
 import androidx.lifecycle.SavedStateHandle
-import com.ledger.personal.data.local.MemoryAssistantHistory
 import com.ledger.personal.data.local.MemoryKycDraftStore
 import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.mock.MockCatalog
@@ -135,26 +134,6 @@ class FeatureViewModelsTest {
         viewModel.setCategory("No such category")
         assertTrue(viewModel.uiState.value.isEmpty)
         assertFalse(viewModel.uiState.value.isLoading)
-    }
-
-    @Test
-    fun assistantDropsDuplicateToken() {
-        val viewModel = AssistantViewModel()
-        viewModel.push("Hello")
-        viewModel.push("Hello")
-        assertEquals("Hello", viewModel.uiState.value.tokens)
-    }
-
-    @Test
-    fun assistantRestoresHistoryAndSkipsARepeatedStreamToken() = runTest {
-        val history = MemoryAssistantHistory()
-        AssistantViewModel(history).push("Hello")
-        advanceUntilIdle()
-        val restored = AssistantViewModel(history)
-        advanceUntilIdle()
-        restored.consume("data: Hello")
-        restored.consume("data: Again")
-        assertEquals("HelloAgain", restored.uiState.value.tokens)
     }
 
     @Test

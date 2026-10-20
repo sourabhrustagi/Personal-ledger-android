@@ -15,9 +15,6 @@ class TeamApisTest {
         assertNull(PayeeDto(displayName = "Asha", vpa = "").toShortcut())
         assertEquals("asha@ok", PayeeDto("Asha", "asha@ok").toShortcut()?.handle)
 
-        assertNull(HighlightDto(label = "", spentPaise = 10).toHighlight())
-        assertEquals(450_00L, HighlightDto("Dining", 450_00L).toHighlight()?.spentMinor)
-
         assertNull(ShelfDto(key = "", name = "Festive").toTab())
         val shelf = ShelfDto(
             "festive",

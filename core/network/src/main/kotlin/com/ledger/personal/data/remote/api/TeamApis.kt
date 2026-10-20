@@ -9,13 +9,11 @@ import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.board.HomeTile
-import com.ledger.personal.domain.board.InsightsBackend
 import com.ledger.personal.domain.board.PayShortcut
 import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
-import com.ledger.personal.domain.board.SpendHighlight
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -56,13 +54,6 @@ data class PaymentsDto(val payees: List<PayeeDto> = emptyList())
 @Serializable
 data class PayeeDto(val displayName: String = "", val vpa: String = "")
 
-/** Insights payload. */
-@Serializable
-data class InsightsDto(val highlights: List<HighlightDto> = emptyList())
-
-/** One highlight as the insights team sends it. */
-@Serializable
-data class HighlightDto(val label: String = "", val spentPaise: Long = 0)
 
 /** Assistant payload. */
 @Serializable
@@ -105,8 +96,6 @@ fun SectionDto.toSection(): HomeSection? = when (kind) {
 fun PayeeDto.toShortcut(): PayShortcut? =
     if (displayName.isBlank() || vpa.isBlank()) null else PayShortcut(displayName, vpa)
 
-/** Drops a highlight with no label. */
-fun HighlightDto.toHighlight(): SpendHighlight? = if (label.isBlank()) null else SpendHighlight(label, spentPaise)
 
 /** Drops a deal with no id or pitch. */
 fun OfferDto.toOffer(): PromoOffer? = if (sku.isBlank() || pitch.isBlank()) null else PromoOffer(sku, pitch, until)
@@ -140,17 +129,6 @@ class KtorPaymentsBackend @Inject constructor(
     }.onFailure { if (it is CancellationException) throw it }
 }
 
-/** Reads spending lines from the insights host. */
-@Singleton
-class KtorInsightsBackend @Inject constructor(
-    @param:TeamClient private val client: HttpClient,
-    private val config: ApiConfig,
-) : InsightsBackend {
-    /** Returns highlights. */
-    override suspend fun highlights(): Result<List<SpendHighlight>> = runCatching {
-        client.get("${config.insightsBaseUrl}spend/highlights").body<InsightsDto>().highlights.mapNotNull { it.toHighlight() }
-    }.onFailure { if (it is CancellationException) throw it }
-}
 
 /** Reads starter prompts from the assistant host. */
 @Singleton

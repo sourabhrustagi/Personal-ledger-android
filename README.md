@@ -1,6 +1,6 @@
 # LedgerOne (Personal Ledger)
 
-LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, pays bills, and keeps working offline.
+LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, and keeps working offline.
 
 It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Ktor.
 
@@ -91,7 +91,7 @@ The app has five tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
 - **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, and monthly statements you can download as a PDF.
-- **Pay:** scan a UPI QR code, send money, split a bill, request money, manage beneficiaries, and pay bills.
+- **Pay:** scan a UPI QR code, send money, split a bill, request money, and manage beneficiaries.
 - **Insights:** budgets, charts, FX rate alerts, and a live market ticker.
 - **Assistant:** answers questions about your money from the ledger on your phone; your questions never leave it.
 
@@ -176,13 +176,12 @@ core/designsystem/   Theme, colours, money formatting, shared Compose components
 core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples
 feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
-                     ticker, assistant, pos, banking
+                     ticker, assistant, banking
 docs/                Architecture document and decision records
 ```
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
-See [docs/POS-CRYPTO.md](docs/POS-CRYPTO.md) for why electricity bill lookup and payment use ECDH with AES-GCM, and when other algorithms are the better tool.
 
 ## View models
 
@@ -203,7 +202,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
-| `:feature:pos` | `PosViewModel` | Utility bill lookup and MPIN payments encrypted with `PayBox` (ECDH + AES-GCM) |
 | `:feature:assistant` | `AssistantViewModel` | In-app AI assistant chat with SSE streaming, prompt suggestions, and history replay |
 | `:feature:kyc` | `KycViewModel` | Identity verification steps, OCR drafts, confidence validation, and camera captures |
 | `:feature:fx` | `FxAlertsViewModel` | Exchange rate threshold alerts and background trigger rules |

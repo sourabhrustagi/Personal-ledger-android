@@ -10,7 +10,6 @@ data class ApiConfig(
     val pinSha256: String,
     val pinBackup: String,
     val paymentsBaseUrl: String,
-    val insightsBaseUrl: String,
     val assistantBaseUrl: String,
     val promotionsBaseUrl: String,
     val localSession: Boolean,

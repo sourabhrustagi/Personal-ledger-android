@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalance
@@ -147,11 +146,6 @@ fun PayHub(
             }
             HubLink(Icons.Outlined.QrCode2, "UPI", "Request with QR or UPI ID", online) { onOpen(Screen.Banking) }
             HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
-        }
-        SectionCard(title = "Bills and recharges") {
-            HubLink(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", "Bills due this month", online) {
-                onOpen(Screen.Pos)
-            }
         }
         SectionCard(title = "Recent people") {
             when {

@@ -29,6 +29,5 @@ include(
     ":feature:kyc",
     ":feature:wallet",
     ":feature:ticker",
-    ":feature:assistant",
     ":feature:banking",
 )

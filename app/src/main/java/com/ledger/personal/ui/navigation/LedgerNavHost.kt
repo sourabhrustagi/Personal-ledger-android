@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
@@ -51,8 +50,6 @@ import com.ledger.personal.ui.app.account.NotificationsScreen
 import com.ledger.personal.ui.app.account.ProfileScreen
 import com.ledger.personal.ui.app.account.SecurityScreen
 import com.ledger.personal.ui.app.account.SettingsScreen
-import com.ledger.personal.ui.app.hubs.InsightsHub
-import com.ledger.personal.ui.app.hubs.InsightsHubViewModel
 import com.ledger.personal.ui.app.hubs.MoneyHub
 import com.ledger.personal.ui.app.hubs.PayHub
 import com.ledger.personal.ui.app.hubs.PayHubViewModel
@@ -115,7 +112,6 @@ fun LedgerNavHost(
         "home" -> Screen.Home
         "money" -> Screen.MoneyHub
         "pay" -> Screen.PayHub
-        "insights" -> Screen.InsightsHub
         "offers" -> Screen.Promotions()
         "assistant" -> Screen.Assistant
         else -> null
@@ -124,7 +120,6 @@ fun LedgerNavHost(
         "home" -> Icons.Outlined.Home
         "money" -> Icons.Outlined.AccountBalanceWallet
         "pay" -> Icons.Outlined.QrCodeScanner
-        "insights" -> Icons.Outlined.Insights
         "offers" -> Icons.Outlined.LocalOffer
         "assistant" -> Icons.Outlined.AutoAwesome
         else -> null
@@ -222,11 +217,6 @@ private fun NavGraphBuilder.tabRoutes(
         val pay: PayHubViewModel = hiltViewModel()
         val shortcuts by pay.shortcuts.collectAsStateWithLifecycle()
         PayHub(flags, shortcuts, { nav.navigate(Screen.Profile) }, nav::navigate)
-    }
-    composable<Screen.InsightsHub> {
-        val insights: InsightsHubViewModel = hiltViewModel()
-        val highlights by insights.highlights.collectAsStateWithLifecycle()
-        InsightsHub(highlights, { nav.navigate(Screen.Profile) }, nav::navigate)
     }
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
         val offers: PromotionsViewModel = hiltViewModel()

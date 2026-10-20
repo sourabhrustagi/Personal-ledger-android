@@ -6,13 +6,11 @@ import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.board.HomeTile
-import com.ledger.personal.domain.board.InsightsBackend
 import com.ledger.personal.domain.board.PayShortcut
 import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
-import com.ledger.personal.domain.board.SpendHighlight
 import javax.inject.Inject
 
 /** Mock dashboard. The home screen draws these sections in this order and keeps no layout of its own. */
@@ -25,7 +23,6 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                     HomeTab("home", "Home"),
                     HomeTab("money", "Money"),
                     HomeTab("pay", "Pay"),
-                    HomeTab("insights", "Insights"),
                     HomeTab("offers", "Offers"),
                     HomeTab("assistant", "Assistant"),
                 ),
@@ -56,13 +53,6 @@ class MockPaymentsBackend @Inject constructor() : PaymentsBackend {
     }
 }
 
-/** Mock insights team. */
-class MockInsightsBackend @Inject constructor() : InsightsBackend {
-    /** Returns highlights. */
-    override suspend fun highlights(): Result<List<SpendHighlight>> = MockSwitches.gate {
-        Result.success(listOf(SpendHighlight("Dining", 450_00L), SpendHighlight("Groceries", 1_842_50L)))
-    }
-}
 
 /** Mock assistant team. */
 class MockAssistantBackend @Inject constructor() : AssistantBackend {

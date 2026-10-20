@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -49,7 +48,6 @@ import com.ledger.personal.ui.app.account.NotificationsScreen
 import com.ledger.personal.ui.app.account.ProfileScreen
 import com.ledger.personal.ui.app.account.SecurityScreen
 import com.ledger.personal.ui.app.account.SettingsScreen
-import com.ledger.personal.ui.app.hubs.MoneyHub
 import com.ledger.personal.ui.app.hubs.PayHub
 import com.ledger.personal.ui.app.hubs.PayHubViewModel
 import com.ledger.personal.ui.app.hubs.PromotionsHub
@@ -108,14 +106,12 @@ fun LedgerNavHost(
     val homeState by home.uiState.collectAsStateWithLifecycle()
     fun routeFor(id: String): Screen? = when (id) {
         "home" -> Screen.Home
-        "money" -> Screen.MoneyHub
         "pay" -> Screen.PayHub
         "offers" -> Screen.Promotions()
         else -> null
     }
     fun iconFor(id: String) = when (id) {
         "home" -> Icons.Outlined.Home
-        "money" -> Icons.Outlined.AccountBalanceWallet
         "pay" -> Icons.Outlined.QrCodeScanner
         "offers" -> Icons.Outlined.LocalOffer
         else -> null
@@ -207,7 +203,6 @@ private fun NavGraphBuilder.tabRoutes(
             viewModel = home,
         )
     }
-    composable<Screen.MoneyHub> { MoneyHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate) }
     composable<Screen.PayHub> {
         val pay: PayHubViewModel = hiltViewModel()
         val shortcuts by pay.shortcuts.collectAsStateWithLifecycle()

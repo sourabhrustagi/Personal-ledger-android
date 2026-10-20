@@ -39,12 +39,6 @@ fun interface PaymentsBackend {
     suspend fun shortcuts(): Result<List<PayShortcut>>
 }
 
-/** Assistant backend. Prompts are plain strings from that team's endpoint. */
-fun interface AssistantBackend {
-    /** Returns prompts. */
-    suspend fun prompts(): Result<List<String>>
-}
-
 /** One deal on a promotions shelf. */
 data class PromoOffer(val id: String, val pitch: String, val until: String)
 

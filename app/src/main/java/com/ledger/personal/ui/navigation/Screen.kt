@@ -52,9 +52,6 @@ sealed interface Screen {
     @Serializable
     data object Home : Screen
 
-    /** Route to the money hub screen. */
-    @Serializable
-    data object MoneyHub : Screen
 
     /** Route to the pay hub screen. */
     @Serializable

@@ -154,7 +154,6 @@ dependencies {
     implementation(project(":feature:wallet"))
     implementation(project(":feature:ticker"))
     implementation(project(":feature:assistant"))
-    implementation(project(":feature:pos"))
     implementation(project(":feature:banking"))
 
     val composeBom = platform(libs.androidx.compose.bom)

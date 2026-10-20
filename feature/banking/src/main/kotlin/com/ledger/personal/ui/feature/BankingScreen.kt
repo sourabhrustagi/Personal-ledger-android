@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -50,7 +49,7 @@ import com.ledger.personal.mock.SeedAccount
 
 /** Shows the banking screen. */
 @Composable
-fun BankingScreen(onBack: () -> Unit, onPayBills: () -> Unit, viewModel: BankingViewModel = viewModel()) {
+fun BankingScreen(onBack: () -> Unit, viewModel: BankingViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (!state.signedIn) {
         MpinLock(onBack, state.errorMessage, viewModel::signIn)
@@ -75,7 +74,6 @@ fun BankingScreen(onBack: () -> Unit, onPayBills: () -> Unit, viewModel: Banking
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QuickAction(Icons.Outlined.QrCode2, "Request", Modifier.weight(1f)) { sheet = BankSheet.UPI }
-            QuickAction(Icons.AutoMirrored.Outlined.ReceiptLong, "Pay bills", Modifier.weight(1f), onPayBills)
             QuickAction(Icons.Outlined.PersonAdd, "Add payee", Modifier.weight(1f)) { sheet = BankSheet.PAYEE }
         }
         LoanCard(state)
@@ -179,12 +177,12 @@ private fun MpinLock(onBack: () -> Unit, error: String?, onSubmit: (String) -> U
 @PreviewLightDark
 @Composable
 private fun BankingLockPreview() {
-    PersonalLedgerTheme { BankingScreen(onBack = {}, onPayBills = {}, viewModel = BankingViewModel()) }
+    PersonalLedgerTheme { BankingScreen(onBack = {}, viewModel = BankingViewModel()) }
 }
 
 @PreviewLightDark
 @Composable
 private fun BankingPreview() {
     val signedIn = remember { BankingViewModel().apply { signIn("1234") } }
-    PersonalLedgerTheme { BankingScreen(onBack = {}, onPayBills = {}, viewModel = signedIn) }
+    PersonalLedgerTheme { BankingScreen(onBack = {}, viewModel = signedIn) }
 }

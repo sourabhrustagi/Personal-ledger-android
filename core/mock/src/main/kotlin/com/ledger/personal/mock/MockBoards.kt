@@ -1,6 +1,5 @@
 package com.ledger.personal.mock
 
-import com.ledger.personal.domain.board.AssistantBackend
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
@@ -24,7 +23,6 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                     HomeTab("money", "Money"),
                     HomeTab("pay", "Pay"),
                     HomeTab("offers", "Offers"),
-                    HomeTab("assistant", "Assistant"),
                 ),
                 sections = listOf(
                     HomeSection.Balance,
@@ -34,7 +32,6 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                             HomeTile("send", "Send"),
                             HomeTile("upi", "UPI"),
                             HomeTile("budgets", "Budgets"),
-                            HomeTile("ask", "Ask"),
                             HomeTile("offers", "Offers"),
                         ),
                     ),
@@ -54,20 +51,6 @@ class MockPaymentsBackend @Inject constructor() : PaymentsBackend {
 }
 
 
-/** Mock assistant team. */
-class MockAssistantBackend @Inject constructor() : AssistantBackend {
-    /** Returns prompts. */
-    override suspend fun prompts(): Result<List<String>> = MockSwitches.gate {
-        Result.success(
-            listOf(
-                "What's my balance?",
-                "How much did I spend on groceries?",
-                "What's my biggest expense?",
-                "What's my loan EMI?",
-            ),
-        )
-    }
-}
 
 /** Mock promotions team. Tabs and copy come from here, not from the other mocks. */
 class MockPromotionsBackend @Inject constructor() : PromotionsBackend {

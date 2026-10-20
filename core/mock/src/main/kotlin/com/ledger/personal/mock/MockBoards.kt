@@ -20,7 +20,6 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
             HomeLayout(
                 tabs = listOf(
                     HomeTab("home", "Home"),
-                    HomeTab("money", "Money"),
                     HomeTab("pay", "Pay"),
                     HomeTab("offers", "Offers"),
                 ),

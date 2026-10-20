@@ -15,7 +15,6 @@ import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.CurrencyExchange
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.QrCode2
@@ -39,15 +38,12 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.domain.board.PayShortcut
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
-import com.ledger.personal.domain.board.SpendHighlight
 import com.ledger.personal.mock.SeedAccount
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.feature.EmptyState
 import com.ledger.personal.ui.feature.FeatureScaffold
-import com.ledger.personal.ui.feature.AmountText
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.ListRow
-import com.ledger.personal.ui.feature.MoneyDirection
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.MaskedAmount
 import com.ledger.personal.ui.feature.PaymentsOfflineNotice
@@ -107,6 +103,12 @@ fun MoneyHub(flags: HubFlags, onProfile: () -> Unit, onOpen: (Screen) -> Unit) {
             HubLink(Icons.Outlined.History, "All transactions", "Full paged history") { onOpen(Screen.LedgerHistory) }
             HubLink(Icons.Outlined.Description, "Statements", "Monthly PDF for Savings") { onOpen(Screen.Statements) }
         }
+        SectionCard(title = "Markets and planning") {
+            HubLink(Icons.Outlined.PieChart, "Budgets", "Monthly limits by category") { onOpen(Screen.Budgets) }
+            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Charts", "By category and by month") { onOpen(Screen.Charts) }
+            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Watchlist", "Live USD/INR ticker") { onOpen(Screen.Ticker) }
+            HubLink(Icons.Outlined.CurrencyExchange, "FX alerts", "Notify me when a rate crosses my target") { onOpen(Screen.FxAlerts) }
+        }
     }
 }
 
@@ -165,41 +167,6 @@ fun PayHub(
     }
 }
 
-/** Shows insights hub. */
-@Composable
-fun InsightsHub(
-    highlights: Result<List<SpendHighlight>>?,
-    onProfile: () -> Unit,
-    onOpen: (Screen) -> Unit,
-) {
-    FeatureScaffold("Insights", onBack = null, actions = { ProfileAction(onProfile) }) {
-        SectionCard(title = "This month") {
-            when {
-                highlights == null -> Text("Loading insights…")
-                highlights.isFailure -> StatusBanner("Insights couldn't load.", BannerTone.WARNING)
-                highlights.getOrThrow().isEmpty() -> Text("No spending highlights.")
-                else -> highlights.getOrThrow().forEach { line ->
-                    ListRow(
-                        Icons.Outlined.PieChart,
-                        line.label,
-                        trailingContent = { AmountText(line.spentMinor, MoneyDirection.DEBIT, label = line.label) },
-                    )
-                }
-            }
-        }
-        SectionCard(title = "Spending") {
-            HubLink(Icons.Outlined.PieChart, "Budgets", "Monthly limits by category") { onOpen(Screen.Budgets) }
-            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Charts", "By category and by month") { onOpen(Screen.Charts) }
-        }
-        SectionCard(title = "Markets") {
-            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Watchlist", "Live USD/INR ticker") { onOpen(Screen.Ticker) }
-            HubLink(Icons.Outlined.CurrencyExchange, "FX alerts", "Notify me when a rate crosses my target") { onOpen(Screen.FxAlerts) }
-            HubLink(Icons.Outlined.NotificationsActive, "Notification centre", "Alerts, payments and security") {
-                onOpen(Screen.Notifications)
-            }
-        }
-    }
-}
 
 /** Shows the promotions stored on the device. */
 @Composable
@@ -263,19 +230,6 @@ private fun PayHubOfflinePreview() {
     }
 }
 
-@PreviewLightDark
-@Composable
-private fun InsightsHubPreview() {
-    PersonalLedgerTheme {
-        InsightsHub(Result.success(listOf(SpendHighlight("Groceries", 82_000L))), onProfile = {}, onOpen = {})
-    }
-}
-
-@PreviewLightDark
-@Composable
-private fun InsightsHubEmptyPreview() {
-    PersonalLedgerTheme { InsightsHub(Result.success(emptyList()), onProfile = {}, onOpen = {}) }
-}
 
 @PreviewLightDark
 @Composable

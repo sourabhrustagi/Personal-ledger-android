@@ -87,11 +87,10 @@ Raise the published `versionCode` only when a build must be retired — broken c
 
 ## What's in the app
 
-The app has four tabs:
+The app has three tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
-- **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, monthly statements as PDF, budgets, and markets.
-- **Pay:** scan a UPI QR code, send money, split a bill, request money, and manage beneficiaries.
+- **Pay:** scan a UPI QR code, send money, split a bill, request money, manage beneficiaries, accounts, cards, loans, deposits, and statements.
 - **Offers:** promotional partner deals and cashback offers.
 
 **Profile** has KYC, the security centre (MPIN, biometrics, device binding), notifications, settings (theme, privacy, language), transaction categories, your disputes, help, and the mock controls.
@@ -108,15 +107,11 @@ Screens below are the light theme on mock data.
 
 ### Tabs
 
-| Home | Money | Pay |
+| Home | Pay | Offers |
 | --- | --- | --- |
-| <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/money.png" width="200" alt="Money"> | <img src="docs/images/pay.png" width="200" alt="Pay"> |
+| <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/pay.png" width="200" alt="Pay"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
-| Offers |
-| --- |
-| <img src="docs/images/offers.png" width="200" alt="Offers"> |
-
-### Money
+### Products & Tools
 
 | Send money | Cards | Loans |
 | --- | --- | --- |

@@ -50,7 +50,7 @@ flowchart TD
 | `:core:mock` | `MockTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty, live-drop) |
 | `:core:testing` | Sample objects shared by tests |
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
-| `:feature:wallet` | Send money, UPI request, split bill |
+| `:feature:wallet` | Send money, UPI request |
 | `:feature:banking` | Accounts, cards, loans, deposits |
 | `:feature:budgets` | Budgets and charts |
 | `:feature:fx` | Exchange-rate quotes and alerts |

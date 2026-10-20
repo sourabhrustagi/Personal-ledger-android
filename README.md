@@ -87,13 +87,12 @@ Raise the published `versionCode` only when a build must be retired — broken c
 
 ## What's in the app
 
-The app has five tabs:
+The app has four tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
 - **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, monthly statements as PDF, budgets, and markets.
 - **Pay:** scan a UPI QR code, send money, split a bill, request money, and manage beneficiaries.
 - **Offers:** promotional partner deals and cashback offers.
-- **Assistant:** answers questions about your money from the ledger on your phone; your questions never leave it.
 
 **Profile** has KYC, the security centre (MPIN, biometrics, device binding), notifications, settings (theme, privacy, language), transaction categories, your disputes, help, and the mock controls.
 
@@ -113,9 +112,9 @@ Screens below are the light theme on mock data.
 | --- | --- | --- |
 | <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/money.png" width="200" alt="Money"> | <img src="docs/images/pay.png" width="200" alt="Pay"> |
 
-| Assistant | Offers |
-| --- | --- |
-| <img src="docs/images/assistant.png" width="200" alt="Assistant"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
+| Offers |
+| --- |
+| <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
 ### Money
 
@@ -176,7 +175,7 @@ core/designsystem/   Theme, colours, money formatting, shared Compose components
 core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples
 feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
-                     ticker, assistant, banking
+                     ticker, banking
 docs/                Architecture document and decision records
 ```
 
@@ -201,7 +200,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
-| `:feature:assistant` | `AssistantViewModel` | In-app AI assistant chat with SSE streaming, prompt suggestions, and history replay |
 | `:feature:kyc` | `KycViewModel` | Identity verification steps, OCR drafts, confidence validation, and camera captures |
 | `:feature:fx` | `FxAlertsViewModel` | Exchange rate threshold alerts and background trigger rules |
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |

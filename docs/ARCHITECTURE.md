@@ -13,7 +13,7 @@ flowchart TD
         ledger[":feature:ledger"]
         wallet[":feature:wallet"]
         banking[":feature:banking"]
-        others["budgets · fx · kyc · ticker<br/>assistant · pos"]
+        others["budgets · fx · kyc · ticker<br/>assistant"]
     end
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
@@ -57,7 +57,6 @@ flowchart TD
 | `:feature:kyc` | KYC case flow with saved drafts |
 | `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |
 | `:feature:assistant` | On-device assistant that answers from the local ledger |
-| `:feature:pos` | Bill payment |
 
 ## How data flows
 

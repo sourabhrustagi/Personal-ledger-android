@@ -13,7 +13,7 @@ flowchart TD
         ledger[":feature:ledger"]
         wallet[":feature:wallet"]
         banking[":feature:banking"]
-        others["budgets · fx · kyc · ticker<br/>assistant"]
+        others["budgets · fx · kyc · ticker"]
     end
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
@@ -56,7 +56,6 @@ flowchart TD
 | `:feature:fx` | Exchange-rate quotes and alerts |
 | `:feature:kyc` | KYC case flow with saved drafts |
 | `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |
-| `:feature:assistant` | On-device assistant that answers from the local ledger |
 
 ## How data flows
 
@@ -93,7 +92,7 @@ What this means in practice:
 4. **During a pull, local edits win.** A server row never overwrites a row that still has pending local changes.
 5. **Conflicts** (the same transaction changed on the phone and elsewhere) go to `ConflictInbox`. The conflict screen shows each differing field side by side and saves the version you merge.
 
-The same pattern applies to KYC drafts and assistant history, which each have their own Room table.
+The same pattern applies to KYC drafts, which has its own Room table.
 
 ### Environments
 

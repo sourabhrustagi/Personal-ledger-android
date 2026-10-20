@@ -1,7 +1,6 @@
 package com.ledger.personal.ui.app.hubs
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalance
@@ -78,9 +77,6 @@ fun PayHub(
         SectionCard(title = "Send and request") {
             HubLink(Icons.Outlined.QrCodeScanner, "Scan and pay", "Any UPI QR code", online) { onOpen(Screen.Scan) }
             HubLink(Icons.AutoMirrored.Outlined.Send, "Send money", "To a contact or bank account", online) { onOpen(Screen.Wallet) }
-            HubLink(Icons.AutoMirrored.Outlined.CallSplit, "Split a bill", "Request equal shares by UPI", online) {
-                onOpen(Screen.SplitBill())
-            }
             HubLink(Icons.Outlined.QrCode2, "UPI", "Request with QR or UPI ID", online) { onOpen(Screen.Banking) }
             HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
         }

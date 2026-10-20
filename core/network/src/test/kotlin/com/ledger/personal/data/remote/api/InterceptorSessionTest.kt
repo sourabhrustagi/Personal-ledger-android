@@ -51,7 +51,6 @@ class InterceptorSessionTest {
         pinSha256 = "",
         pinBackup = "",
         paymentsBaseUrl = "",
-        insightsBaseUrl = "",
         assistantBaseUrl = "",
         promotionsBaseUrl = "",
         localSession = local,

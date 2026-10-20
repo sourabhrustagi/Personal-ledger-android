@@ -64,10 +64,6 @@ sealed interface Screen {
     @Serializable
     data object PayHub : Screen
 
-    /** Route to the insights hub screen. */
-    @Serializable
-    data object InsightsHub : Screen
-
     /** Route to the profile screen. */
     @Serializable
     data object Profile : Screen

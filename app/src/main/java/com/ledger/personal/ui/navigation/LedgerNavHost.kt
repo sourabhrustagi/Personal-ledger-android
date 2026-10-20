@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -66,7 +65,6 @@ import com.ledger.personal.ui.app.tools.ToolsViewModel
 import com.ledger.personal.ui.feature.SplitBillScreen
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
-import com.ledger.personal.ui.feature.AssistantScreen
 import com.ledger.personal.ui.feature.BankingScreen
 import com.ledger.personal.ui.feature.BudgetsScreen
 import com.ledger.personal.ui.feature.CardsScreen
@@ -113,7 +111,6 @@ fun LedgerNavHost(
         "money" -> Screen.MoneyHub
         "pay" -> Screen.PayHub
         "offers" -> Screen.Promotions()
-        "assistant" -> Screen.Assistant
         else -> null
     }
     fun iconFor(id: String) = when (id) {
@@ -121,7 +118,6 @@ fun LedgerNavHost(
         "money" -> Icons.Outlined.AccountBalanceWallet
         "pay" -> Icons.Outlined.QrCodeScanner
         "offers" -> Icons.Outlined.LocalOffer
-        "assistant" -> Icons.Outlined.AutoAwesome
         else -> null
     }
     val bar = homeState.tabs.mapNotNull { tab ->
@@ -201,7 +197,6 @@ private fun NavGraphBuilder.tabRoutes(
                     "send" -> Screen.Wallet
                     "upi" -> Screen.Scan
                     "budgets" -> Screen.Budgets
-                    "ask" -> Screen.Assistant
                     "offers" -> Screen.Promotions()
                     else -> null
                 }
@@ -223,9 +218,6 @@ private fun NavGraphBuilder.tabRoutes(
         val shelves by offers.shelves.collectAsStateWithLifecycle()
         val selected by offers.selected.collectAsStateWithLifecycle()
         PromotionsHub(shelves, selected, offers::select) { nav.navigate(Screen.Profile) }
-    }
-    composable<Screen.Assistant> {
-        AssistantScreen(onBack = null, onReviewPayment = { nav.navigate(Screen.Wallet) }, offline = flags.offline)
     }
 }
 

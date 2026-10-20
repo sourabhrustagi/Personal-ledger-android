@@ -60,7 +60,6 @@ import com.ledger.personal.ui.app.tools.DisputesScreen
 import com.ledger.personal.ui.app.tools.MockControlsScreen
 import com.ledger.personal.ui.app.tools.StatementsScreen
 import com.ledger.personal.ui.app.tools.ToolsViewModel
-import com.ledger.personal.ui.feature.SplitBillScreen
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
 import com.ledger.personal.ui.feature.BankingScreen
@@ -357,10 +356,6 @@ private fun NavGraphBuilder.toolRoutes(
         val route = entry.toRoute<Screen.PayTo>()
         WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, prefillHandle = route.handle, prefillMinor = route.amountMinor)
     }
-    composable<Screen.SplitBill> { entry ->
-        val route = entry.toRoute<Screen.SplitBill>()
-        SplitBillScreen(onBack = back, initialMinor = route.amountMinor, note = route.note)
-    }
 }
 
 private data class BarItem(val title: String, val route: Screen, val icon: ImageVector)
@@ -368,9 +363,6 @@ private data class BarItem(val title: String, val route: Screen, val icon: Image
 /** Shows detail actions. */
 @Composable
 private fun DetailActions(nav: NavHostController, tx: Transaction) {
-    OutlinedButton(onClick = { nav.navigate(Screen.SplitBill(tx.amountInCents, tx.description)) }, modifier = Modifier.fillMaxWidth()) {
-        Text("Split this bill")
-    }
     OutlinedButton(onClick = { nav.navigate(Screen.Dispute(tx.id)) }, modifier = Modifier.fillMaxWidth()) {
         Text("Report a problem")
     }

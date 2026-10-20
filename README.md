@@ -90,9 +90,9 @@ Raise the published `versionCode` only when a build must be retired — broken c
 The app has five tabs:
 
 - **Home:** balance card (hidden until you tap the eye), money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
-- **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, and monthly statements you can download as a PDF.
+- **Money:** accounts, wallet, cards (freeze, limits), loans with an EMI calculator, fixed deposits, monthly statements as PDF, budgets, and markets.
 - **Pay:** scan a UPI QR code, send money, split a bill, request money, and manage beneficiaries.
-- **Insights:** budgets, charts, FX rate alerts, and a live market ticker.
+- **Offers:** promotional partner deals and cashback offers.
 - **Assistant:** answers questions about your money from the ledger on your phone; your questions never leave it.
 
 **Profile** has KYC, the security centre (MPIN, biometrics, device binding), notifications, settings (theme, privacy, language), transaction categories, your disputes, help, and the mock controls.
@@ -113,9 +113,9 @@ Screens below are the light theme on mock data.
 | --- | --- | --- |
 | <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/money.png" width="200" alt="Money"> | <img src="docs/images/pay.png" width="200" alt="Pay"> |
 
-| Insights | Assistant | Offers |
-| --- | --- | --- |
-| <img src="docs/images/insights.png" width="200" alt="Insights"> | <img src="docs/images/assistant.png" width="200" alt="Assistant"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
+| Assistant | Offers |
+| --- | --- |
+| <img src="docs/images/assistant.png" width="200" alt="Assistant"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
 ### Money
 
@@ -141,7 +141,7 @@ Screens below are the light theme on mock data.
 | --- | --- | --- |
 | <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> |
 
-### Insights
+### Planning and markets
 
 | Budgets | Charts | Rate alerts |
 | --- | --- | --- |
@@ -193,7 +193,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
 | `:app` | `ToolsViewModel` | Database export/import, monthly statement PDF generation, and dispute logs |
 | `:app` | `PayHubViewModel` | Quick payment shortcuts and actions on the Pay hub |
-| `:app` | `InsightsHubViewModel` | Spend highlights and financial insights on the Insights hub |
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and swipe-to-delete with undo |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |

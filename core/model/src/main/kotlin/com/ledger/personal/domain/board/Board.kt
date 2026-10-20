@@ -39,15 +39,6 @@ fun interface PaymentsBackend {
     suspend fun shortcuts(): Result<List<PayShortcut>>
 }
 
-/** A spending line from the insights team. */
-data class SpendHighlight(val label: String, val spentMinor: Long)
-
-/** Insights backend. Amounts arrive in that team's own field, already in minor units. */
-fun interface InsightsBackend {
-    /** Returns highlights. */
-    suspend fun highlights(): Result<List<SpendHighlight>>
-}
-
 /** Assistant backend. Prompts are plain strings from that team's endpoint. */
 fun interface AssistantBackend {
     /** Returns prompts. */

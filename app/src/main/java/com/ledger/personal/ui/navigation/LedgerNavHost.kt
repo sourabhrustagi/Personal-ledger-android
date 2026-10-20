@@ -71,7 +71,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
 import com.ledger.personal.ui.feature.AssistantScreen
 import com.ledger.personal.ui.feature.BankingScreen
-import com.ledger.personal.ui.feature.PosScreen
 import com.ledger.personal.ui.feature.BudgetsScreen
 import com.ledger.personal.ui.feature.CardsScreen
 import com.ledger.personal.ui.feature.ChartsScreen
@@ -206,7 +205,6 @@ private fun NavGraphBuilder.tabRoutes(
                 val route = when (action) {
                     "send" -> Screen.Wallet
                     "upi" -> Screen.Scan
-                    "bills" -> Screen.Pos
                     "budgets" -> Screen.Budgets
                     "ask" -> Screen.Assistant
                     "offers" -> Screen.Promotions()
@@ -317,8 +315,7 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
     composable<Screen.Ticker> { TickerScreen(onBack = back) }
     composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = BuildConfig.FLAVOR != "mock") }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
-    composable<Screen.Banking> { BankingScreen(onBack = back, onPayBills = { nav.navigate(Screen.Pos) }) }
-    composable<Screen.Pos> { PosScreen(onBack = back) }
+    composable<Screen.Banking> { BankingScreen(onBack = back) }
     composable<Screen.Cards> { CardsScreen(onBack = back) }
     composable<Screen.Loans> { LoansScreen(onBack = back) }
     composable<Screen.Deposits> { DepositsScreen(onBack = back) }

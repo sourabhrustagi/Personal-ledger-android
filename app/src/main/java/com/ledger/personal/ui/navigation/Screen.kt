@@ -44,10 +44,6 @@ sealed interface Screen {
     @Serializable
     data object Ticker : Screen
 
-    /** Route to the assistant screen. */
-    @Serializable
-    data object Assistant : Screen
-
     /** Route to the banking screen. */
     @Serializable
     data object Banking : Screen

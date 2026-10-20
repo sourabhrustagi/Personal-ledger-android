@@ -4,7 +4,6 @@ import android.content.Context
 import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.remote.api.KtorAssistantBackend
 import com.ledger.personal.data.remote.api.KtorHomeBoard
-import com.ledger.personal.data.remote.api.KtorInsightsBackend
 import com.ledger.personal.data.remote.api.KtorPaymentsBackend
 import com.ledger.personal.data.remote.api.KtorPromotionsBackend
 import com.ledger.personal.data.local.MockTickerSocket
@@ -20,13 +19,11 @@ import com.ledger.personal.data.security.LocalBindingServer
 import com.ledger.personal.domain.demo.DemoConditions
 import com.ledger.personal.domain.board.AssistantBackend
 import com.ledger.personal.domain.board.HomeBoard
-import com.ledger.personal.domain.board.InsightsBackend
 import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.demo.SteadyConditions
 import com.ledger.personal.mock.MockAssistantBackend
 import com.ledger.personal.mock.MockHomeBoard
-import com.ledger.personal.mock.MockInsightsBackend
 import com.ledger.personal.mock.MockPaymentsBackend
 import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
@@ -59,7 +56,6 @@ object RepositoryModule {
         pinSha256 = BuildConfig.PIN_SHA256,
         pinBackup = BuildConfig.PIN_SHA256_BACKUP,
         paymentsBaseUrl = BuildConfig.PAYMENTS_BASE_URL,
-        insightsBaseUrl = BuildConfig.INSIGHTS_BASE_URL,
         assistantBaseUrl = BuildConfig.ASSISTANT_BASE_URL,
         promotionsBaseUrl = BuildConfig.PROMOTIONS_BASE_URL,
         localSession = BuildConfig.FLAVOR == "mock",
@@ -115,11 +111,6 @@ object TeamModule {
     fun payments(mock: MockPaymentsBackend, live: KtorPaymentsBackend): PaymentsBackend =
         if (BuildConfig.FLAVOR == "mock") mock else live
 
-    /** Supplies insights backend. */
-    @Provides
-    @Singleton
-    fun insights(mock: MockInsightsBackend, live: KtorInsightsBackend): InsightsBackend =
-        if (BuildConfig.FLAVOR == "mock") mock else live
 
     /** Supplies assistant backend. */
     @Provides

@@ -13,11 +13,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +75,6 @@ fun HomeScreen(
     onToggleReveal: () -> Unit,
     onProfile: () -> Unit,
     onOpen: (String) -> Unit = {},
-    onCreate: () -> Unit = {},
     onSeeAll: () -> Unit = {},
     onQuickAction: (String) -> Unit = {},
     conflicts: Int = 0,
@@ -99,9 +96,6 @@ fun HomeScreen(
                     IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
                 },
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreate) { Icon(Icons.Outlined.Add, contentDescription = "Add transaction") }
         },
     ) { padding ->
         LazyColumn(
@@ -264,7 +258,6 @@ private fun HomePreview() {
             onToggleReveal = {},
             onProfile = {},
             onOpen = {},
-            onCreate = {},
             onSeeAll = {},
             onQuickAction = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
@@ -285,7 +278,6 @@ private fun HomeOfflinePreview() {
             onToggleReveal = {},
             onProfile = {},
             onOpen = {},
-            onCreate = {},
             onSeeAll = {},
             onQuickAction = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),

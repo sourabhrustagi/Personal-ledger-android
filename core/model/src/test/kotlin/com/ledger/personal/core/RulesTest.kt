@@ -58,6 +58,13 @@ class RulesTest {
         assertTrue(exception.message.orEmpty().contains("number"))
     }
     @Test
+    fun adapterParsesValidQuote() {
+        val quote = adaptQuote(mapOf("pair" to "USDINR", "ticks" to "8350"))
+        assertEquals("USDINR", quote.pair)
+        assertEquals(8350L, quote.ticks)
+    }
+
+    @Test
     fun concurrentEditsConflictInsteadOfOverwrite() {
         val merged = mergeField(left = "12 Park St", right = "14 Park St")
         val conflict = merged as? FieldMerge.Conflict

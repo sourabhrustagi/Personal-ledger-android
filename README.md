@@ -901,6 +901,55 @@ fun PersonalLedgerTheme(
 }
 ```
 
+---
+
+### 5. Design System Components (`:core:designsystem`)
+
+To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Single Responsibility Principle (SRP)**, all reusable presentation primitives are centralized in `:core:designsystem`. Feature modules consume these components directly instead of implementing custom widgets.
+
+#### A. Core Primitives (`ui/components/`)
+
+| Component | File | Purpose & Behavior |
+|---|---|---|
+| **`LedgerOneText`** | `LedgerOneText.kt` | Enforces typography hierarchy via `LedgerOneTextRole` (`Display`, `Title`, `Body`, `Label`). Automatically configures the **Inter** font family with **tabular figures (`tnum`)** so financial digits align vertically in columns without jittering. |
+| **`LedgerOneButton`** | `LedgerOneButton.kt` | Standard action button supporting `Primary`, `Secondary`, and `Text` styles with built-in loading spinners, elevation, and disabled states. |
+| **`LedgerOneTextField`** | `LedgerOneTextField.kt` | Standardized text entry field supporting floating labels, placeholder text, prefix/suffix icons, character count hints, and field validation error states. |
+| **`LedgerOneCard`** | `LedgerOneCard.kt` | Surface container with standardized elevation, outline borders (`outlineVariant`), and consistent corner radius (`8.dp`). |
+| **`LoadingState`** | `LoadingState.kt` | Centered indeterminate circular indicator with customizable loading message for async screen loads. |
+| **`ErrorState`** | `ErrorState.kt` | Standard error presentation card displaying an alert icon, error description, and a retry callback button. |
+| **`EmptyState`** | `EmptyState.kt` | Visual placeholder displayed when transaction lists, disputes, or conflict inboxes have zero items. |
+
+#### B. Domain Financial & Security Components (`ui/feature/`)
+
+| Component | File | Purpose & Behavior |
+|---|---|---|
+| **`FeatureScaffold`** | `FeatureScaffold.kt` | The standard screen wrapper for all feature modules. Provides a consistent top bar, navigation icon, title, optional subtitle, trailing action slots, and optional integrated scroll container (`.verticalScroll(rememberScrollState())`). |
+| **`MaskedAmount`** | `MaskedAmount.kt` | Financial privacy component. Masks sensitive account balances as `••••••` by default, revealing the real balance with smooth animated transition when the user taps the eye toggle. |
+| **`formatMoney` / `Money`** | `Money.kt` | Strict minor-unit money formatter with Indian grouping (`₹1,23,456.78`). Applies semantic color coding via `MoneyDirection` (Green for credit inflows, `onSurface` for debits, neutral slate for zero balance). |
+| **`AmountField`** | `AmountField.kt` | Dedicated financial amount input field with permanent currency symbol prefix (`₹`), numerical keypad trigger, and minor-unit conversion. |
+| **`OtpField`** | `OtpField.kt` | 6-box individual digit OTP entry with auto-advance, backspace handling, and focused box border highlighting. |
+| **`SyncIndicator`** | `SyncIndicator.kt` | Reactive cloud synchronization chip displaying `SYNCED` (green check), `SYNCING` (rotating blue indicator), `WAITING` (amber cloud off), or `FAILED` (red alert). |
+| **`StatusBanner`** | `StatusBanner.kt` | Semantic informational or alert banner tied to `BannerTone` (`INFO`, `SUCCESS`, `WARNING`, `ERROR`) with custom icon and optional title. |
+| **`StatusChip`** | `StatusChip.kt` | Compact semantic status badge used in transaction details, dispute records, and account profile chips. |
+| **`OfflineBanner`** | `OfflineBanner.kt` | Sticky amber warning banner automatically displayed across screens when network connectivity is lost. |
+| **`HeroCard`** | `HeroCard.kt` | Prominent dashboard balance card with high-emphasis typography, masked balance toggle, and quick action buttons. |
+| **`SectionCard`** | `SectionCard.kt` | Rounded card container used to visually group related form fields, account details, or key-value summary rows. |
+| **`DetailRow`** | `DetailRow.kt` | Clean key-value label/value row with optional visual emphasis for monetary amounts and timestamps. |
+| **`ListRow`** | `ListRow.kt` | Standard list item with leading icon badge, title, subtitle, trailing amount, and chevron indicator. |
+| **`Timeline`** | `Timeline.kt` | Vertical step-by-step audit progression tracker (e.g. tracking dispute submission → review → resolution). |
+| **`StepHeader`** | `StepHeader.kt` | Horizontal multi-step progress bar displaying active, completed, and upcoming wizard steps. |
+| **`Skeleton`** | `Skeleton.kt` | Shimmer animated placeholder loader preventing layout shift while fetching remote transaction lists or account data. |
+| **`ProtectedBadge`** | `ProtectedBadge.kt` | Security indicator badge confirming hardware Keystore / biometric authorization protection. |
+
+#### C. Component Architecture & Guidelines
+
+1. **Strict Single Responsibility Principle (SRP):**
+   Every component lives in its own dedicated file. Independent components are never lumped together into generic files (e.g. button, text, text field, and card are distinct files).
+2. **Co-located `@PreviewLightDark`:**
+   Every component file includes `@PreviewLightDark` previews directly at the bottom of the file, allowing instant visual verification across both light and dark themes in the IDE.
+3. **Stateless Presentation & Event Hoisting:**
+   Components are strictly stateless presentation elements. They receive immutable state values via parameters and bubble user intents up via callback lambdas (`onClick`, `onValueChange`).
+
 ## Business logic
 
 The application's domain rules are concentrated in pure Kotlin within `core/model`, ensuring they can be tested independently of the Android runtime and UI frameworks.

@@ -86,11 +86,12 @@ Raise the published `versionCode` only when a build must be retired — broken c
 
 ## What's in the app
 
-The app has three tabs:
+The app has four tabs:
 
-- **Home:** balance card (hidden until you tap the eye), horizontal promotional offers, money in and out this month, quick actions, recent transactions, and banners for offline mode and sync conflicts.
-- **Pay:** send and receive money (UPI, scan and pay, beneficiaries), recent contacts, and recent completed transactions with quick view and link to all transactions.
-- **Accounts:** user profile details (avatar, name, phone, KYC status), banking & products shortcuts, account settings (KYC, security, notifications, theme, categories, disputes, help), app lock, and logout.
+- **Home:** balance card (hidden until you tap the eye) and horizontal promotional offers.
+- **Pay:** send and receive money (Send money, Receive money, and Scan and pay).
+- **Passbook:** transaction history with paging and tap-to-view details.
+- **Accounts:** user profile details (avatar, name, phone, KYC status), settings & mock controls, app lock, and logout.
 
 From any transaction you can edit it, delete it, or report a problem (raise a dispute).
 

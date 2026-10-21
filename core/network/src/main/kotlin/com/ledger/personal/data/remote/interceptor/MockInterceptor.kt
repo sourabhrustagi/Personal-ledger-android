@@ -1,6 +1,6 @@
 package com.ledger.personal.data.remote.interceptor
 
-import com.ledger.personal.data.remote.ApiEndpoints
+import com.ledger.personal.data.remote.mock.MockResponses
 import com.ledger.personal.di.ApiConfig
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,7 +14,7 @@ private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
 
 /**
  * Interceptor for the mock flavor that intercepts HTTP endpoints and simulates
- * backend responses without requiring live network connectivity.
+ * backend responses as JSON without requiring live network connectivity.
  */
 @Singleton
 class MockInterceptor @Inject constructor(
@@ -26,11 +26,12 @@ class MockInterceptor @Inject constructor(
             return chain.proceed(chain.request())
         }
 
-        val path = chain.request().url.encodedPath.trimEnd('/')
-        return when {
-            path.endsWith(ApiEndpoints.SESSION) -> jsonResponse(chain, """{"token":"mock-session"}""")
-            path.endsWith(ApiEndpoints.OTP) -> jsonResponse(chain, """{"message":"OTP sent","status":"SENT"}""")
-            else -> chain.proceed(chain.request())
+        val request = chain.request()
+        val mockJson = MockResponses.responseFor(request.url.encodedPath, request.method)
+        return if (mockJson != null) {
+            jsonResponse(chain, mockJson)
+        } else {
+            chain.proceed(request)
         }
     }
 

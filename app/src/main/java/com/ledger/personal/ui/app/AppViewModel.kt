@@ -14,6 +14,7 @@ import com.ledger.personal.data.security.PIN_V2
 import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.softUpdateDue
 import com.ledger.personal.domain.release.updateRequired
+import com.ledger.personal.domain.session.OtpService
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.ui.app.auth.promptWithCrypto
 import com.ledger.personal.ui.theme.ThemeMode
@@ -63,6 +64,7 @@ class AppViewModel @Inject constructor(
     categorySync: CategorySync,
     release: AppRelease,
     private val signIn: Session,
+    private val otpService: OtpService,
 ) : ViewModel() {
     val prefs: StateFlow<AppPrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -127,7 +129,7 @@ class AppViewModel @Inject constructor(
     /** Submits valid phone number to the server to send an OTP code. [onResult] returns the result with message like "OTP sent". */
     fun sendOtp(phone: String, onResult: (Result<String>) -> Unit) {
         viewModelScope.launch {
-            onResult(signIn.sendOtp(phone))
+            onResult(otpService.sendOtp(phone))
         }
     }
 

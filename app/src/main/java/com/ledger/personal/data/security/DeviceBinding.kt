@@ -2,6 +2,7 @@ package com.ledger.personal.data.security
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.di.AuthenticatedClient
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -77,13 +78,13 @@ class KtorBindingServer @Inject constructor(
 ) : BindingServer {
     /** Challenge. */
     override suspend fun challenge(): ByteArray =
-        Base64.getDecoder().decode(client.post("devices/challenge").body<ChallengeDto>().challenge)
+        Base64.getDecoder().decode(client.post(ApiEndpoints.DEVICE_CHALLENGE).body<ChallengeDto>().challenge)
 
     /** Register. */
     override suspend fun register(publicKey: ByteArray, challenge: ByteArray, signature: ByteArray): Result<String> = runCatching {
         val encoder = Base64.getEncoder()
         val body = BindRequestDto(encoder.encodeToString(publicKey), encoder.encodeToString(challenge), encoder.encodeToString(signature))
-        client.post("devices/bind") { setBody(body) }.body<BindResponseDto>().deviceId
+        client.post(ApiEndpoints.DEVICE_BIND) { setBody(body) }.body<BindResponseDto>().deviceId
     }.onFailure { if (it is CancellationException) throw it }
 }
 

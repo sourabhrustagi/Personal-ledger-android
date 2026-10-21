@@ -20,8 +20,7 @@ Or open the folder in Android Studio, pick the `mockDebug` build variant, and pr
 
 In the mock build:
 
-- the sign-up code is `123456` (`MockValues.OTP`);
-- you choose your own 4-digit MPIN during onboarding, and `1111` (`MockValues.MPIN`) also unlocks this build;
+- the sign-up and sign-in code is `123456` (`MockValues.OTP`);
 - Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, or a sync conflict.
 
 ## Build flavors
@@ -47,8 +46,8 @@ All mock values and seed catalogs are centralized in `:core:mock` so they can be
 
 Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt):
 
-- **SMS OTP Verification Code (`MockValues.OTP`):** `123456` — used on the Onboarding OTP screen.
-- **Universal Demo MPIN (`MockValues.MPIN`):** `1111` — unlocks the mock build flavor instantly on login.
+- **SMS OTP Verification Code (`MockValues.OTP`):** `123456` — used on Onboarding and OTP Login screens.
+- **Universal Demo MPIN (`MockValues.MPIN`):** `1111` — used for MPIN operations in Security centre.
 - **Default User Name (`MockValues.DEFAULT_NAME`):** `Asha Rao` — used for demo profiles and previews.
 - **Default Phone Number (`MockValues.DEFAULT_PHONE`):** `9876543210` — used for onboarding phone input and previews.
 - **Default Session Token (`MockValues.SESSION_TOKEN`):** `mock-session` — used for local authenticated requests.
@@ -103,7 +102,7 @@ Screens below are the light theme on mock data.
 
 | Welcome | Sign in |
 | --- | --- |
-| <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with MPIN"> |
+| <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with OTP"> |
 
 ### Tabs
 

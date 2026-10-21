@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
@@ -50,7 +51,6 @@ import com.ledger.personal.ui.app.account.ProfileScreen
 import com.ledger.personal.ui.app.account.SecurityScreen
 import com.ledger.personal.ui.app.account.SettingsScreen
 import com.ledger.personal.ui.app.hubs.PayHub
-import com.ledger.personal.ui.app.hubs.PayHubViewModel
 import com.ledger.personal.ui.app.hubs.PromotionsHub
 import com.ledger.personal.ui.app.hubs.PromotionsViewModel
 import com.ledger.personal.ui.app.scan.ScanScreen
@@ -106,6 +106,7 @@ fun LedgerNavHost(
     fun routeFor(id: String): Screen? = when (id) {
         "home" -> Screen.Home
         "pay" -> Screen.PayHub
+        "passbook" -> Screen.Passbook
         "accounts" -> Screen.Profile
         "offers" -> Screen.Promotions()
         else -> null
@@ -113,6 +114,7 @@ fun LedgerNavHost(
     fun iconFor(id: String) = when (id) {
         "home" -> Icons.Outlined.Home
         "pay" -> Icons.Outlined.QrCodeScanner
+        "passbook" -> Icons.AutoMirrored.Outlined.ReceiptLong
         "accounts" -> Icons.Outlined.AccountCircle
         "offers" -> Icons.Outlined.LocalOffer
         else -> null
@@ -205,16 +207,13 @@ private fun NavGraphBuilder.tabRoutes(
         )
     }
     composable<Screen.PayHub> {
-        val pay: PayHubViewModel = hiltViewModel()
-        val shortcuts by pay.shortcuts.collectAsStateWithLifecycle()
-        val recentTx by pay.recentTransactions.collectAsStateWithLifecycle()
-        PayHub(
-            flags = flags,
-            shortcuts = shortcuts,
-            recentTransactions = recentTx,
-            onProfile = { nav.navigate(Screen.Profile) },
-            onOpen = nav::navigate,
-            onOpenTransaction = { nav.navigate(Screen.TransactionDetail(it)) },
+        PayHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate)
+    }
+    composable<Screen.Passbook> {
+        LedgerHistoryScreen(
+            onBack = null,
+            title = "Passbook",
+            onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
         )
     }
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
@@ -294,7 +293,12 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
 /** Product routes. */
 private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boolean) {
     val back: () -> Unit = { nav.popBackStack() }
-    composable<Screen.LedgerHistory> { LedgerHistoryScreen(onBack = back) }
+    composable<Screen.LedgerHistory> {
+        LedgerHistoryScreen(
+            onBack = back,
+            onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
+        )
+    }
     composable<Screen.Charts> { ChartsScreen(onBack = back) }
     composable<Screen.FxAlerts> { FxAlertsScreen(onBack = back) }
     composable<Screen.Ticker> { TickerScreen(onBack = back) }

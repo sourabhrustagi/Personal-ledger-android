@@ -9,7 +9,7 @@ import com.ledger.personal.data.local.MockTickerSocket
 import com.ledger.personal.data.local.KtorTickerSocket
 import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.data.repository.MockTransactionRepository
-import com.ledger.personal.data.repository.KtorTransactionRepository
+import com.ledger.personal.data.repository.TransactionsRepository
 import com.ledger.personal.domain.repository.TransactionRemote
 import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
@@ -62,8 +62,8 @@ object RepositoryModule {
     @Singleton
     fun provideTransactionRemote(
         mockRepository: MockTransactionRepository,
-        ktorRepository: KtorTransactionRepository,
-    ): TransactionRemote = if (BuildConfig.FLAVOR == "mock") mockRepository else ktorRepository
+        transactionsRepository: TransactionsRepository,
+    ): TransactionRemote = if (BuildConfig.FLAVOR == "mock") mockRepository else transactionsRepository
 
     /** Supplies ticker. */
     @Provides

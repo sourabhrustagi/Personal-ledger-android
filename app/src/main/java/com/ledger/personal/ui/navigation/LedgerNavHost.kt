@@ -361,7 +361,7 @@ private fun NavGraphBuilder.toolRoutes(
     composable<Screen.Conflicts> { ConflictScreen(tools, back) }
     composable<Screen.MockControls> { MockControlsScreen(onBack = back, onSimulateConflict = tools::simulateConflict) }
     composable<Screen.Scan> {
-        ScanScreen(liveCamera = BuildConfig.FLAVOR != "mock", onBack = back) { target ->
+        ScanScreen(liveCamera = true, onBack = back) { target ->
             nav.navigate(Screen.PayTo(target.vpa, target.amountMinor)) { popUpTo<Screen.Scan> { inclusive = true } }
         }
     }

@@ -33,22 +33,26 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     init {
         // Seed some initial data for interactive testing
         val seeds = listOf(
-            Seed("Groceries", "BigBasket", 1_842_50L), Seed("Dining", "Swiggy", 450_00L),
-            Seed("Transport", "Uber", 312_00L), Seed("Utilities", "Electricity bill", 1_290_00L),
-            Seed("Entertainment", "BookMyShow", 760_00L), Seed("Groceries", "DMart", 2_315_75L),
-            Seed("Dining", "Starbucks", 385_00L), Seed("Transport", "Metro card", 500_00L),
+            Seed("Scan & Pay", "Chai Point · QR Pay", 120_00L),
+            Seed("Scan & Pay", "Starbucks · Scan & Pay", 385_00L),
+            Seed("Scan & Pay", "Swiggy Instamart · QR Pay", 450_00L),
+            Seed("Scan & Pay", "DMart Supermarket · Scan & Pay", 1_450_50L),
+            Seed("Scan & Pay", "Apollo Pharmacy · QR Pay", 312_00L),
+            Seed("Scan & Pay", "Metro Station · Scan & Pay", 60_00L),
+            Seed("Scan & Pay", "Blue Tokai Coffee · QR Pay", 280_00L),
+            Seed("Scan & Pay", "Corner Bookstore · Scan & Pay", 520_00L),
         )
         val now = System.currentTimeMillis()
         for (i in 1..25) {
             val id = "tx-seed-$i"
-            val seed = if (i == 12) Seed("Salary", "Salary · Acme Corp", 85_000_00L) else seeds[i % seeds.size]
+            val seed = seeds[i % seeds.size]
             storage[id] = Transaction(
                 id = id,
                 amountInCents = seed.amount,
                 currency = if (i % 9 == 0) "USD" else "INR",
                 category = seed.category,
                 description = seed.merchant,
-                timestampEpochMs = now - (i * 9 * 3600000L)
+                timestampEpochMs = now - (i * 9 * 3600000L),
             )
         }
     }

@@ -771,6 +771,136 @@ When prepaying an existing EMI loan, `PrepayMode` determines the amortization ad
 - **`PrepayMode.TENURE` ("Reduce tenure"):** Keeps the monthly EMI payment constant while reducing the remaining months until loan maturity (`tenureFor`).
 - **`PrepayMode.EMI` ("Reduce EMI"):** Recalculates lower monthly EMI payments while keeping the original loan tenure unchanged (`emiMinor`).
 
+## Design System: ColorScheme, Semantic Colors & Theme Architecture
+
+The visual foundation of LedgerOne is built inside `:core:designsystem` around **Material 3 (M3)** design principles tailored specifically for financial technology. It provides a harmonious, accessible color hierarchy across light and dark modes, and extends standard Material palettes with domain-specific financial semantic colors.
+
+> **Zero Raw Hex Colors In Features:**
+> Feature modules must NEVER hardcode `Color(0x...)` or raw hex values. All colors must originate from `MaterialTheme.colorScheme` or `LedgerTheme.colors`. The project's `ModuleBoundaryTest` verifies this rule and fails the build on any violation.
+
+---
+
+### 1. Palette Foundation (`Color.kt`)
+
+Rather than arbitrary colors, LedgerOne defines a tailored, cohesive primitive palette:
+- **Neutral Slate Scale (`Slate950` to `Slate50`):** Replaces pure flat black and stark white with rich, layered slate tones for premium depth and eye comfort.
+- **Brand Primary Blues (`Blue900` to `Blue100`, `BlueInk`):** A confident royal blue family used for primary call-to-actions, focused elements, and active indicators.
+- **Semantic Green (`Green950` to `Green100`):** Signifies deposits, inflows, credit transactions, verified states, and healthy balances.
+- **Semantic Red (`Red950` to `Red100`):** Signifies debits, expenses, critical errors, security warnings, and failed syncs.
+- **Semantic Amber (`Amber950` to `Amber100`):** Signifies pending transfers, cooldown timers, sync waiting states, and alerts.
+
+---
+
+### 2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)
+
+LedgerOne configures distinct Material 3 color schemes for light and dark modes:
+
+| Material 3 Role | Light Scheme (`LightScheme`) | Dark Scheme (`DarkScheme`) | Purpose & UI Role |
+|---|---|---|---|
+| **`primary`** | `Blue700` (`#1D4ED8`) | `Blue300` (`#93C5FD`) | Primary buttons, active tabs, focused outlines, primary brand accents |
+| **`onPrimary`** | `Color.White` (`#FFFFFF`) | `BlueInk` (`#0B1B3F`) | Text and icon labels drawn over `primary` surfaces |
+| **`primaryContainer`** | `Blue100` (`#DBEAFE`) | `Blue900` (`#1E3A8A`) | Subtle brand highlights, active navigation pill backgrounds, selected chips |
+| **`onPrimaryContainer`** | `Blue900` (`#1E3A8A`) | `Blue100` (`#DBEAFE`) | Text and icons placed on top of `primaryContainer` |
+| **`secondary`** | `Slate600` (`#475569`) | `Slate300` (`#CBD5E1`) | Subordinate UI elements, secondary action buttons, subtitles |
+| **`onSecondary`** | `Color.White` (`#FFFFFF`) | `Slate950` (`#0B1220`) | Text and icons drawn on `secondary` buttons |
+| **`secondaryContainer`** | `Slate100` (`#F1F5F9`) | `Slate850` (`#1C2740`) | Inactive pill backgrounds, neutral category chip containers |
+| **`onSecondaryContainer`**| `Ink` (`#0F172A`) | `Slate100` (`#F1F5F9`) | Text and icons drawn on `secondaryContainer` |
+| **`tertiary`** | `Amber700` (`#B45309`) | `Amber400` (`#FBBF24`) | Special accent highlights, promotional banners, offer tags |
+| **`onTertiary`** | `Color.White` (`#FFFFFF`) | `Slate950` (`#0B1220`) | Text/icons drawn on `tertiary` elements |
+| **`background`** | `Slate50` (`#F8FAFC`) | `Slate950` (`#0B1220`) | Root screen background behind scrollable containers |
+| **`onBackground`** | `Ink` (`#0F172A`) | `Slate100` (`#F1F5F9`) | Default text color rendered directly on screen background |
+| **`surface`** | `Color.White` (`#FFFFFF`) | `Slate900` (`#111A2E`) | Card containers, modal sheets, elevated dialog surfaces |
+| **`onSurface`** | `Ink` (`#0F172A`) | `Slate100` (`#F1F5F9`) | High-emphasis body, title, and heading typography |
+| **`surfaceVariant`** | `Slate100` (`#F1F5F9`) | `Slate850` (`#1C2740`) | Subtle card backgrounds, input field containers, inactive segments |
+| **`onSurfaceVariant`** | `Slate700` (`#334155`) | `Slate300` (`#CBD5E1`) | Medium-emphasis secondary text, timestamps, captions, helper hints |
+| **`outline`** | `Slate300` (`#CBD5E1`) | `Slate700` (`#334155`) | Input field borders, card division lines, table separators |
+| **`outlineVariant`** | `Slate200` (`#E2E8F0`) | `Slate850` (`#1C2740`) | Ultra-subtle dividers and inactive border outlines |
+| **`error`** | `Red700` (`#B91C1C`) | `Red300` (`#FCA5A5`) | Critical errors, validation failures, destructive actions |
+| **`onError`** | `Color.White` (`#FFFFFF`) | `Red950` (`#450A0A`) | Text and icon labels drawn on `error` surfaces |
+| **`errorContainer`** | `Red100` (`#FEE2E2`) | `Red950` (`#450A0A`) | Error banner backgrounds, failed transaction badge pills |
+| **`onErrorContainer`** | `Red700` (`#B91C1C`) | `Red300` (`#FCA5A5`) | Error text and warning icon tint rendered inside `errorContainer` |
+
+---
+
+### 3. Domain Financial Colors: `LedgerTheme.colors`
+
+Standard Material 3 only defines an `error` state. In financial applications, **credits, inflows, approvals, warnings, and cooling periods** require dedicated, first-class semantic colors that guarantee WCAG AA contrast ratios in both light and dark modes:
+
+```kotlin
+@Immutable
+data class LedgerColors(
+    val success: Color,
+    val successContainer: Color,
+    val warning: Color,
+    val warningContainer: Color,
+    val danger: Color,
+    val dangerContainer: Color,
+)
+```
+
+| Semantic Slot | Light Theme Value | Dark Theme Value | Financial & UI Application |
+|---|---|---|---|
+| **`success`** | `Green700` (`#15803D`) | `Green400` (`#4ADE80`) | Credit (+) transaction amounts, successful transfer confirmations, synced status |
+| **`successContainer`** | `Green100` (`#DCFCE7`) | `Green950` (`#052E16`) | Background pill for success badges, synced status chips, inflow banners |
+| **`warning`** | `Amber700` (`#B45309`) | `Amber400` (`#FBBF24`) | Beneficiary cooling period warnings, in-flight sync notices, dispute under review |
+| **`warningContainer`** | `Amber100` (`#FEF3C7`) | `Amber950` (`#451A03`) | Cooldown badge container, caution banner background, step-up auth cards |
+| **`danger`** | `Red700` (`#B91C1C`) | `Red300` (`#FCA5A5`) | Debit (-) transaction amounts, payment declines, session auto-lock alerts |
+| **`dangerContainer`** | `Red100` (`#FEE2E2`) | `Red950` (`#450A0A`) | Decline banner container, failed transfer card surface |
+
+#### Accessing Financial Colors in Compose:
+```kotlin
+// Example: Rendering credit vs debit amounts in Money.kt
+val color = when (direction) {
+    MoneyDirection.CREDIT -> LedgerTheme.colors.success
+    MoneyDirection.DEBIT -> MaterialTheme.colorScheme.onSurface
+    MoneyDirection.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+// Example: Displaying a semantic banner in StatusBanner.kt
+val (background, content) = when (tone) {
+    BannerTone.INFO -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+    BannerTone.SUCCESS -> LedgerTheme.colors.successContainer to LedgerTheme.colors.success
+    BannerTone.WARNING -> LedgerTheme.colors.warningContainer to LedgerTheme.colors.warning
+    BannerTone.ERROR -> LedgerTheme.colors.dangerContainer to LedgerTheme.colors.danger
+}
+```
+
+---
+
+### 4. Theme Modes & Dynamic Switching (`ThemeMode`)
+
+LedgerOne supports dynamic user theme selection via `ThemeMode`, persisted in DataStore preferences:
+
+```kotlin
+enum class ThemeMode(val label: String) {
+    SYSTEM("System"),
+    LIGHT("Light"),
+    DARK("Dark"),
+}
+```
+
+- **`ThemeMode.SYSTEM` (Default):** Observes the Android OS system dark theme setting via `isSystemInDarkTheme()`. Adapts automatically when the user changes device settings or when night-mode triggers on a schedule.
+- **`ThemeMode.LIGHT`:** Forces the application into `LightScheme` and `LightLedger` regardless of device configuration.
+- **`ThemeMode.DARK`:** Forces the application into `DarkScheme` and `DarkLedger` for low-light battery savings on AMOLED displays.
+
+Themes are applied seamlessly via `LedgerOneTheme(mode = userPrefs.themeMode)` at the root of `LedgerOneApp.kt`:
+```kotlin
+@Composable
+fun PersonalLedgerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalLedgerColors provides if (darkTheme) DarkLedger else LightLedger) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkScheme else LightScheme,
+            typography = LedgerTypography,
+            shapes = LedgerShapes,
+            content = content,
+        )
+    }
+}
+```
+
 ## Business logic
 
 The application's domain rules are concentrated in pure Kotlin within `core/model`, ensuring they can be tested independently of the Android runtime and UI frameworks.

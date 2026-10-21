@@ -14,6 +14,7 @@ import com.ledger.personal.data.security.PIN_V2
 import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.softUpdateDue
 import com.ledger.personal.domain.release.updateRequired
+import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.domain.session.OtpService
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.ui.app.auth.promptWithCrypto
@@ -126,13 +127,8 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    /** Submits valid phone number to the server to send an OTP code. [onResult] returns the result with message like "OTP sent". */
-    fun sendOtp(phone: String, onResult: (Result<String>) -> Unit) {
-        viewModelScope.launch {
-            onResult(otpService.sendOtp(phone))
-        }
-    }
-
+    /** Submits valid phone number to the server to send an OTP code. */
+    suspend fun sendOtp(phone: String): Result<OtpResponse> = otpService.sendOtp(phone)
 
     /** Verifies OTP to unlock / sign in. [onResult] runs on the main thread after a server session is opened. */
     fun verifyOtp(code: String, onResult: (Boolean) -> Unit) {

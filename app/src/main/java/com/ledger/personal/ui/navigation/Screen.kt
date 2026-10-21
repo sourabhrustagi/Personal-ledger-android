@@ -20,21 +20,9 @@ sealed interface Screen {
     @Serializable
     data class EditTransaction(val transactionId: String) : Screen
 
-    /** Route to the charts screen. */
-    @Serializable
-    data object Charts : Screen
-
     /** Route to the ledger history screen. */
     @Serializable
     data object LedgerHistory : Screen
-
-    /** Route to the fx alerts screen. */
-    @Serializable
-    data object FxAlerts : Screen
-
-    /** Route to the kyc screen. */
-    @Serializable
-    data object Kyc : Screen
 
     /** Route to the wallet screen. */
     @Serializable

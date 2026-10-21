@@ -86,14 +86,15 @@ Raise the published `versionCode` only when a build must be retired — broken c
 
 ## What's in the app
 
-The app has four tabs:
+The app provides five primary navigation tabs:
 
-- **Home:** balance card (hidden until you tap the eye) and horizontal promotional offers.
-- **Pay:** scan and pay with camera QR scanner, and send to anyone by entering mobile number, UPI ID, or selecting from local contacts.
-- **Passbook:** transaction history with paging and tap-to-view details.
-- **Accounts:** user profile details (avatar, name, phone, KYC status), settings & mock controls, app lock, and logout.
+- **Home:** current bank account balance card (masked by default, tap the eye icon to reveal), sync conflict alerts, and quick actions.
+- **Pay:** scan & pay with camera QR scanner, and send to anyone by entering mobile number, UPI ID, choosing from device contacts, or paying utility bills.
+- **Passbook:** real-time transaction history stream (`LedgerHistory`) with pagination, debit/credit indicators, category badges, and tap-to-view details.
+- **Accounts:** user profile details (avatar, name, phone, KYC verification status), settings & mock controls, app security lock, and logout.
+- **Offers:** dynamic promotional shelves and marketing campaign banners.
 
-From any transaction you can view its details, delete it, or report a problem (raise a dispute).
+From any transaction you can inspect its full metadata, double-entry legs, and sync state, or tap **Report a problem** to file a dispute recorded in the local dispute log. Transactions maintain an immutable ledger history to ensure accounting integrity.
 
 Screens below are the light theme on mock data.
 
@@ -160,13 +161,14 @@ Screens below are the light theme on mock data.
 ## Project layout
 
 ```
-app/                 App shell: navigation, flavors, DI wiring, and ui/app (auth, hubs, account, scan, tools)
-core/model/          Plain Kotlin: domain types, repository interfaces, business rules
-core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, ticker socket
-core/database/       Room database, offline-first repository, sync worker, DataStore settings
-core/designsystem/   Theme, colours, money formatting, shared Compose components
+app/                 App shell: navigation graph (Screen), build flavors, DI wiring, and ui/app (auth, hubs, account, scan, tools)
+core/model/          Plain Kotlin: domain types (Transaction, Money), repository interfaces, business rules (Rules.kt)
+core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, ticker socket, device binding
+core/database/       Room database, migrations, offline-first repository, sync worker, DataStore settings
+core/designsystem/   Theme, colours, money formatting, shared Compose components (FeatureScaffold, keypad, banners)
+core/ui/             Shared Compose UI effects and window security utilities (SecureWindow)
 core/mock/           Mock backend, seeded demo catalog, mock switches
-core/testing/        Shared test samples
+core/testing/        Shared test samples and fixtures
 feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
                      ticker, banking
 docs/                Architecture document and decision records
@@ -174,6 +176,41 @@ docs/                Architecture document and decision records
 
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
+
+## Architecture & How the app works
+
+The application is structured into a modular three-tier architecture (`:app` → `:feature:*` → `:core:*`) that enforces strict feature isolation and an **offline-first** reactive data flow:
+
+```mermaid
+flowchart TD
+    UI[Compose Screen] -->|UI Events| VM[ViewModel]
+    VM -->|Observe Flow| Repo[OfflineTransactionRepository]
+    Repo -->|Local Read/Write| Room[(Room Database)]
+    Room -.->|Live Updates| VM
+    VM -.->|StateFlow| UI
+
+    Worker[TransactionSyncWorker] -->|Sync Schedule| Repo
+    Repo <-->|Push Pending / Pull Remote| Net[Ktor Remote / Mock Repository]
+```
+
+### 1. Offline-first local source of truth
+- Every user write (transaction creation, draft changes, bill payments) is immediately persisted to the local **Room** database with a synchronization status: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE`.
+- Screens never read directly from network endpoints. Jetpack Compose screens observe read-only `StateFlow` streams exposed by ViewModels, which in turn collect cold `Flow` emissions directly from Room DAOs. This guarantees instantaneous UI updates and seamless offline functionality.
+
+### 2. Resilient background synchronization & conflict resolution
+- **WorkManager** schedules `TransactionSyncWorker` with network constraints (`NetworkType.CONNECTED`).
+- Pending local mutations are pushed with exponential backoff (`withRetry`). Network calls use unique, client-generated idempotency keys (`TransferBook`) to prevent duplicate transactions during retries.
+- Remote changes are pulled and merged into Room without overwriting local un-synced edits. When a server responds with `409 Conflict`, the competing states are diverted into `ConflictInbox` for side-by-side user resolution.
+
+### 3. Build flavor dependency injection
+- Dagger Hilt dynamically binds repositories based on the build flavor:
+  - `mockDebug`: uses in-memory `MockTransactionRepository` seeded with accounts, contacts, and transactions, alongside `MockSwitches` to simulate network latency, offline mode, and server errors.
+  - `dev`, `staging`, and `prod`: inject `KtorTransactionRepository` connecting to remote HTTPS endpoints with TLS certificate pinning and hardware-backed device binding.
+
+### 4. Multi-layer banking security
+- **MPIN & Keystore:** MPIN keys are stretched with PBKDF2 (600,000 iterations) and sealed using Android Keystore keys.
+- **Biometric Device Binding:** Devices register hardware-backed ECDSA P-256 keys in the Keystore, signing cryptographic server challenge nonces (`SHA256withECDSA`) upon biometric verification.
+- **Window Protection (`SecureWindow`):** Sensitive screens dynamically block screenshot capture and recent-app previews using Android's `FLAG_SECURE`.
 
 ## View models
 
@@ -185,9 +222,9 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
 | `:app` | `ToolsViewModel` | Database export/import, monthly statement PDF generation, and dispute logs |
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
-| `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and swipe-to-delete with undo |
+| `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
-| `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and deletion |
+| `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and retry |
 | `:feature:ledger` | `CreateTransactionViewModel` | Transaction creation form validation and submission |
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
@@ -197,6 +234,226 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
 | `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual trend curves |
+
+## Jetpack Compose Effects & Lifecycle Side-Effect Handling
+
+In Jetpack Compose, composable functions should be fast, pure, and free of side effects. Because composables can recompose frequently, in any order, or be cancelled mid-execution, executing side effects (such as modifying non-Compose state, starting coroutines, registering system callbacks, or allocating system resources) directly inside a composable body can lead to memory leaks, repeated execution, and erratic app state.
+
+Jetpack Compose provides built-in effect APIs to handle side effects in a controlled, lifecycle-aware manner.
+
+---
+
+### 1. `DisposableEffect` (Cleanup-Aware Side Effects)
+
+`DisposableEffect` is specifically designed for side effects that require **teardown or cleanup** when the composable leaves the composition or when its observation keys change. It is intended for non-coroutine operations such as registering and unregistering listeners, releasing executors, or toggling window flags.
+
+Every `DisposableEffect` must end with an `onDispose { ... }` block where the teardown logic is executed.
+
+#### How `DisposableEffect` works:
+1. When entering composition (or when a key changes), the effect block executes.
+2. When the composable leaves the composition (or before re-running with new keys), `onDispose` executes first to release held resources.
+
+#### Real-world examples in LedgerOne:
+
+#### A. Window Security (`SecureWindow.kt` in `:core:ui`)
+Prevents Android from taking screenshots or showing task switcher previews on sensitive banking screens:
+
+```kotlin
+@Composable
+fun SecureWindow() {
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val window = (view.context as? Activity)?.window
+        // 1. Add FLAG_SECURE when the screen enters composition
+        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        
+        // 2. Clean up: clear FLAG_SECURE when the screen leaves composition
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+}
+```
+
+#### B. Background Session Auto-Lock (`LedgerOneApp.kt` in `:app`)
+Monitors application background duration using AndroidX `LifecycleEventObserver` and auto-locks the session if backgrounded for more than 30 seconds:
+
+```kotlin
+@Composable
+private fun LockWhenBackgrounded(onLock: () -> Unit) {
+    val owner = LocalLifecycleOwner.current
+    val activity = LocalActivity.current
+    DisposableEffect(owner) {
+        var stoppedAt = 0L
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> if (activity?.isChangingConfigurations != true) {
+                    stoppedAt = System.currentTimeMillis()
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (stoppedAt != 0L && System.currentTimeMillis() - stoppedAt > LOCK_AFTER_MS) {
+                        onLock()
+                    }
+                    stoppedAt = 0L
+                }
+                else -> Unit
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        // Clean up: unregister the lifecycle observer when navigating away
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+}
+```
+
+#### C. Network Connectivity Monitoring (`Link.kt` in `:app`)
+Registers an Android system `ConnectivityManager.NetworkCallback` to keep the UI state synchronized with the device's internet connection:
+
+```kotlin
+@Composable
+fun rememberConnected(): Boolean {
+    val context = LocalContext.current
+    val manager = remember { context.getSystemService(ConnectivityManager::class.java) }
+    var connected by remember { mutableStateOf(hasInternet(manager)) }
+    
+    DisposableEffect(manager) {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) { connected = hasInternet(manager) }
+            override fun onLost(network: Network) { connected = hasInternet(manager) }
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                connected = hasInternet(manager)
+            }
+        }
+        manager.registerDefaultNetworkCallback(callback)
+        // Clean up: unregister callback from system service to avoid memory leaks
+        onDispose { manager.unregisterNetworkCallback(callback) }
+    }
+    return connected
+}
+```
+
+#### D. Camera Executor Teardown (`QrCamera.kt` in `:app`)
+Allocates a single-thread background executor to process QR camera frames with ML Kit, shutting down the background executor cleanly when leaving composition:
+
+```kotlin
+DisposableEffect(owner) {
+    if (context.findActivity() == null) return@DisposableEffect onDispose {}
+    val executor = Executors.newSingleThreadExecutor()
+    bindQrScanner(context, owner, preview, executor) { raw ->
+        if (!done) {
+            done = true
+            ContextCompat.getMainExecutor(context).execute { onCode(raw) }
+        }
+    }
+    // Clean up: shut down background thread pool when camera view is dismissed
+    onDispose { executor.shutdown() }
+}
+```
+
+#### E. Deep Link Intent Listener (`LedgerNavHost.kt` in `:app`)
+Hooks into `ComponentActivity.addOnNewIntentListener` to intercept external payment deep links and passes them to `NavController`:
+
+```kotlin
+val activity = LocalActivity.current as? ComponentActivity
+if (activity != null) DisposableEffect(activity, navController) {
+    val listener = Consumer<Intent> { navController.handleDeepLink(it) }
+    activity.addOnNewIntentListener(listener)
+    // Clean up: remove the listener when NavHost leaves composition
+    onDispose { activity.removeOnNewIntentListener(listener) }
+}
+```
+
+---
+
+### 2. `LaunchedEffect` (Coroutine-Scoped Side Effects)
+
+`LaunchedEffect` executes a suspend block within a `CoroutineScope` tied to the composable's lifecycle.
+
+- **Trigger:** Runs when entering composition or when any of its specified `key` parameters change.
+- **Cancellation:** If the composable leaves composition or if a key changes while the coroutine is still running, the existing coroutine is cancelled cooperatively.
+
+#### Real-world examples in LedgerOne:
+- **Countdown Timers:** `LaunchedEffect(seconds)` in `Login.kt` and `OtpStep.kt` runs a 1-second delay loop to update OTP resend timers.
+- **Dynamic Permission Requests:** `LaunchedEffect(liveCapture)` in `Scan.kt` and `KycScreen.kt` triggers the Android system camera permission prompt when camera scanning is activated.
+- **Deep Link Navigation Prefill:** `LaunchedEffect(prefillHandle, prefillMinor)` in `WalletScreen.kt` pre-populates payee details when launched via UPI intent.
+- **Pagination Triggers:** `LaunchedEffect(shouldLoadMore)` in `TransactionListScreen.kt` triggers `viewModel.loadNextPage()` when the user scrolls near the list bottom.
+
+---
+
+### 3. `SideEffect` (Publishing Compose State to Non-Compose Code)
+
+`SideEffect` executes after **every successful recomposition**. Unlike `LaunchedEffect`, it does not support coroutines and does not take keys.
+
+- **When to use:** Use `SideEffect` to publish Compose state to external, non-Compose objects (such as analytics managers, custom logging frameworks, or system properties) that do not require cleanup.
+- **Example:**
+  ```kotlin
+  @Composable
+  fun ScreenTracker(screenName: String, analytics: AnalyticsTracker) {
+      SideEffect {
+          analytics.setCurrentScreen(screenName)
+      }
+  }
+  ```
+
+---
+
+### 4. `rememberCoroutineScope` (Event-Driven Coroutines)
+
+`rememberCoroutineScope` returns a `CoroutineScope` bound to the composable's point in composition.
+
+- **When to use:** Use this when a coroutine needs to be launched from an **event callback** (such as a Button's `onClick`, a swipe gesture, or showing a Snackbar), where suspend functions cannot be called directly.
+- **Example:**
+  ```kotlin
+  val scope = rememberCoroutineScope()
+  val snackbarHostState = remember { SnackbarHostState() }
+
+  Button(onClick = {
+      scope.launch {
+          snackbarHostState.showSnackbar("Transaction reported")
+      }
+  }) {
+      Text("Report")
+  }
+  ```
+
+---
+
+### 5. `rememberUpdatedState` (Stable Callback References)
+
+`rememberUpdatedState` captures a changing value or lambda so that a long-running effect (such as a `LaunchedEffect` or `DisposableEffect`) can read the latest value without cancelling and restarting the effect.
+
+- **When to use:** When passing a callback (e.g., `onTimeout: () -> Unit`) into an effect with a timer or delay, ensuring the latest lambda is invoked without restarting the timer on recomposition.
+
+---
+
+### 6. `produceState` (Converting Async Sources to Compose State)
+
+`produceState` launches a coroutine scoped to the composition that can push values into a returned Compose `State<T>`.
+
+- **When to use:** Ideal for converting external non-Compose asynchronous streams, callback-based APIs, or suspend calls into declarative Compose state.
+
+---
+
+### 7. `derivedStateOf` (Calculation Optimization)
+
+`derivedStateOf` creates a Compose `State` derived from other Compose state objects, recomputing its value only when input boundaries change.
+
+- **When to use:** When state changes rapidly (such as `LazyListState.firstVisibleItemIndex` during scrolling), but the UI only needs to react when a specific condition is met (e.g. scroll offset passing a threshold).
+- **LedgerOne Example:** In `TransactionListScreen.kt`, `derivedStateOf` calculates `shouldLoadMore` by inspecting visible item indexes to determine when to trigger the next page load.
+
+---
+
+### Summary of Compose Effect Handlers
+
+| Effect API | Coroutine? | Cleanup (`onDispose`)? | Re-executes On | Primary Use Case |
+|---|---|---|---|---|
+| **`DisposableEffect`** | No | **Yes** | Key change / leaves composition | Listeners, broadcast receivers, window flags, background executors |
+| **`LaunchedEffect`** | **Yes** | Cooperative cancellation | Key change / leaves composition | Suspend tasks, animations, countdown timers, Flow collection |
+| **`SideEffect`** | No | No | Every successful recomposition | Updating non-Compose external objects with latest state |
+| **`rememberCoroutineScope`** | **Yes** | Cancelled on exit | Manual `scope.launch` | User interaction callbacks (`onClick`, gestures) |
+| **`rememberUpdatedState`** | No | No | Updates internal reference | Capturing latest callback in long-lived effects |
+| **`produceState`** | **Yes** | Cooperative cancellation | Key change / leaves composition | Bridging external async data into Compose `State<T>` |
+| **`derivedStateOf`** | No | No | Derived inputs change | Reducing recomposition frequency for high-velocity state |
 
 ## Business logic
 

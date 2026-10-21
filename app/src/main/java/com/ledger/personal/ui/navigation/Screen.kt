@@ -69,21 +69,9 @@ sealed interface Screen {
     @Serializable
     data object Settings : Screen
 
-    /** Route to the security screen. */
-    @Serializable
-    data object Security : Screen
-
-    /** Route to the notifications screen. */
-    @Serializable
-    data object Notifications : Screen
-
     /** Route to the mock controls screen. */
     @Serializable
     data object MockControls : Screen
-
-    /** Route to the help screen. */
-    @Serializable
-    data object Help : Screen
 
     /** Route to the cards screen. */
     @Serializable
@@ -96,15 +84,6 @@ sealed interface Screen {
     /** Route to the deposits screen. */
     @Serializable
     data object Deposits : Screen
-
-
-    /** Route to the statements screen. */
-    @Serializable
-    data object Statements : Screen
-
-    /** Route to the categories screen. */
-    @Serializable
-    data object Categories : Screen
 
     /** Route to the dispute screen. */
     @Serializable

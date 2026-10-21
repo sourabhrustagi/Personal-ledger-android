@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.api
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.di.AuthenticatedClient
 import com.ledger.personal.di.ApiConfig
 import com.ledger.personal.di.TeamClient
@@ -108,7 +109,7 @@ class KtorHomeBoard @Inject constructor(
 ) : HomeBoard {
     /** Returns layout. */
     override suspend fun layout(): Result<HomeLayout> = runCatching {
-        client.get("dashboard").body<DashboardDto>().toLayout()
+        client.get(ApiEndpoints.DASHBOARD).body<DashboardDto>().toLayout()
     }.onFailure { if (it is CancellationException) throw it }
 }
 
@@ -120,7 +121,7 @@ class KtorPaymentsBackend @Inject constructor(
 ) : PaymentsBackend {
     /** Returns shortcuts. */
     override suspend fun shortcuts(): Result<List<PayShortcut>> = runCatching {
-        client.get("${config.paymentsBaseUrl}pay/shortcuts").body<PaymentsDto>().payees.mapNotNull { it.toShortcut() }
+        client.get("${config.paymentsBaseUrl}${ApiEndpoints.PAY_SHORTCUTS}").body<PaymentsDto>().payees.mapNotNull { it.toShortcut() }
     }.onFailure { if (it is CancellationException) throw it }
 }
 
@@ -134,6 +135,6 @@ class KtorPromotionsBackend @Inject constructor(
 ) : PromotionsBackend {
     /** Returns tabs. */
     override suspend fun tabs(): Result<List<PromoTab>> = runCatching {
-        client.get("${config.promotionsBaseUrl}campaigns/shelves").body<PromotionsDto>().shelves.mapNotNull { it.toTab() }
+        client.get("${config.promotionsBaseUrl}${ApiEndpoints.CAMPAIGN_SHELVES}").body<PromotionsDto>().shelves.mapNotNull { it.toTab() }
     }.onFailure { if (it is CancellationException) throw it }
 }

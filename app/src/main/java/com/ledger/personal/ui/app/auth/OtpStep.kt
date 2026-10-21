@@ -36,10 +36,19 @@ private const val OTP_LENGTH = 6
 
 /** Shows OTP verification step. */
 @Composable
-fun OtpStep(phone: String, onEdit: () -> Unit, onVerified: () -> Unit) {
+fun OtpStep(
+    phone: String,
+    sentMessage: String = "OTP sent",
+    onEdit: () -> Unit,
+    onResend: (((Result<String>) -> Unit) -> Unit)? = null,
+    onVerified: () -> Unit,
+) {
     var code by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf(false) }
     var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
+    var feedbackMessage by rememberSaveable { mutableStateOf<String?>(sentMessage) }
+    var isResending by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(seconds) {
         if (seconds > 0) {
             delay(1_000)
@@ -54,11 +63,32 @@ fun OtpStep(phone: String, onEdit: () -> Unit, onVerified: () -> Unit) {
         error = false
     })
     if (error) StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
+    feedbackMessage?.let { msg ->
+        StatusBanner(msg, BannerTone.INFO)
+    }
     StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
     if (seconds > 0) {
         Text("Resend code in 0:${seconds.toString().padStart(2, '0')}", color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
-        TextLink("Resend code", { seconds = RESEND_SECONDS })
+        TextLink(if (isResending) "Resending..." else "Resend code", {
+            if (!isResending) {
+                seconds = RESEND_SECONDS
+                if (onResend != null) {
+                    isResending = true
+                    onResend { result ->
+                        isResending = false
+                        result.fold(
+                            onSuccess = { msg ->
+                                feedbackMessage = msg.ifBlank { "OTP sent" }
+                            },
+                            onFailure = {
+                                feedbackMessage = it.message ?: "Failed to resend OTP"
+                            },
+                        )
+                    }
+                }
+            }
+        })
     }
     PrimaryButton(
         "Verify",

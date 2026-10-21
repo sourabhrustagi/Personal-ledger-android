@@ -48,7 +48,10 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
 /** Runs onboarding with phone and OTP. */
 @Composable
 private fun Onboard(viewModel: AppViewModel) {
-    OnboardingFlow(viewModel::completeOnboarding)
+    OnboardingFlow(
+        onSendOtp = viewModel::sendOtp,
+        onFinish = viewModel::completeOnboarding,
+    )
 }
 
 /** OTP unlock. */

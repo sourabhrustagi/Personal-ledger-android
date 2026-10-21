@@ -124,6 +124,14 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    /** Submits valid phone number to the server to send an OTP code. [onResult] returns the result with message like "OTP sent". */
+    fun sendOtp(phone: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            onResult(signIn.sendOtp(phone))
+        }
+    }
+
+
     /** Verifies OTP to unlock / sign in. [onResult] runs on the main thread after a server session is opened. */
     fun verifyOtp(code: String, onResult: (Boolean) -> Unit) {
         if (code != MockValues.OTP) {

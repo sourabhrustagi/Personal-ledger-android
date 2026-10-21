@@ -393,6 +393,41 @@ In Compose screens, stateful containers are separated from stateless presentatio
 All screens consume ViewModel `StateFlow`s using `collectAsStateWithLifecycle()`.
 - **Why?** Plain `collectAsState()` continues collecting flow emissions in the background even when the app is minimized. `collectAsStateWithLifecycle()` automatically suspends collection when the screen drops below `Lifecycle.State.STARTED`, preventing battery drain and background work.
 
+#### C. Edge-to-Edge Window Inset Management (`safeDrawingPadding`)
+Modern Android applications draw **edge-to-edge** by default (`enableEdgeToEdge()`), allowing background surfaces and gradients to bleed seamlessly beneath the system status bar and gesture navigation bar. However, interactive UI components (buttons, headers, text inputs) must never be obstructed by system furniture or physical hardware contours.
+
+`Modifier.safeDrawingPadding()` applies dynamic padding matching `WindowInsets.safeDrawing`, which is the union of four critical system boundaries:
+1. **Status Bar (top):** Prevents titles and icons from colliding with the device clock, battery indicator, or network icons.
+2. **Navigation Bar (bottom):** Prevents primary action buttons from overlapping the gesture bar pill or 3-button navigation area.
+3. **Display Cutouts & Notches:** Protects content from being masked by camera punch-holes, teardrop notches, and rounded corner radii.
+4. **Software Keyboard (IME - Input Method Editor):** Unlike older `Modifier.systemBarsPadding()` (which only considers status/navigation bars), `safeDrawingPadding()` dynamically incorporates `WindowInsets.ime`. When the software keyboard slides up, the bottom padding instantly and smoothly expands to push up the content.
+
+##### The Power of Combining `safeDrawingPadding()` with `rememberScrollState()`
+In authentication and transaction entry screens, chaining:
+```kotlin
+Modifier
+    .safeDrawingPadding()
+    .verticalScroll(rememberScrollState())
+    .padding(24.dp)
+```
+produces a resilient UI container:
+- `safeDrawingPadding()` keeps the outer bounds of the screen completely clear of camera cutouts, navigation bars, and the keyboard.
+- `rememberScrollState()` ensures that when the keyboard takes up 40–50% of the screen height, the user can freely scroll the remaining form fields, helper text, and CTA buttons into comfortable view.
+
+##### Key Usages in LedgerOne:
+- **Mandatory App Update Dialog (`ForceUpdate.kt`):** Ensures critical update messaging is never clipped by top camera cutouts or bottom navigation pills:
+  ```kotlin
+  Modifier.safeDrawingPadding().padding(24.dp)
+  ```
+- **Login Screen (`Login.kt`):** Centers authentication cards safely away from system bars:
+  ```kotlin
+  Modifier.safeDrawingPadding().padding(24.dp)
+  ```
+- **Onboarding & OTP Flow (`Onboarding.kt`, `PhoneStep.kt`, `OtpStep.kt`):**
+  ```kotlin
+  Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)
+  ```
+
 ---
 
 ### 5. Application State Mechanism Comparison Matrix

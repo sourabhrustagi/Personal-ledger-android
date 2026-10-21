@@ -63,7 +63,6 @@ import com.ledger.personal.ui.app.tools.ToolsViewModel
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
 import com.ledger.personal.ui.feature.BankingScreen
-import com.ledger.personal.ui.feature.BudgetsScreen
 import com.ledger.personal.ui.feature.CardsScreen
 import com.ledger.personal.ui.feature.ChartsScreen
 import com.ledger.personal.ui.feature.DepositsScreen
@@ -191,7 +190,6 @@ private fun NavGraphBuilder.tabRoutes(
                 val route = when (action) {
                     "send" -> Screen.Wallet
                     "upi" -> Screen.Scan
-                    "budgets" -> Screen.Budgets
                     "offers" -> Screen.Promotions()
                     else -> null
                 }
@@ -286,7 +284,6 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.LedgerHistory> { LedgerHistoryScreen(onBack = back) }
     composable<Screen.Charts> { ChartsScreen(onBack = back) }
-    composable<Screen.Budgets> { BudgetsScreen(onBack = back, onInsights = { nav.navigate(Screen.Charts) }) }
     composable<Screen.FxAlerts> { FxAlertsScreen(onBack = back) }
     composable<Screen.Ticker> { TickerScreen(onBack = back) }
     composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = BuildConfig.FLAVOR != "mock") }

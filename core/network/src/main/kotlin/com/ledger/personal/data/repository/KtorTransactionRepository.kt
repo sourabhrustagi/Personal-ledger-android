@@ -5,6 +5,7 @@ import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
 import com.ledger.personal.data.remote.dto.toDomain
+import com.ledger.personal.data.remote.safeApiCall
 import com.ledger.personal.di.IoDispatcher
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRemote
@@ -12,11 +13,9 @@ import com.ledger.personal.domain.sync.VersionConflict
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.cancellation.CancellationException
 
 /** Reads and writes transactions through Ktor. */
 @Singleton
@@ -27,20 +26,14 @@ class KtorTransactionRepository @Inject constructor(
 
     /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> =
-        withContext(ioDispatcher) {
-            runCatching {
-                val response = apiService.getTransactions(page = page, pageSize = pageSize)
-                response.items.map { it.toDomain() }
-            }.onFailure { if (it is CancellationException) throw it }
+        safeApiCall(ioDispatcher) {
+            apiService.getTransactions(page = page, pageSize = pageSize).items.map(TransactionDto::toDomain)
         }
 
     /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> =
-        withContext(ioDispatcher) {
-            runCatching {
-                val dto = apiService.getTransactionById(id = id)
-                dto.toDomain()
-            }.onFailure { if (it is CancellationException) throw it }
+        safeApiCall(ioDispatcher) {
+            apiService.getTransactionById(id = id).toDomain()
         }
 
     /** Creates transaction. */
@@ -49,16 +42,14 @@ class KtorTransactionRepository @Inject constructor(
         currency: String,
         category: String,
         description: String
-    ): Result<Transaction> = withContext(ioDispatcher) {
-        runCatching {
-            val request = CreateTransactionRequestDto(
-                amountInCents = amountInCents,
-                currency = currency,
-                category = category,
-                description = description
-            )
-            call { apiService.createTransaction(request) }
-        }.onFailure { if (it is CancellationException) throw it }
+    ): Result<Transaction> = safeApiCall(ioDispatcher) {
+        val request = CreateTransactionRequestDto(
+            amountInCents = amountInCents,
+            currency = currency,
+            category = category,
+            description = description
+        )
+        call { apiService.createTransaction(request) }
     }
 
     /** Patch transaction. */
@@ -67,23 +58,19 @@ class KtorTransactionRepository @Inject constructor(
         category: String?,
         description: String?,
         amountInCents: Long?
-    ): Result<Transaction> = withContext(ioDispatcher) {
-        runCatching {
-            val request = PatchTransactionRequestDto(
-                category = category,
-                description = description,
-                amountInCents = amountInCents
-            )
-            call { apiService.patchTransaction(id = id, request = request) }
-        }.onFailure { if (it is CancellationException) throw it }
+    ): Result<Transaction> = safeApiCall(ioDispatcher) {
+        val request = PatchTransactionRequestDto(
+            category = category,
+            description = description,
+            amountInCents = amountInCents
+        )
+        call { apiService.patchTransaction(id = id, request = request) }
     }
 
     /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String): Result<Unit> =
-        withContext(ioDispatcher) {
-            runCatching {
-                apiService.deleteTransaction(id = id)
-            }.onFailure { if (it is CancellationException) throw it }
+        safeApiCall(ioDispatcher) {
+            apiService.deleteTransaction(id = id)
         }
 
     /** Call. */

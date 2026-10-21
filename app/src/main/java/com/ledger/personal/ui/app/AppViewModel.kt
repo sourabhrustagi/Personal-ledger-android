@@ -116,10 +116,29 @@ class AppViewModel @Inject constructor(
         if (code > 0) viewModelScope.launch { store.ignoreUpdate(code) }
     }
 
-    /** Finishes onboarding. */
+    /** Finishes onboarding with mobile number. */
+    fun completeOnboarding(phone: String) {
+        viewModelScope.launch {
+            store.completeOnboarding(phone)
+            openSession()
+        }
+    }
+
+    /** Verifies OTP to unlock / sign in. [onResult] runs on the main thread after a server session is opened. */
+    fun verifyOtp(code: String, onResult: (Boolean) -> Unit) {
+        if (code != MockValues.OTP) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            onResult(openSession())
+        }
+    }
+
+    /** Finishes onboarding with all profile options. */
     fun completeOnboarding(name: String, phone: String, pin: String, biometric: Boolean, language: String) {
         viewModelScope.launch {
-            store.completeOnboarding(name, phone, pin, biometric, language)
+            store.completeOnboarding(phone, name, pin, biometric, language)
             openSession()
         }
     }

@@ -93,7 +93,7 @@ The app has four tabs:
 - **Passbook:** transaction history with paging and tap-to-view details.
 - **Accounts:** user profile details (avatar, name, phone, KYC status), settings & mock controls, app lock, and logout.
 
-From any transaction you can edit it, delete it, or report a problem (raise a dispute).
+From any transaction you can view its details, delete it, or report a problem (raise a dispute).
 
 Screens below are the light theme on mock data.
 

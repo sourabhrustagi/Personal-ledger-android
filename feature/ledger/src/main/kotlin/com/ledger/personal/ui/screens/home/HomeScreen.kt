@@ -1,5 +1,8 @@
 package com.ledger.personal.ui.screens.home
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -46,18 +50,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.sync.SyncPhase
-import com.ledger.personal.ui.feature.AmountText
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.MaskedAmount
-import com.ledger.personal.ui.feature.MoneyDirection
 import com.ledger.personal.ui.feature.OfflineBanner
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.SkeletonRows
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.SyncIndicator
 import com.ledger.personal.ui.feature.SyncState
-import com.ledger.personal.ui.feature.formatMoney
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -74,14 +75,12 @@ fun HomeScreen(
     offline: Boolean,
     onToggleReveal: () -> Unit,
     onProfile: () -> Unit,
-    onOpen: (String) -> Unit = {},
-    onSeeAll: () -> Unit = {},
-    onQuickAction: (String) -> Unit = {},
     conflicts: Int = 0,
     onConflicts: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -122,12 +121,20 @@ fun HomeScreen(
                 state.sections.forEach { section ->
                     when (section) {
                         HomeSection.Balance -> {
-                            item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
+                            item { SummaryCard(balanceMinor, revealBalance, onToggleReveal) }
                             if (state.promotions.isNotEmpty()) {
                                 item {
                                     PromotionsHorizontalSection(
                                         promotions = state.promotions,
-                                        onOfferClick = { onQuickAction("offers") },
+                                        onOfferClick = { offer ->
+                                            val query = Uri.encode(offer.pitch)
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$query"))
+                                            try {
+                                                context.startActivity(intent)
+                                            } catch (_: ActivityNotFoundException) {
+                                                // Ignore if browser not found
+                                            }
+                                        },
                                     )
                                 }
                             }
@@ -143,9 +150,9 @@ fun HomeScreen(
     }
 }
 
-/** Shows summary card. */
+/** Shows summary card with current account balance. */
 @Composable
-private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Unit, state: HomeUiState) {
+private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Unit) {
     SectionCard {
         Text("Savings •• 4821", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         MaskedAmount(balanceMinor, reveal, onToggle)
@@ -153,21 +160,6 @@ private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Uni
             "Available balance · as of ${Instant.now().atZone(ZoneId.systemDefault()).format(timeFormat)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Money in this month", style = MaterialTheme.typography.bodySmall)
-                AmountText(state.monthInMinor, MoneyDirection.CREDIT, label = "this month")
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Money out this month", style = MaterialTheme.typography.bodySmall)
-                AmountText(state.monthOutMinor, MoneyDirection.DEBIT, label = "this month")
-            }
-        }
-        val net = state.monthInMinor - state.monthOutMinor
-        StatusBanner(
-            if (net >= 0) "You've saved ${formatMoney(net)} so far this month." else "You've spent ${formatMoney(-net)} more than you earned.",
-            if (net >= 0) BannerTone.SUCCESS else BannerTone.WARNING,
         )
     }
 }
@@ -257,9 +249,6 @@ private fun HomePreview() {
             offline = false,
             onToggleReveal = {},
             onProfile = {},
-            onOpen = {},
-            onSeeAll = {},
-            onQuickAction = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }
@@ -277,9 +266,6 @@ private fun HomeOfflinePreview() {
             offline = true,
             onToggleReveal = {},
             onProfile = {},
-            onOpen = {},
-            onSeeAll = {},
-            onQuickAction = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }

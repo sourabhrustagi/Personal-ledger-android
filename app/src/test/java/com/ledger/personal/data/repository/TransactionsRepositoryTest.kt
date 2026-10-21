@@ -12,7 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class KtorTransactionRepositoryTest {
+class TransactionsRepositoryTest {
 
     private val dispatcher = StandardTestDispatcher()
 
@@ -26,7 +26,7 @@ class KtorTransactionRepositoryTest {
                 totalItems = 2
             )
         }
-        val repo = KtorTransactionRepository(api, dispatcher)
+        val repo = TransactionsRepository(api, dispatcher)
         val items = repo.getTransactions(1, 15).getOrThrow()
         assertEquals(listOf("a", "b"), items.map { it.id })
         assertEquals(100L, items[1].amountInCents)
@@ -39,7 +39,7 @@ class KtorTransactionRepositoryTest {
         val api = MockTransactionApi().apply {
             listError = IllegalStateException("network down")
         }
-        val result = KtorTransactionRepository(api, dispatcher).getTransactions(1, 10)
+        val result = TransactionsRepository(api, dispatcher).getTransactions(1, 10)
         assertTrue(result.isFailure)
         assertEquals("network down", result.exceptionOrNull()?.message)
     }
@@ -47,7 +47,7 @@ class KtorTransactionRepositoryTest {
     @Test
     fun getByIdMapsDto() = runTest(dispatcher) {
         val api = MockTransactionApi().apply { byIdResponse = sampleDto(id = "detail") }
-        val tx = KtorTransactionRepository(api, dispatcher).getTransactionById("detail").getOrThrow()
+        val tx = TransactionsRepository(api, dispatcher).getTransactionById("detail").getOrThrow()
         assertEquals("detail", tx.id)
         assertEquals("detail", api.lastGetId)
     }
@@ -55,7 +55,7 @@ class KtorTransactionRepositoryTest {
     @Test
     fun createSendsRequestAndMapsResponse() = runTest(dispatcher) {
         val api = MockTransactionApi().apply { createResponse = sampleDto(id = "new", amountInCents = 4500L) }
-        val tx = KtorTransactionRepository(api, dispatcher)
+        val tx = TransactionsRepository(api, dispatcher)
             .createTransaction(4500L, "USD", "Dining", "Dinner")
             .getOrThrow()
         assertEquals("new", tx.id)
@@ -67,7 +67,7 @@ class KtorTransactionRepositoryTest {
         val api = MockTransactionApi().apply {
             patchResponse = sampleDto(id = "p", category = "Office")
         }
-        val tx = KtorTransactionRepository(api, dispatcher)
+        val tx = TransactionsRepository(api, dispatcher)
             .patchTransaction(id = "p", category = "Office")
             .getOrThrow()
         assertEquals("Office", tx.category)
@@ -78,7 +78,7 @@ class KtorTransactionRepositoryTest {
     @Test
     fun deleteSucceedsOn2xx() = runTest(dispatcher) {
         val api = MockTransactionApi()
-        val result = KtorTransactionRepository(api, dispatcher).deleteTransaction("gone")
+        val result = TransactionsRepository(api, dispatcher).deleteTransaction("gone")
         assertTrue(result.isSuccess)
         assertEquals("gone", api.lastDeleteId)
     }
@@ -88,7 +88,7 @@ class KtorTransactionRepositoryTest {
         val api = MockTransactionApi().apply {
             deleteError = IllegalStateException("HTTP 404")
         }
-        val result = KtorTransactionRepository(api, dispatcher).deleteTransaction("missing")
+        val result = TransactionsRepository(api, dispatcher).deleteTransaction("missing")
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("HTTP 404"))
     }

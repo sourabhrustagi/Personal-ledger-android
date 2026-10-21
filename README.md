@@ -91,7 +91,7 @@ The app provides five primary navigation tabs:
 - **Home:** current bank account balance card (masked by default, tap the eye icon to reveal), sync conflict alerts, and quick actions.
 - **Pay:** scan & pay with camera QR scanner, and send to anyone by entering mobile number, UPI ID, choosing from device contacts, or paying utility bills.
 - **Passbook:** real-time transaction history stream (`LedgerHistory`) with pagination, debit/credit indicators, category badges, and tap-to-view details.
-- **Accounts:** user profile details (avatar, name, phone, KYC verification status), settings & mock controls, app security lock, and logout.
+- **Accounts:** user profile details (avatar, name, phone), settings & mock controls, app security lock, and logout.
 - **Offers:** dynamic promotional shelves and marketing campaign banners.
 
 From any transaction you can inspect its full metadata, double-entry legs, and sync state, or tap **Report a problem** to file a dispute recorded in the local dispute log. Transactions maintain an immutable ledger history to ensure accounting integrity.
@@ -146,9 +146,9 @@ Screens below are the light theme on mock data.
 
 ### Profile
 
-| Profile | Verify identity | Security |
-| --- | --- | --- |
-| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/kyc.png" width="200" alt="Verify identity"> | <img src="docs/images/security.png" width="200" alt="Security centre"> |
+| Profile | Security |
+| --- | --- |
+| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/security.png" width="200" alt="Security centre"> |
 
 | Notifications | Settings | Categories |
 | --- | --- | --- |
@@ -169,8 +169,7 @@ core/designsystem/   Theme, colours, money formatting, shared Compose components
 core/ui/             Shared Compose UI effects and window security utilities (SecureWindow)
 core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples and fixtures
-feature/<name>/      One module per feature: ledger, budgets, fx, kyc, wallet,
-                     ticker, banking
+feature/<name>/      One module per feature: ledger, wallet, ticker, banking
 docs/                Architecture document and decision records
 ```
 
@@ -229,11 +228,8 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
-| `:feature:kyc` | `KycViewModel` | Identity verification steps, OCR drafts, confidence validation, and camera captures |
-| `:feature:fx` | `FxAlertsViewModel` | Exchange rate threshold alerts and background trigger rules |
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
-| `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual trend curves |
 
 ## State Management: `remember`, `rememberSaveable` & App State Architecture
 
@@ -310,12 +306,6 @@ Prevents multi-step flows from resetting back to the very first step upon device
   var step by rememberSaveable { mutableStateOf(OnboardStep.PHONE) }
   var phone by rememberSaveable { mutableStateOf("") }
   ```
-- **KYC identity verification step (`KycScreen.kt`):**
-  ```kotlin
-  var step by rememberSaveable { mutableIntStateOf(0) }
-  var document by rememberSaveable { mutableStateOf(documents.first()) }
-  var submitted by rememberSaveable { mutableStateOf(false) }
-  ```
 
 #### C. Bottom Sheet & Dialog Visibility Toggles
 Ensures that open modals and confirmation dialogs remain open during configuration changes.
@@ -367,7 +357,7 @@ All screens consume ViewModel `StateFlow`s using `collectAsStateWithLifecycle()`
 | **`rememberSaveable`** | `SavedStateRegistry` (Bundle) | **Yes** | **Yes** | **Yes** | ❌ No | Form text fields, wizard step index, dialog/sheet open state |
 | **`ViewModel` (`StateFlow`)** | `ViewModelStore` (Heap) | **Yes** | **Yes** | ❌ No | ❌ No | Business logic, fetched accounts, live calculations, search queries |
 | **`SavedStateHandle`** | `SavedStateRegistry` + ViewModel | **Yes** | **Yes** | **Yes** | ❌ No | Navigation parameters (`transactionId`), search criteria across process death |
-| **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states, KYC drafts |
+| **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states |
 | **`DataStore`** | Disk (`.preferences_pb`) | **Yes** | **Yes** | **Yes** | **Yes** | User preferences: theme mode, masked balance toggle, skipped app version |
 
 ## Jetpack Compose Effects & Lifecycle Side-Effect Handling
@@ -509,7 +499,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 #### Real-world examples in LedgerOne:
 - **Countdown Timers:** `LaunchedEffect(seconds)` in `Login.kt` and `OtpStep.kt` runs a 1-second delay loop to update OTP resend timers.
-- **Dynamic Permission Requests:** `LaunchedEffect(liveCapture)` in `Scan.kt` and `KycScreen.kt` triggers the Android system camera permission prompt when camera scanning is activated.
+- **Dynamic Permission Requests:** `LaunchedEffect(liveCapture)` in `Scan.kt` triggers the Android system camera permission prompt when camera scanning is activated.
 - **Deep Link Navigation Prefill:** `LaunchedEffect(prefillHandle, prefillMinor)` in `WalletScreen.kt` pre-populates payee details when launched via UPI intent.
 - **Pagination Triggers:** `LaunchedEffect(shouldLoadMore)` in `TransactionListScreen.kt` triggers `viewModel.loadNextPage()` when the user scrolls near the list bottom.
 
@@ -600,12 +590,9 @@ Enums are used across the application to model type-safe state machines, multi-s
 | **`TransferStep`** | `:feature:wallet` (`Wallet.kt`) | `FORM`, `REVIEW`, `RECEIPT` | Wizard Step | Drives the peer-to-peer wallet transfer wizard from amount entry to confirmation and receipt |
 | **`TransferStatus`** | `:feature:wallet` (`Wallet.kt`) | `IDLE`, `INSUFFICIENT`, `STEP_UP`, `PENDING`, `FAILED`, `DONE` | Lifecycle Status | Manages the wallet transfer state machine (balance checks, step-up biometric auth, in-flight posting, and terminal results) |
 | **`BankSheet`** | `:feature:banking` (`BankingSheets.kt`) | `UPI`, `PAYEE` | UI Modal Step | Determines which bottom sheet modal is open in the Banking hub (managing UPI ID vs adding a new payee) |
-| **`ChartTab`** | `:feature:budgets` (`Charts.kt`) | `MONTH`, `CATEGORY` | UI Step / Filter | Toggles spending analytics breakdowns between monthly historical trends and category distributions |
 | **`SyncPhase`** | `:core:model` (`SyncCoordinator.kt`) | `IDLE`, `ENQUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `BLOCKED` | System Status | Domain-level coordinator phase reported by WorkManager background sync jobs to update UI headers |
 | **`SyncState`** | `:core:designsystem` (`SyncIndicator.kt`) | `SYNCED`, `SYNCING`, `WAITING`, `FAILED` | UI Status | Visual sync indicator combining user-facing status label, semantic tone (`BannerTone`), and cloud status icon |
-| **`CaseStatus`** | `:app` (`KycCase.kt`) | `NEW`, `APPROVED` | Verification Status | Enforces valid KYC verification state machine transitions, preventing illegal direct state jumps |
 | **`DisputeReason`** | `:app` (`Tools.kt`) | `UNAUTHORISED`, `WRONG_AMOUNT`, `NOT_RECEIVED`, `DUPLICATE` | Business Status | Customer grievance categorization codes recorded when reporting a transaction dispute |
-| **`FxNotify`** | `:feature:fx` (`FxAlertWorker.kt`) | `POST`, `SKIP`, `QUIET` | Worker Status | Tri-state decision enum used by background workers to post notification, skip (no permission), or stay quiet |
 | **`PrepayMode`** | `:feature:banking` (`BankProducts.kt`) | `TENURE`, `EMI` | Calculation Strategy | Loan prepayment calculation strategy selecting between shortening loan tenure or reducing monthly instalment |
 | **`MoneyDirection`** | `:core:designsystem` (`Money.kt`) | `CREDIT`, `DEBIT`, `NEUTRAL` | Financial Indicator | Controls currency formatting colors (green credit, primary debit, neutral zero) and +/- prefixes |
 | **`BannerTone`** | `:core:designsystem` (`BannerTone.kt`) | `INFO`, `SUCCESS`, `WARNING`, `ERROR` | Design Token | Maps semantic visual intent to theme container colors and icon tints for banners, alerts, and badges |
@@ -672,10 +659,6 @@ The application's domain rules are concentrated in pure Kotlin within `core/mode
 - **Exponential backoff retry (`withRetry`):** Network requests retry up to 3 times on transient connection drops (`IOException` or `ServerBusy`), doubling delay (1s, 2s, 4s). Terminal rejections (`TransactionRejected`) fail immediately without retry. Coroutine `CancellationException` is always propagated.
 - **Three-way sync conflict resolution (`ConflictInbox`, `mergeField`):** Remote 409 conflict responses preserve both local and server transaction states in a persistent disk inbox (`ConflictInbox`). Competing field updates are flagged via `FieldMerge.Conflict(left, right)`, presenting differing fields side-by-side for manual user resolution rather than silent overwrite.
 
-### Verification & reactive triggers
-
-- **KYC confidence thresholding (`needsHumanReview`):** Optical document extraction scores confidence per field. Any required field falling below an 80% confidence floor ($0.8$) routes the application to human manual verification.
-- **One-shot threshold triggers (`ThresholdWatch`):** Rate alerts fire strictly when a tick rate crosses a threshold from below (`ticks >= threshold && !above`), preventing continuous alert spam while rates remain elevated.
 
 ## Dependencies
 
@@ -692,11 +675,11 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 | Hilt, Hilt Navigation, Hilt Work | Compile-time graphs for repositories, Ktor clients, ViewModels, and workers |
 | Room, Room Paging | Local source of truth, migrations, and paged transaction history |
 | DataStore Preferences | Small settings: theme, privacy, categories, skipped update code |
-| WorkManager | Durable sync and FX-alert work that survives process death |
+| WorkManager | Durable sync work that survives process death |
 | Paging 3 | Incremental transaction lists from Room into Compose |
 | Ktor Client (OkHttp engine) | REST, static API, device binding, and the market WebSocket |
 | OkHttp, logging interceptor | TLS, certificate pinning, HTTP cache; debug-only request summaries |
-| CameraX | Lifecycle-aware camera for KYC and UPI QR capture |
+| CameraX | Lifecycle-aware camera for UPI QR capture |
 | ML Kit barcode scanning | On-device QR decode from CameraX frames |
 | AndroidX Biometric | System biometric prompt; keys stay in Android Keystore |
 | Timber | App logging; debug tree only on debug builds |
@@ -728,7 +711,7 @@ CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull
 - Follow [Kotlin functions](https://kotlinlang.org/docs/functions.html#tail-recursive-functions): default and named arguments instead of overloads, a data class instead of `Pair` when the values mean different things, and a single-expression body when the function is one expression. Mark a self-call `tailrec` only when it is the last operation (not inside `try`/`catch`/`finally`, not on an `open` member) so the compiler turns it into a loop.
 - Follow [Kotlin lambdas](https://kotlinlang.org/docs/lambdas.html): trailing lambda outside the `()`, `it` for a single used parameter, `_` when unused, and a callable reference (`TransactionEntity::toDomain`) instead of `{ x -> toDomain(x) }`. Keep `Unit` in a function type. Use an anonymous function only when you need a local `return` or an explicit return type.
 - Follow [Kotlin inline functions](https://kotlinlang.org/docs/inline-functions.html): mark a small higher-order function `inline` so the lambda is copied into the call site. Use `reified` when the body needs the type (`is`/`as`, `navDeepLink<T>`). Mark a lambda `noinline` if it is stored or passed on, `crossinline` if it is called from a nested object or function. Do not inline a large function. A public inline body may only use public or `@PublishedApi` declarations.
-- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): a `data class` for a named record (`KycDraft`), an `object` when there is no instance state (`SteadyConditions`). Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`). Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`). Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `DisputeReason`). Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
+- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): a `data class` for a named record (`Leg`), an `object` when there is no instance state (`SteadyConditions`). Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`). Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`). Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `DisputeReason`). Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
 - Follow [functional interfaces](https://kotlinlang.org/docs/fun-interfaces.html): `fun interface` plus a SAM lambda (`AppRelease { }`, `CategoryCatalog { }`, `TickerSocket { }`, `HomeBoard { }`, `AssistantBackend { }`) when there is one abstract member. Use a function type when the API only needs a function; keep a plain interface when there are several members.
 - Follow [properties](https://kotlinlang.org/docs/properties.html) for argument-free reads (`TransferBook.size`), `private set` for a value the type mutates (`ChargeQueue.charges`), `const` for compile-time primitives, and `lateinit` only for injection or test setup. Follow [delegated properties](https://kotlinlang.org/docs/delegated-properties.html): `by lazy` for a one-time init (`DeviceKeys.store`); do not write a custom delegate the stdlib already covers.
 - Follow [null safety](https://kotlinlang.org/docs/null-safety.html): `?.` / `?:` / `orEmpty()` / `as?` instead of `!!` or `as`. Use `requireNotNull` when null is a programming error. Do not invent a nullable type you immediately assert.

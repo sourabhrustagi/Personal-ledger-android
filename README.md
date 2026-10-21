@@ -18,11 +18,12 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 - [Force Update & Versioning](#force-update)
 - [What's in the App](#whats-in-the-app)
   - [Opening the App](#opening-the-app)
-  - [Tabs Overview](#tabs)
-  - [Products & Tools](#products--tools)
-  - [Pay & Transfers](#pay)
-  - [Planning and Markets](#planning-and-markets)
-  - [Profile & Account Hub](#profile)
+  - [Primary Navigation Tabs](#primary-navigation-tabs)
+  - [Banking & Financial Products](#banking--financial-products)
+  - [Pay & Transfers](#pay--transfers)
+  - [Transactions & Double-Entry Ledger](#transactions--double-entry-ledger)
+  - [Live Markets & Ticker](#live-markets--ticker)
+  - [Profile, Disputes & Developer Tools](#profile-disputes--developer-tools)
 - [Project Layout](#project-layout)
 - [Architecture & How the App Works](#architecture--how-the-app-works)
   - [1. Offline-First Local Source of Truth](#1-offline-first-local-source-of-truth)
@@ -159,67 +160,53 @@ The app provides five primary navigation tabs:
 
 From any transaction you can inspect its full metadata, double-entry legs, and sync state, or tap **Report a problem** to file a dispute recorded in the local dispute log. Transactions maintain an immutable ledger history to ensure accounting integrity.
 
-Screens below are the light theme on mock data.
+Screens below display the light and dark themes on mock data.
 
 ### Opening the app
 
-| Welcome | Sign in |
-| --- | --- |
-| <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with OTP"> |
+| Welcome | Sign in | Update Required (Light) | Update Required (Dark) |
+| --- | --- | --- | --- |
+| <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with OTP"> | <img src="docs/images/force-update-light.png" width="200" alt="Force update, light"> | <img src="docs/images/force-update-dark.png" width="200" alt="Force update, dark"> |
 
-### Tabs
+### Primary Navigation Tabs
 
 | Home | Pay | Offers |
 | --- | --- | --- |
 | <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/pay.png" width="200" alt="Pay"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
-### Products & Tools
+### Banking & Financial Products
 
-| Send money | Cards | Loans |
-| --- | --- | --- |
-| <img src="docs/images/wallet.png" width="200" alt="Send money"> | <img src="docs/images/cards.png" width="200" alt="Cards"> | <img src="docs/images/loans.png" width="200" alt="Loans"> |
+| Accounts & UPI | Cards Management | Loans & EMI | Fixed & Recurring Deposits |
+| --- | --- | --- | --- |
+| <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/cards.png" width="200" alt="Cards"> | <img src="docs/images/loans.png" width="200" alt="Loans"> | <img src="docs/images/deposits.png" width="200" alt="Deposits"> |
 
-| Deposits | Statements | Transactions |
-| --- | --- | --- |
-| <img src="docs/images/deposits.png" width="200" alt="Deposits"> | <img src="docs/images/statements.png" width="200" alt="Statements"> | <img src="docs/images/transactions.png" width="200" alt="Transactions"> |
+### Pay & Transfers
 
-| Transaction | New transaction | Edit transaction |
-| --- | --- | --- |
-| <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
-
-### Pay
-
-| Scan |
-| --- |
-| <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> |
-
-| Accounts and UPI | Report a problem | Your disputes |
-| --- | --- | --- |
-| <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> |
-
-### Planning and markets
-
-| Charts | Rate alerts |
+| UPI QR Scanner | Send Money (Wallet) |
 | --- | --- |
-| <img src="docs/images/charts.png" width="200" alt="Charts"> | <img src="docs/images/fx.png" width="200" alt="Rate alerts"> |
+| <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> | <img src="docs/images/wallet.png" width="200" alt="Send money"> |
 
-| Markets |
+### Transactions & Double-Entry Ledger
+
+| Transactions Stream | Transaction Details & Legs | New Transaction | Edit Transaction |
+| --- | --- | --- | --- |
+| <img src="docs/images/transactions.png" width="200" alt="Transactions"> | <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
+
+### Live Markets & Ticker
+
+| Live Crypto & Forex Markets |
 | --- |
 | <img src="docs/images/markets.png" width="200" alt="Markets"> |
 
-### Profile
+### Profile, Disputes & Developer Tools
 
-| Profile | Security |
-| --- | --- |
-| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/security.png" width="200" alt="Security centre"> |
-
-| Notifications | Settings | Categories |
+| Profile Overview | App Settings | Developer Mock Controls |
 | --- | --- | --- |
-| <img src="docs/images/notifications.png" width="200" alt="Notifications"> | <img src="docs/images/settings.png" width="200" alt="Settings"> | <img src="docs/images/categories.png" width="200" alt="Categories"> |
+| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/settings.png" width="200" alt="Settings"> | <img src="docs/images/mock-controls.png" width="200" alt="Mock controls"> |
 
-| Help | Mock controls | Sync conflicts |
+| Report a Problem (Dispute) | Dispute History | Offline Sync Conflicts |
 | --- | --- | --- |
-| <img src="docs/images/help.png" width="200" alt="Help"> | <img src="docs/images/mock-controls.png" width="200" alt="Mock controls"> | <img src="docs/images/conflicts.png" width="200" alt="Sync conflicts"> |
+| <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> | <img src="docs/images/conflicts.png" width="200" alt="Sync conflicts"> |
 
 ## Project layout
 

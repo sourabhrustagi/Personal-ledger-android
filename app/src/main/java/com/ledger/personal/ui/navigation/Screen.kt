@@ -57,6 +57,10 @@ sealed interface Screen {
     @Serializable
     data object PayHub : Screen
 
+    /** Route to the passbook screen. */
+    @Serializable
+    data object Passbook : Screen
+
     /** Route to the profile screen. */
     @Serializable
     data object Profile : Screen

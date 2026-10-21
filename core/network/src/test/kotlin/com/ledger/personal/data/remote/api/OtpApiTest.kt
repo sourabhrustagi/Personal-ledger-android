@@ -31,7 +31,9 @@ class OtpApiTest {
         val service = KtorOtpService(client)
         val result = service.sendOtp("9876543210")
         assertTrue(result.isSuccess)
-        assertEquals("OTP sent", result.getOrNull())
+        val response = result.getOrNull()
+        assertEquals("OTP sent", response?.message)
+        assertEquals("SENT", response?.status)
         client.close()
     }
 
@@ -59,7 +61,9 @@ class OtpApiTest {
         val service = KtorOtpService(client)
         val result = service.sendOtp("9876543210")
         assertTrue(result.isSuccess)
-        assertEquals("OTP sent", result.getOrNull())
+        val response = result.getOrNull()
+        assertEquals("OTP sent", response?.message)
+        assertEquals("SENT", response?.status)
         client.close()
     }
 }

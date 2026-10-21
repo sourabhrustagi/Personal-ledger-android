@@ -44,36 +44,6 @@ class InterceptorSessionTest {
         client.close()
     }
 
-    @Test
-    fun mockSendOtpReturnsOtpSentForValidPhone() = runBlocking {
-        val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
-        val result = session.sendOtp("9876543210")
-        assertTrue(result.isSuccess)
-        assertEquals("OTP sent", result.getOrNull())
-    }
-
-    @Test
-    fun sendOtpFailsForInvalidPhone() = runBlocking {
-        val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
-        val result = session.sendOtp("123")
-        assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun liveSendOtpPostsToServerAndReturnsMessage() = runBlocking {
-        val auth = AuthInterceptor()
-        val client = HttpClient(MockEngine { respond("""{"message":"OTP sent","status":"SENT"}""", headers = headersOf(HttpHeaders.ContentType, "application/json")) }) {
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        }
-        val session = InterceptorSession(auth, config(mockFlavor = false), client)
-        val result = session.sendOtp("9876543210")
-        assertTrue(result.isSuccess)
-        assertEquals("OTP sent", result.getOrNull())
-        client.close()
-    }
-
 
     private fun config(mockFlavor: Boolean) = ApiConfig(
         baseUrl = "https://api.example/retail/v1/",

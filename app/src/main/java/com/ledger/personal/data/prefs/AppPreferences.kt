@@ -78,13 +78,21 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     fun matches(pin: String, prefs: AppPrefs): Boolean = pinMatches(pin, prefs.mpinSalt, prefs.mpinHash)
 
     /** Finishes onboarding. */
-    suspend fun completeOnboarding(name: String, phone: String, pin: String, biometric: Boolean, language: String) {
-        val sealed = sealPin(pin)
+    suspend fun completeOnboarding(
+        phone: String,
+        name: String = "",
+        pin: String = "",
+        biometric: Boolean = false,
+        language: String = "English",
+    ) {
+        val sealed = if (pin.isNotBlank()) sealPin(pin) else null
         context.appStore.edit {
-            it[NAME] = name
             it[PHONE] = phone
-            it[MPIN_SALT] = sealed.saltHex
-            it[MPIN_HASH] = sealed.verifier
+            if (name.isNotBlank()) it[NAME] = name
+            if (sealed != null) {
+                it[MPIN_SALT] = sealed.saltHex
+                it[MPIN_HASH] = sealed.verifier
+            }
             it[BIOMETRIC] = biometric
             it[LANGUAGE] = language
             it[ONBOARDED] = true

@@ -6,12 +6,14 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /** Category icon. */
 fun categoryIcon(category: String): ImageVector = when (category.lowercase()) {
+    "scan & pay", "scan and pay", "upi" -> Icons.Outlined.QrCodeScanner
     "groceries" -> Icons.Outlined.ShoppingCart
     "dining" -> Icons.Outlined.Restaurant
     "transport" -> Icons.Outlined.DirectionsCar

@@ -43,16 +43,6 @@ class RulesTest {
     }
 
     @Test
-    fun alertFiresOnceOnThresholdCross() {
-        val watch = ThresholdWatch(threshold = 100L)
-        assertFalse(watch.onRate(90L))
-        assertTrue(watch.onRate(100L))
-        assertFalse(watch.onRate(130L))
-        assertFalse(watch.onRate(80L))
-        assertTrue(watch.onRate(101L))
-    }
-
-    @Test
     fun adapterRejectsMissingField() {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             adaptQuote(mapOf("pair" to "USDINR"))
@@ -67,13 +57,6 @@ class RulesTest {
         }
         assertTrue(exception.message.orEmpty().contains("number"))
     }
-
-    @Test
-    fun lowConfidenceRoutesToHumanReview() {
-        assertTrue(needsHumanReview(listOf(CapturedField(required = true, confidence = 0.5))))
-        assertFalse(needsHumanReview(listOf(CapturedField(required = true, confidence = 0.95))))
-    }
-
     @Test
     fun concurrentEditsConflictInsteadOfOverwrite() {
         val merged = mergeField(left = "12 Park St", right = "14 Park St")

@@ -25,7 +25,7 @@ class InterceptorSessionTest {
     @Test
     fun mockBeginSetsALocalTokenAndEndClearsIt() = runBlocking {
         val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(local = true), unusedClient())
+        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
         assertTrue(session.begin().isSuccess)
         assertEquals("Bearer $MOCK_SESSION_TOKEN", bearer(auth))
         session.end()
@@ -38,7 +38,7 @@ class InterceptorSessionTest {
         val client = HttpClient(MockEngine { respond("""{"token":"live-token"}""", headers = headersOf(HttpHeaders.ContentType, "application/json")) }) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
-        val session = InterceptorSession(auth, config(local = false), client)
+        val session = InterceptorSession(auth, config(mockFlavor = false), client)
         assertTrue(session.begin().isSuccess)
         assertEquals("Bearer live-token", bearer(auth))
         client.close()
@@ -47,7 +47,7 @@ class InterceptorSessionTest {
     @Test
     fun mockSendOtpReturnsOtpSentForValidPhone() = runBlocking {
         val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(local = true), unusedClient())
+        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
         val result = session.sendOtp("9876543210")
         assertTrue(result.isSuccess)
         assertEquals("OTP sent", result.getOrNull())
@@ -56,7 +56,7 @@ class InterceptorSessionTest {
     @Test
     fun sendOtpFailsForInvalidPhone() = runBlocking {
         val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(local = true), unusedClient())
+        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
         val result = session.sendOtp("123")
         assertTrue(result.isFailure)
     }
@@ -67,7 +67,7 @@ class InterceptorSessionTest {
         val client = HttpClient(MockEngine { respond("""{"message":"OTP sent","status":"SENT"}""", headers = headersOf(HttpHeaders.ContentType, "application/json")) }) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
-        val session = InterceptorSession(auth, config(local = false), client)
+        val session = InterceptorSession(auth, config(mockFlavor = false), client)
         val result = session.sendOtp("9876543210")
         assertTrue(result.isSuccess)
         assertEquals("OTP sent", result.getOrNull())
@@ -75,7 +75,7 @@ class InterceptorSessionTest {
     }
 
 
-    private fun config(local: Boolean) = ApiConfig(
+    private fun config(mockFlavor: Boolean) = ApiConfig(
         baseUrl = "https://api.example/retail/v1/",
         logRequests = false,
         debuggable = false,
@@ -83,7 +83,7 @@ class InterceptorSessionTest {
         pinBackup = "",
         paymentsBaseUrl = "",
         promotionsBaseUrl = "",
-        localSession = local,
+        mockFlavor = mockFlavor,
     )
 
     private fun unusedClient() = HttpClient(MockEngine { error("mock session must not call the network") })

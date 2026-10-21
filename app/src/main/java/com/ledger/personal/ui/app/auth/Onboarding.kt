@@ -29,10 +29,12 @@ private val steps = listOf("Phone", "Verify")
 /** Shows onboarding flow orchestrating phone entry and OTP verification. */
 @Composable
 fun OnboardingFlow(
+    onSendOtp: (phone: String, onResult: (Result<String>) -> Unit) -> Unit = { _, done -> done(Result.success("OTP sent")) },
     onFinish: (phone: String) -> Unit,
 ) {
     var step by rememberSaveable { mutableStateOf(OnboardStep.PHONE) }
     var phone by rememberSaveable { mutableStateOf("") }
+    var otpMessage by rememberSaveable { mutableStateOf("OTP sent") }
     SecureWindow()
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -41,8 +43,22 @@ fun OnboardingFlow(
         ) {
             StepHeader(steps, step.ordinal)
             when (step) {
-                OnboardStep.PHONE -> PhoneStep(phone, onPhone = { phone = it }) { step = OnboardStep.OTP }
-                OnboardStep.OTP -> OtpStep(phone, onEdit = { step = OnboardStep.PHONE }) { onFinish(phone) }
+                OnboardStep.PHONE -> PhoneStep(
+                    phone = phone,
+                    onPhone = { phone = it },
+                    onSendCode = onSendOtp,
+                    onNext = { message ->
+                        otpMessage = message
+                        step = OnboardStep.OTP
+                    },
+                )
+                OnboardStep.OTP -> OtpStep(
+                    phone = phone,
+                    sentMessage = otpMessage,
+                    onEdit = { step = OnboardStep.PHONE },
+                    onResend = { callback -> onSendOtp(phone, callback) },
+                    onVerified = { onFinish(phone) },
+                )
             }
         }
     }

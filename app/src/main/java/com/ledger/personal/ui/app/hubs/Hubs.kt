@@ -1,50 +1,29 @@
 package com.ledger.personal.ui.app.hubs
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
-import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.CurrencyExchange
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalOffer
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.RequestQuote
-import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.domain.board.PayShortcut
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
-import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.ui.app.HubFlags
-import com.ledger.personal.ui.feature.AmountText
-import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.ListRow
-import com.ledger.personal.ui.feature.MoneyDirection
 import com.ledger.personal.ui.feature.PaymentsOfflineNotice
 import com.ledger.personal.ui.feature.SectionCard
-import com.ledger.personal.ui.feature.StatusBanner
-import com.ledger.personal.ui.feature.categoryIcon
 import com.ledger.personal.ui.navigation.Screen
-import com.ledger.personal.ui.theme.LedgerTheme
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows profile action. */
@@ -75,11 +54,8 @@ internal fun HubLink(
 @Composable
 fun PayHub(
     flags: HubFlags,
-    shortcuts: Result<List<PayShortcut>>?,
-    recentTransactions: List<Transaction> = emptyList(),
     onProfile: () -> Unit,
     onOpen: (Screen) -> Unit,
-    onOpenTransaction: (String) -> Unit = {},
 ) {
     FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
         if (flags.offline) PaymentsOfflineNotice()
@@ -88,63 +64,6 @@ fun PayHub(
             HubLink(Icons.AutoMirrored.Outlined.Send, "Send money", "To a contact or bank account", online) { onOpen(Screen.Wallet) }
             HubLink(Icons.Outlined.QrCode2, "Receive money", "Request via UPI or QR code", online) { onOpen(Screen.Banking) }
             HubLink(Icons.Outlined.QrCodeScanner, "Scan and pay", "Any UPI QR code", online) { onOpen(Screen.Scan) }
-            HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
-        }
-        SectionCard(title = "Recent people") {
-            when {
-                shortcuts == null -> Text("Loading people from payments…")
-                shortcuts.isFailure -> StatusBanner("Payments couldn't load.", BannerTone.WARNING)
-                shortcuts.getOrThrow().isEmpty() -> Text("No recent people.")
-                else -> shortcuts.getOrThrow().forEach { person ->
-                    ListRow(
-                        Icons.Outlined.AccountCircle,
-                        person.name,
-                        subtitle = person.handle,
-                        onClick = { onOpen(Screen.PayTo(person.handle, 0L)) }.takeIf { online },
-                    )
-                }
-            }
-        }
-        SectionCard(title = "Recent transactions") {
-            if (recentTransactions.isEmpty()) {
-                Text("No recent transactions.")
-            } else {
-                recentTransactions.forEach { tx ->
-                    val credit = tx.category == "Salary"
-                    ListRow(
-                        icon = categoryIcon(tx.category),
-                        title = tx.description,
-                        subtitle = tx.category,
-                        iconTint = if (credit) LedgerTheme.colors.success else MaterialTheme.colorScheme.primary,
-                        onClick = { onOpenTransaction(tx.id) },
-                        trailingContent = {
-                            AmountText(
-                                tx.amountInCents,
-                                if (credit) MoneyDirection.CREDIT else MoneyDirection.DEBIT,
-                                currency = tx.currency,
-                            )
-                        },
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton(onClick = { onOpen(Screen.LedgerHistory) }) {
-                        Text("See all transactions")
-                    }
-                }
-            }
-        }
-        SectionCard(title = "Banking and products") {
-            HubLink(Icons.Outlined.AccountBalance, "Accounts", "Statements, UPI and balances", online) { onOpen(Screen.Banking) }
-            HubLink(Icons.Outlined.CreditCard, "Cards", "Freeze, limits and controls") { onOpen(Screen.Cards) }
-            HubLink(Icons.Outlined.RequestQuote, "Loans", "EMI calculator and prepay") { onOpen(Screen.Loans) }
-            HubLink(Icons.Outlined.Savings, "Deposits", "Fixed deposits at 7.25% p.a.") { onOpen(Screen.Deposits) }
-            HubLink(Icons.Outlined.History, "All transactions", "Full paged history") { onOpen(Screen.LedgerHistory) }
-            HubLink(Icons.Outlined.Description, "Statements", "Monthly PDF for Savings") { onOpen(Screen.Statements) }
-        }
-        SectionCard(title = "Markets and planning") {
-            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Charts", "By category and by month") { onOpen(Screen.Charts) }
-            HubLink(Icons.AutoMirrored.Outlined.ShowChart, "Watchlist", "Live USD/INR ticker") { onOpen(Screen.Ticker) }
-            HubLink(Icons.Outlined.CurrencyExchange, "FX alerts", "Notify me when a rate crosses my target") { onOpen(Screen.FxAlerts) }
         }
     }
 }
@@ -180,7 +99,7 @@ private val previewFlags = HubFlags(offline = false, empty = false, reveal = tru
 @Composable
 private fun PayHubPreview() {
     PersonalLedgerTheme {
-        PayHub(previewFlags, Result.success(listOf(PayShortcut("Asha Rao", "asha@okaxis"))), onProfile = {}, onOpen = {})
+        PayHub(previewFlags, onProfile = {}, onOpen = {})
     }
 }
 
@@ -190,7 +109,6 @@ private fun PayHubOfflinePreview() {
     PersonalLedgerTheme {
         PayHub(
             HubFlags(offline = true, empty = false, reveal = true, onToggleReveal = {}),
-            Result.failure(IllegalStateException("offline")),
             onProfile = {},
             onOpen = {},
         )

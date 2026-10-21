@@ -93,9 +93,6 @@ sealed interface Screen {
     @Serializable
     data object Deposits : Screen
 
-    /** Route to the budgets screen. */
-    @Serializable
-    data object Budgets : Screen
 
     /** Route to the statements screen. */
     @Serializable

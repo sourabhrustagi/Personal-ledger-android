@@ -6,11 +6,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VerifiedUser
@@ -28,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
@@ -37,20 +42,21 @@ import com.ledger.personal.ui.feature.ListRow
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.StatusChip
 import com.ledger.personal.ui.navigation.Screen
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
-/** Shows the profile screen. */
+/** Shows the accounts and profile screen. */
 @Composable
 fun ProfileScreen(
     prefs: AppPrefs,
     showMockControls: Boolean,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onOpen: (Screen) -> Unit,
     onLock: () -> Unit,
     onLogOut: () -> Unit,
 ) {
     var confirmLogOut by rememberSaveable { mutableStateOf(false) }
     val open: (Screen) -> () -> Unit = { target -> { onOpen(target) } }
-    FeatureScaffold("Profile", onBack) {
+    FeatureScaffold("Accounts", onBack) {
         SectionCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 IconBadge(Icons.Outlined.Person, size = 56)
@@ -65,9 +71,17 @@ fun ProfileScreen(
                 StatusChip("KYC pending", BannerTone.WARNING)
             }
         }
+        SectionCard(title = "Banking and products") {
+            ListRow(Icons.Outlined.AccountBalance, "Accounts", subtitle = "Statements, UPI and balances", onClick = open(Screen.Banking))
+            ListRow(Icons.Outlined.CreditCard, "Cards", subtitle = "Freeze, limits and controls", onClick = open(Screen.Cards))
+            ListRow(Icons.Outlined.RequestQuote, "Loans", subtitle = "EMI calculator and prepay", onClick = open(Screen.Loans))
+            ListRow(Icons.Outlined.Savings, "Deposits", subtitle = "Fixed deposits at 7.25% p.a.", onClick = open(Screen.Deposits))
+            ListRow(Icons.Outlined.History, "All transactions", subtitle = "Full paged history", onClick = open(Screen.LedgerHistory))
+            ListRow(Icons.Outlined.Description, "Statements", subtitle = "Monthly PDF for Savings", onClick = open(Screen.Statements))
+        }
         SectionCard(title = "Account") {
             ListRow(Icons.Outlined.VerifiedUser, "Complete KYC", subtitle = "Unlock higher limits", onClick = open(Screen.Kyc))
-            ListRow(Icons.Outlined.Security, "Security centre", subtitle = "MPIN, biometrics, devices", onClick = open(Screen.Security))
+            ListRow(Icons.Outlined.Security, "Security centre", subtitle = "OTP, biometrics, devices", onClick = open(Screen.Security))
             ListRow(Icons.Outlined.Notifications, "Notifications", subtitle = "Alerts and activity", onClick = open(Screen.Notifications))
             ListRow(Icons.Outlined.Settings, "Settings", subtitle = "Theme, privacy, language", onClick = open(Screen.Settings))
             ListRow(Icons.Outlined.Category, "Categories", subtitle = "Add, rename or remove", onClick = open(Screen.Categories))
@@ -80,7 +94,7 @@ fun ProfileScreen(
         ListRow(
             Icons.AutoMirrored.Outlined.Logout,
             "Lock app",
-            subtitle = "Ask for MPIN next time",
+            subtitle = "Ask for OTP next time",
             onClick = onLock,
         )
         ListRow(
@@ -97,7 +111,7 @@ fun ProfileScreen(
             title = { Text("Log out?") },
             text = {
                 Text(
-                    "You'll need your MPIN to open the app again. " +
+                    "You'll need your phone number and OTP to open the app again. " +
                         "Transactions saved on this phone stay here, including ones still waiting to sync.",
                 )
             },
@@ -111,6 +125,6 @@ fun ProfileScreen(
 @Composable
 private fun ProfilePreview() {
     PersonalLedgerTheme {
-        ProfileScreen(AppPrefs(name = "Asha Rao"), showMockControls = true, onBack = {}, onOpen = {}, onLock = {}, onLogOut = {})
+        ProfileScreen(AppPrefs(name = "Asha Rao"), showMockControls = true, onBack = null, onOpen = {}, onLock = {}, onLogOut = {})
     }
 }

@@ -45,21 +45,16 @@ import com.ledger.personal.ui.app.DemoViewModel
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
-import com.ledger.personal.ui.app.account.HelpScreen
-import com.ledger.personal.ui.app.account.NotificationsScreen
 import com.ledger.personal.ui.app.account.ProfileScreen
-import com.ledger.personal.ui.app.account.SecurityScreen
 import com.ledger.personal.ui.app.account.SettingsScreen
 import com.ledger.personal.ui.app.hubs.PayHub
 import com.ledger.personal.ui.app.hubs.PromotionsHub
 import com.ledger.personal.ui.app.hubs.PromotionsViewModel
 import com.ledger.personal.ui.app.scan.ScanScreen
-import com.ledger.personal.ui.app.tools.CategoriesScreen
 import com.ledger.personal.ui.app.tools.ConflictScreen
 import com.ledger.personal.ui.app.tools.DisputeScreen
 import com.ledger.personal.ui.app.tools.DisputesScreen
 import com.ledger.personal.ui.app.tools.MockControlsScreen
-import com.ledger.personal.ui.app.tools.StatementsScreen
 import com.ledger.personal.ui.app.tools.ToolsViewModel
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
@@ -132,7 +127,6 @@ fun LedgerNavHost(
     }
     val categoriesReady by appViewModel.categoriesReady.collectAsStateWithLifecycle()
     val categories = if (categoriesReady) prefs.categories else emptyList()
-    val defaultCategories = if (categoriesReady) prefs.defaultCategories else emptyList()
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
@@ -159,7 +153,7 @@ fun LedgerNavHost(
             ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
             productRoutes(navController, offline)
             accountRoutes(navController, prefs, appViewModel)
-            toolRoutes(navController, tools, appViewModel, categories, defaultCategories, !categoriesReady)
+            toolRoutes(navController, tools)
         }
     }
 }
@@ -188,18 +182,6 @@ private fun NavGraphBuilder.tabRoutes(
             offline = flags.offline,
             onToggleReveal = flags.onToggleReveal,
             onProfile = { nav.navigate(Screen.Profile) },
-            onOpen = { nav.navigate(Screen.TransactionDetail(it)) },
-            onSeeAll = { nav.navigate(Screen.TransactionList) },
-            onQuickAction = { action ->
-                val route = when (action) {
-                    "send" -> Screen.Wallet
-                    "upi" -> Screen.Scan
-                    "offers" -> Screen.Promotions()
-                    "accounts" -> Screen.Profile
-                    else -> null
-                }
-                if (route != null) nav.navigate(route)
-            },
             conflicts = conflicts.size,
             onConflicts = { nav.navigate(Screen.Conflicts) },
             viewModel = home,
@@ -323,36 +305,14 @@ private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPref
         )
     }
     composable<Screen.Settings> { SettingsScreen(prefs, back, { app.setTheme(it) }, { app.setHideBalances(it) }) }
-    composable<Screen.Security> {
-        val context = LocalContext.current
-        SecurityScreen(
-            prefs = prefs,
-            onBack = back,
-            onBiometric = { app.setBiometric(it) },
-            onChangeMpin = { app.changeMpin(it) },
-            onSignOutEverywhere = { app.signOutEverywhere() },
-            onBind = { done -> app.bindDevice(context, done) },
-        )
-    }
-    composable<Screen.Notifications> { NotificationsScreen(onBack = back) }
-    composable<Screen.Help> { HelpScreen(onBack = back) }
-
 }
 
 /** Tool routes. */
 private fun NavGraphBuilder.toolRoutes(
     nav: NavHostController,
     tools: ToolsViewModel,
-    app: AppViewModel,
-    categories: List<String>,
-    defaults: List<String>,
-    categoriesLoading: Boolean,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
-    composable<Screen.Statements> { StatementsScreen(onBack = back, tools = tools) }
-    composable<Screen.Categories> {
-        CategoriesScreen(categories, back, defaults, loading = categoriesLoading) { app.setCategories(it) }
-    }
     composable<Screen.Dispute> { entry ->
         DisputeScreen(entry.toRoute<Screen.Dispute>().transactionId, tools, back) { nav.navigate(Screen.Disputes) }
     }

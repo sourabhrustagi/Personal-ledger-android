@@ -30,7 +30,6 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                         listOf(
                             HomeTile("send", "Send"),
                             HomeTile("upi", "UPI"),
-                            HomeTile("budgets", "Budgets"),
                             HomeTile("offers", "Offers"),
                         ),
                     ),

@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.api
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.di.ApiConfig
 import com.ledger.personal.di.StaticClient
 import com.ledger.personal.domain.session.OtpService
@@ -35,7 +36,7 @@ class KtorOtpService @Inject constructor(
         if (config.mockFlavor) {
             MOCK_OTP_SENT_MESSAGE
         } else {
-            val response = client.post("auth/otp") {
+            val response = client.post(ApiEndpoints.OTP) {
                 contentType(ContentType.Application.Json)
                 setBody(OtpRequestDto(phone))
             }.body<OtpResponseDto>()

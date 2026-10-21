@@ -4,24 +4,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,11 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -57,16 +48,10 @@ fun TransactionDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateEdit: ((String) -> Unit)? = null,
     onRetry: () -> Unit,
-    onShowDeleteDialog: (Boolean) -> Unit,
-    onConfirmDelete: () -> Unit,
+    onShowDeleteDialog: ((Boolean) -> Unit)? = null,
+    onConfirmDelete: (() -> Unit)? = null,
     actions: @Composable ColumnScope.(Transaction) -> Unit = {},
 ) {
-    LaunchedEffect(uiState.isDeleted) {
-        if (uiState.isDeleted) {
-            onNavigateBack()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,13 +73,6 @@ fun TransactionDetailScreen(
                                     contentDescription = "Edit Transaction"
                                 )
                             }
-                        }
-                        IconButton(onClick = { onShowDeleteDialog(true) }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Transaction",
-                                tint = MaterialTheme.colorScheme.error
-                            )
                         }
                     }
                 },
@@ -222,57 +200,6 @@ fun TransactionDetailScreen(
                     }
                 }
             }
-
-            // Delete confirmation dialog (5th CRUD operation)
-            if (uiState.showDeleteConfirmation) {
-                AlertDialog(
-                    onDismissRequest = {
-                        if (!uiState.isDeleting) onShowDeleteDialog(false)
-                    },
-                    title = {
-                        Text(
-                            text = "Delete Transaction?",
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Column {
-                            Text("Are you sure you want to delete this record? This action cannot be undone.")
-                            if (uiState.isDeleting) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text("Deleting from ledger...")
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = onConfirmDelete,
-                            enabled = !uiState.isDeleting,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text("Delete", fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = { onShowDeleteDialog(false) },
-                            enabled = !uiState.isDeleting
-                        ) {
-                            Text("Cancel")
-                        }
-                    }
-                )
-            }
         }
     }
 }
@@ -297,8 +224,6 @@ private fun TransactionDetailLoadingPreview() {
             onNavigateBack = {},
             onNavigateEdit = {},
             onRetry = {},
-            onShowDeleteDialog = {},
-            onConfirmDelete = {}
         )
     }
 }
@@ -313,8 +238,6 @@ private fun TransactionDetailErrorPreview() {
             onNavigateBack = {},
             onNavigateEdit = {},
             onRetry = {},
-            onShowDeleteDialog = {},
-            onConfirmDelete = {}
         )
     }
 }
@@ -329,8 +252,6 @@ private fun TransactionDetailEmptyPreview() {
             onNavigateBack = {},
             onNavigateEdit = {},
             onRetry = {},
-            onShowDeleteDialog = {},
-            onConfirmDelete = {}
         )
     }
 }
@@ -345,27 +266,6 @@ private fun TransactionDetailContentPreview() {
             onNavigateBack = {},
             onNavigateEdit = {},
             onRetry = {},
-            onShowDeleteDialog = {},
-            onConfirmDelete = {}
-        )
-    }
-}
-
-/** Shows transaction detail delete dialog preview. */
-@PreviewLightDark
-@Composable
-private fun TransactionDetailDeleteDialogPreview() {
-    PersonalLedgerTheme {
-        TransactionDetailScreen(
-            uiState = TransactionDetailUiState(
-                transaction = previewTransaction(),
-                showDeleteConfirmation = true
-            ),
-            onNavigateBack = {},
-            onNavigateEdit = {},
-            onRetry = {},
-            onShowDeleteDialog = {},
-            onConfirmDelete = {}
         )
     }
 }

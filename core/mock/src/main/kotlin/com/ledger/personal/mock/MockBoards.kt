@@ -21,19 +21,11 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                 tabs = listOf(
                     HomeTab("home", "Home"),
                     HomeTab("pay", "Pay"),
+                    HomeTab("passbook", "Passbook"),
                     HomeTab("accounts", "Accounts"),
                 ),
                 sections = listOf(
                     HomeSection.Balance,
-                    HomeSection.Note("UPI cashback", "5% back until Sunday."),
-                    HomeSection.Shortcuts(
-                        listOf(
-                            HomeTile("send", "Send"),
-                            HomeTile("upi", "UPI"),
-                            HomeTile("offers", "Offers"),
-                        ),
-                    ),
-                    HomeSection.Activity("Latest activity"),
                 ),
             ),
         )

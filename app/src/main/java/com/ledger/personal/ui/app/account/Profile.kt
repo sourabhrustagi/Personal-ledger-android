@@ -4,22 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Gavel
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.RequestQuote
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -71,24 +59,14 @@ fun ProfileScreen(
                 StatusChip("KYC pending", BannerTone.WARNING)
             }
         }
-        SectionCard(title = "Banking and products") {
-            ListRow(Icons.Outlined.AccountBalance, "Accounts", subtitle = "Statements, UPI and balances", onClick = open(Screen.Banking))
-            ListRow(Icons.Outlined.CreditCard, "Cards", subtitle = "Freeze, limits and controls", onClick = open(Screen.Cards))
-            ListRow(Icons.Outlined.RequestQuote, "Loans", subtitle = "EMI calculator and prepay", onClick = open(Screen.Loans))
-            ListRow(Icons.Outlined.Savings, "Deposits", subtitle = "Fixed deposits at 7.25% p.a.", onClick = open(Screen.Deposits))
-            ListRow(Icons.Outlined.History, "All transactions", subtitle = "Full paged history", onClick = open(Screen.LedgerHistory))
-            ListRow(Icons.Outlined.Description, "Statements", subtitle = "Monthly PDF for Savings", onClick = open(Screen.Statements))
-        }
-        SectionCard(title = "Account") {
-            ListRow(Icons.Outlined.VerifiedUser, "Complete KYC", subtitle = "Unlock higher limits", onClick = open(Screen.Kyc))
-            ListRow(Icons.Outlined.Security, "Security centre", subtitle = "OTP, biometrics, devices", onClick = open(Screen.Security))
-            ListRow(Icons.Outlined.Notifications, "Notifications", subtitle = "Alerts and activity", onClick = open(Screen.Notifications))
-            ListRow(Icons.Outlined.Settings, "Settings", subtitle = "Theme, privacy, language", onClick = open(Screen.Settings))
-            ListRow(Icons.Outlined.Category, "Categories", subtitle = "Add, rename or remove", onClick = open(Screen.Categories))
-            ListRow(Icons.Outlined.Gavel, "Your disputes", subtitle = "Track problems you reported", onClick = open(Screen.Disputes))
-            ListRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help and support", subtitle = "FAQs and contact", onClick = open(Screen.Help))
-            if (showMockControls) {
+        if (showMockControls) {
+            SectionCard(title = "Account") {
+                ListRow(Icons.Outlined.Settings, "Settings", subtitle = "Theme, privacy, language", onClick = open(Screen.Settings))
                 ListRow(Icons.Outlined.BugReport, "Mock controls", subtitle = "Debug builds only", onClick = open(Screen.MockControls))
+            }
+        } else {
+            SectionCard(title = "Account") {
+                ListRow(Icons.Outlined.Settings, "Settings", subtitle = "Theme, privacy, language", onClick = open(Screen.Settings))
             }
         }
         ListRow(

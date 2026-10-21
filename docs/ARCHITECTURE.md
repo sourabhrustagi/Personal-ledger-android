@@ -52,7 +52,7 @@ flowchart TD
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
 | `:feature:wallet` | Send money, UPI request |
 | `:feature:banking` | Accounts, cards, loans, deposits |
-| `:feature:budgets` | Budgets and charts |
+| `:feature:budgets` | Charts and spending trends |
 | `:feature:fx` | Exchange-rate quotes and alerts |
 | `:feature:kyc` | KYC case flow with saved drafts |
 | `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |

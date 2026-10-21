@@ -54,7 +54,7 @@ object RepositoryModule {
         pinBackup = BuildConfig.PIN_SHA256_BACKUP,
         paymentsBaseUrl = BuildConfig.PAYMENTS_BASE_URL,
         promotionsBaseUrl = BuildConfig.PROMOTIONS_BASE_URL,
-        localSession = BuildConfig.FLAVOR == "mock",
+        mockFlavor = BuildConfig.FLAVOR == "mock",
     )
 
     /** Supplies transaction remote. */

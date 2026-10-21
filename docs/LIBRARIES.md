@@ -58,7 +58,7 @@ Debug builds log only request and response summary lines. Headers and bodies are
 
 ### Room
 
-Room is the local source of truth for transactions, sync state, POS queues, KYC drafts and assistant history. It provides compile-time SQL checks, migrations, transactions and `Flow`.
+Room is the local source of truth for transactions, sync state, and offline queues. It provides compile-time SQL checks, migrations, transactions and `Flow`.
 
 **Instead of raw SQLite:** Room removes cursor and schema boilerplate while retaining SQLite reliability. **Instead of SQLDelight:** SQLDelight is strong for multiplatform projects; Room has tighter Android, Paging and WorkManager integration for this Android-only app.
 
@@ -112,7 +112,7 @@ Hilt creates repositories, databases, workers, Ktor clients and ViewModels with 
 
 ### CameraX
 
-CameraX supplies lifecycle-aware camera preview and image analysis for KYC and QR capture.
+CameraX supplies lifecycle-aware camera preview and image analysis for QR capture.
 
 **Instead of Camera2:** Camera2 gives lower-level control but requires substantially more device and lifecycle handling that these screens do not need.
 

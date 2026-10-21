@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.interceptor
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.data.remote.api.MOCK_SESSION_TOKEN
 import com.ledger.personal.di.ApiConfig
 import okhttp3.OkHttpClient
@@ -17,13 +18,11 @@ class MockInterceptorTest {
     @Test
     fun mockFlavorInterceptsSessionEndpoint() {
         val interceptor = MockInterceptor(createConfig(mockFlavor = true))
-        val client = OkHttpClient.Builder()
-            .addInterceptor(interceptor)
-            .build()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
         val response = client.newCall(
             Request.Builder()
-                .url("https://api.example/retail/v1/session")
+                .url("https://api.example/retail/v1/${ApiEndpoints.SESSION}")
                 .post("{}".toRequestBody(null))
                 .build(),
         ).execute()
@@ -37,13 +36,11 @@ class MockInterceptorTest {
     @Test
     fun mockFlavorInterceptsOtpEndpoint() {
         val interceptor = MockInterceptor(createConfig(mockFlavor = true))
-        val client = OkHttpClient.Builder()
-            .addInterceptor(interceptor)
-            .build()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
         val response = client.newCall(
             Request.Builder()
-                .url("https://api.example/retail/v1/auth/otp")
+                .url("https://api.example/retail/v1/${ApiEndpoints.OTP}")
                 .post("{}".toRequestBody(null))
                 .build(),
         ).execute()
@@ -51,6 +48,63 @@ class MockInterceptorTest {
         assertEquals(200, response.code)
         val body = response.body?.string().orEmpty()
         assertTrue(body.contains("OTP sent"))
+        response.close()
+    }
+
+    @Test
+    fun mockFlavorInterceptsTransactionsEndpoint() {
+        val interceptor = MockInterceptor(createConfig(mockFlavor = true))
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val response = client.newCall(
+            Request.Builder()
+                .url("https://api.example/retail/v1/${ApiEndpoints.TRANSACTIONS}")
+                .get()
+                .build(),
+        ).execute()
+
+        assertEquals(200, response.code)
+        val body = response.body?.string().orEmpty()
+        assertTrue(body.contains("items"))
+        assertTrue(body.contains("Starbucks Coffee"))
+        response.close()
+    }
+
+    @Test
+    fun mockFlavorInterceptsDashboardEndpoint() {
+        val interceptor = MockInterceptor(createConfig(mockFlavor = true))
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val response = client.newCall(
+            Request.Builder()
+                .url("https://api.example/retail/v1/${ApiEndpoints.DASHBOARD}")
+                .get()
+                .build(),
+        ).execute()
+
+        assertEquals(200, response.code)
+        val body = response.body?.string().orEmpty()
+        assertTrue(body.contains("tabs"))
+        assertTrue(body.contains("sections"))
+        response.close()
+    }
+
+    @Test
+    fun mockFlavorInterceptsStaticCategoriesEndpoint() {
+        val interceptor = MockInterceptor(createConfig(mockFlavor = true))
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val response = client.newCall(
+            Request.Builder()
+                .url("https://api.example/retail/v1/${ApiEndpoints.STATIC_CATEGORIES}")
+                .get()
+                .build(),
+        ).execute()
+
+        assertEquals(200, response.code)
+        val body = response.body?.string().orEmpty()
+        assertTrue(body.contains("categories"))
+        assertTrue(body.contains("Dining"))
         response.close()
     }
 
@@ -74,7 +128,7 @@ class MockInterceptorTest {
 
         val response = client.newCall(
             Request.Builder()
-                .url("https://api.example/retail/v1/session")
+                .url("https://api.example/retail/v1/${ApiEndpoints.SESSION}")
                 .post("{}".toRequestBody(null))
                 .build(),
         ).execute()

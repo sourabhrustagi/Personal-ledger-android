@@ -23,12 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.data.prefs.AppPrefs
-import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.ListRow
 import com.ledger.personal.ui.feature.SectionCard
-import com.ledger.personal.ui.feature.StatusChip
 import com.ledger.personal.ui.navigation.Screen
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
@@ -56,7 +54,6 @@ fun ProfileScreen(
                     )
                     Text("+91 ${prefs.phone.ifBlank { "—" }}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                StatusChip("KYC pending", BannerTone.WARNING)
             }
         }
         if (showMockControls) {

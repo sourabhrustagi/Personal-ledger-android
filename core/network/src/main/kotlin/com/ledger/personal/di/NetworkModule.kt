@@ -14,6 +14,7 @@ import com.ledger.personal.domain.session.OtpService
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.domain.settings.CategoryCatalog
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
+import com.ledger.personal.data.remote.interceptor.MockInterceptor
 import com.ledger.personal.data.remote.interceptor.StaticCacheInterceptor
 import com.ledger.personal.data.remote.interceptor.StaticFreshnessInterceptor
 import dagger.Module
@@ -79,10 +80,11 @@ object NetworkModule {
         config: ApiConfig,
         authInterceptor: AuthInterceptor,
         loggingInterceptor: HttpLoggingInterceptor,
+        mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
         json: Json,
     ): HttpClient = ktorClient(
-        engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor),
+        engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor, mockInterceptor),
         config = config,
         json = json,
         authenticated = true,
@@ -95,6 +97,7 @@ object NetworkModule {
     fun provideStaticClient(
         config: ApiConfig,
         loggingInterceptor: HttpLoggingInterceptor,
+        mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
         json: Json,
     ): HttpClient {
@@ -106,6 +109,7 @@ object NetworkModule {
             config,
             context,
             loggingInterceptor,
+            mockInterceptor,
         )
         return ktorClient(engineClient, config, json)
     }
@@ -118,10 +122,11 @@ object NetworkModule {
         config: ApiConfig,
         authInterceptor: AuthInterceptor,
         loggingInterceptor: HttpLoggingInterceptor,
+        mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
         json: Json,
     ): HttpClient = ktorClient(
-        engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor),
+        engineClient = finish(timeouts().addInterceptor(authInterceptor), config, context, loggingInterceptor, mockInterceptor),
         config = config,
         json = json,
         rooted = false,
@@ -215,13 +220,17 @@ object NetworkModule {
         .writeTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
 
-    /** Adds logging, debug inspection, and certificate pins, then builds the client. */
+    /** Adds logging, mock interception, debug inspection, and certificate pins, then builds the client. */
     private fun finish(
         builder: OkHttpClient.Builder,
         config: ApiConfig,
         context: Context,
         loggingInterceptor: HttpLoggingInterceptor,
+        mockInterceptor: MockInterceptor,
     ): OkHttpClient {
+        if (config.mockFlavor) {
+            builder.addInterceptor(mockInterceptor)
+        }
         builder.addInterceptor(loggingInterceptor)
         if (config.debuggable) {
             builder.addInterceptor(

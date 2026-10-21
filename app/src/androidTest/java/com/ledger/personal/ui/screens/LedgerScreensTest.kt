@@ -157,31 +157,24 @@ class LedgerScreensTest {
     }
 
     @Test
-    fun detailScreenShowsTransactionAndDeleteDialog() {
+    fun detailScreenShowsTransactionDetails() {
         var editId: String? = null
-        var deleteConfirmed = false
         composeRule.setContent {
             PersonalLedgerTheme {
                 TransactionDetailScreen(
                     uiState = TransactionDetailUiState(
                         transaction = sampleTransaction(id = "tx-9", description = "Team lunch"),
-                        showDeleteConfirmation = true
                     ),
                     onNavigateBack = {},
                     onNavigateEdit = { editId = it },
                     onRetry = {},
-                    onShowDeleteDialog = {},
-                    onConfirmDelete = { deleteConfirmed = true }
                 )
             }
         }
         composeRule.onNodeWithText("Team lunch").assertIsDisplayed()
         composeRule.onNodeWithText("Transaction ID").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Edit Transaction").performClick()
-        composeRule.onNodeWithText("Delete Transaction?").assertIsDisplayed()
-        composeRule.onNodeWithText("Delete").performClick()
         assertEquals("tx-9", editId)
-        assertTrue(deleteConfirmed)
     }
 
     @Test

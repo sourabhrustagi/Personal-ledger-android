@@ -6,7 +6,70 @@ It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Ktor.
 
 By default the app runs fully offline on built-in demo data, so you can clone it and run it without a backend.
 
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Build Flavors](#build-flavors)
+- [Mock Values & Demo Credentials](#mock-values--demo-credentials)
+  - [Central Constants (`MockValues.kt`)](#central-constants-mockvalueskt)
+  - [Central Mock Catalog (`MockCatalog.kt`)](#central-mock-catalog-mockcatalogkt)
+- [Force Update & Versioning](#force-update)
+- [What's in the App](#whats-in-the-app)
+  - [Opening the App](#opening-the-app)
+  - [Tabs Overview](#tabs)
+  - [Products & Tools](#products--tools)
+  - [Pay & Transfers](#pay)
+  - [Planning and Markets](#planning-and-markets)
+  - [Profile & Account Hub](#profile)
+- [Project Layout](#project-layout)
+- [Architecture & How the App Works](#architecture--how-the-app-works)
+  - [1. Offline-First Local Source of Truth](#1-offline-first-local-source-of-truth)
+  - [2. Resilient Background Synchronization & Conflict Resolution](#2-resilient-background-synchronization--conflict-resolution)
+  - [3. Build Flavor Dependency Injection](#3-build-flavor-dependency-injection)
+  - [4. Multi-Layer Banking Security](#4-multi-layer-banking-security)
+- [ViewModels](#view-models)
+- [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
+  - [1. `remember` vs `rememberSaveable`](#1-remember-vs-remembersaveable)
+  - [2. Real-World Uses of `rememberSaveable`](#2-real-world-uses-of-remembersaveable-in-ledgerone)
+  - [3. Screen & Business State: `ViewModel` + `StateFlow`](#3-screen--business-state-viewmodel--stateflow)
+  - [4. Architectural Patterns Used Across the Project](#4-architectural-patterns-used-across-the-project)
+    - [State Hoisting (Unidirectional Data Flow)](#a-state-hoisting-unidirectional-data-flow)
+    - [`collectAsStateWithLifecycle()` vs `collectAsState()`](#b-collectasstatewithlifecycle-vs-collectasstate)
+    - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
+    - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
+  - [5. Application State Mechanism Comparison Matrix](#5-application-state-mechanism-comparison-matrix)
+- [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
+  - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
+  - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
+  - [3. `SideEffect` (Publishing Compose State)](#3-sideeffect-publishing-compose-state-to-non-compose-code)
+  - [4. `rememberCoroutineScope` (Event-Driven Coroutines)](#4-remembercoroutinescope-event-driven-coroutines)
+  - [5. `rememberUpdatedState` (Stable Callback References)](#5-rememberupdatedstate-stable-callback-references)
+  - [6. `produceState` (Converting Async Sources to Compose State)](#6-producestate-converting-async-sources-to-compose-state)
+  - [7. `derivedStateOf` (Calculation Optimization)](#7-derivedstateof-calculation-optimization)
+  - [Summary Comparison Matrix of Compose Effect Handlers](#summary-of-compose-effect-handlers)
+- [Application Enums: Flow Steps & Operational Statuses](#application-enums-flow-steps--operational-statuses)
+  - [Key Step & Status State Machines](#key-step--status-state-machines)
+- [Design System: ColorScheme, Semantic Colors & Theme Architecture](#design-system-colorscheme-semantic-colors--theme-architecture)
+  - [1. Palette Foundation (`Color.kt`)](#1-palette-foundation-colorkt)
+  - [2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)](#2-material-3-colorschemes-light-vs-dark-themakt)
+  - [3. Domain Financial Colors: `LedgerTheme.colors`](#3-domain-financial-colors-ledgerthemecolors)
+  - [4. Theme Modes & Dynamic Switching (`ThemeMode`)](#4-theme-modes--dynamic-switching-thememode)
+  - [5. Design System Components (`:core:designsystem`)](#5-design-system-components-coredesignsystem)
+- [Business Logic & Domain Invariants](#business-logic)
+  - [Financial Calculations & Accounting Invariants](#financial-calculations--accounting-invariants)
+  - [Payments, UPI & Fraud Prevention](#payments-upi--fraud-prevention)
+  - [Security, Authentication & Cryptography](#security-authentication--cryptography)
+  - [Offline-First Synchronization & Conflict Handling](#offline-first-synchronization--conflict-handling)
+- [Dependencies](#dependencies)
+- [Tests and Checks](#tests-and-checks)
+- [Contributing & Engineering Guidelines](#contributing)
+
+---
+
 ## Quick start
+
 
 Requirements: Android Studio (recent), JDK 17, an emulator or phone on Android 8.0 (API 26) or later.
 

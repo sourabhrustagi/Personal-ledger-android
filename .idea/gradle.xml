@@ -21,9 +21,6 @@
             <option value="$PROJECT_DIR$/core/ui" />
             <option value="$PROJECT_DIR$/feature" />
             <option value="$PROJECT_DIR$/feature/banking" />
-            <option value="$PROJECT_DIR$/feature/budgets" />
-            <option value="$PROJECT_DIR$/feature/fx" />
-            <option value="$PROJECT_DIR$/feature/kyc" />
             <option value="$PROJECT_DIR$/feature/ledger" />
             <option value="$PROJECT_DIR$/feature/ticker" />
             <option value="$PROJECT_DIR$/feature/wallet" />

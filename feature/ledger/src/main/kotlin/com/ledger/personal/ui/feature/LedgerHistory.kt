@@ -64,7 +64,7 @@ private fun LedgerHistoryPreview() {
     PersonalLedgerTheme { LedgerHistoryScreen(onBack = {}, viewModel = LedgerHistoryViewModel(PreviewDao)) }
 }
 
-private val previewRow = Transaction("tx-1", 50_000L, "INR", "Utilities", "Electricity", 1_760_200_000_000L)
+private val previewRow = Transaction("tx-1", 120_00L, "INR", "Scan & Pay", "Chai Point · QR Pay", 1_760_200_000_000L)
     .toEntity(syncState = "SYNCED", updatedAtEpochMs = 1_760_200_000_000L)
 
 private object PreviewDao : TransactionDao {

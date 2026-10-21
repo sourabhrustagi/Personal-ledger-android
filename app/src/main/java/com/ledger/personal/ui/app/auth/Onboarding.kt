@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -29,7 +30,7 @@ private val steps = listOf("Phone", "Verify")
 /** Shows onboarding flow orchestrating phone entry and OTP verification. */
 @Composable
 fun OnboardingFlow(
-    onSendOtp: (phone: String, onResult: (Result<String>) -> Unit) -> Unit = { _, done -> done(Result.success("OTP sent")) },
+    onSendOtp: suspend (phone: String) -> Result<OtpResponse> = { Result.success(OtpResponse()) },
     onFinish: (phone: String) -> Unit,
 ) {
     var step by rememberSaveable { mutableStateOf(OnboardStep.PHONE) }
@@ -47,8 +48,8 @@ fun OnboardingFlow(
                     phone = phone,
                     onPhone = { phone = it },
                     onSendCode = onSendOtp,
-                    onNext = { message ->
-                        otpMessage = message
+                    onNext = { response ->
+                        otpMessage = response.message.ifBlank { "OTP sent" }
                         step = OnboardStep.OTP
                     },
                 )
@@ -56,7 +57,7 @@ fun OnboardingFlow(
                     phone = phone,
                     sentMessage = otpMessage,
                     onEdit = { step = OnboardStep.PHONE },
-                    onResend = { callback -> onSendOtp(phone, callback) },
+                    onResend = { onSendOtp(phone) },
                     onVerified = { onFinish(phone) },
                 )
             }

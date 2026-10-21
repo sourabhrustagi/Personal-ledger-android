@@ -136,9 +136,9 @@ Screens below are the light theme on mock data.
 
 ### Planning and markets
 
-| Budgets | Charts | Rate alerts |
-| --- | --- | --- |
-| <img src="docs/images/budgets.png" width="200" alt="Budgets"> | <img src="docs/images/charts.png" width="200" alt="Charts"> | <img src="docs/images/fx.png" width="200" alt="Rate alerts"> |
+| Charts | Rate alerts |
+| --- | --- |
+| <img src="docs/images/charts.png" width="200" alt="Charts"> | <img src="docs/images/fx.png" width="200" alt="Rate alerts"> |
 
 | Markets |
 | --- |
@@ -198,7 +198,7 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:fx` | `FxAlertsViewModel` | Exchange rate threshold alerts and background trigger rules |
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
-| `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual budget trend curves |
+| `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual trend curves |
 
 ## Business logic
 

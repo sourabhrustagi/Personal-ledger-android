@@ -18,7 +18,6 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
@@ -93,7 +92,6 @@ private fun tileIcon(id: String) = when (id) {
     "send" -> Icons.AutoMirrored.Outlined.Send
     "upi" -> Icons.Outlined.QrCode2
     "bills" -> Icons.AutoMirrored.Outlined.ReceiptLong
-    "budgets" -> Icons.Outlined.PieChart
     else -> Icons.Outlined.Widgets
 }
 

@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.interceptor
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.di.ApiConfig
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -27,8 +28,8 @@ class MockInterceptor @Inject constructor(
 
         val path = chain.request().url.encodedPath.trimEnd('/')
         return when {
-            path.endsWith("session") -> jsonResponse(chain, """{"token":"mock-session"}""")
-            path.endsWith("auth/otp") -> jsonResponse(chain, """{"message":"OTP sent","status":"SENT"}""")
+            path.endsWith(ApiEndpoints.SESSION) -> jsonResponse(chain, """{"token":"mock-session"}""")
+            path.endsWith(ApiEndpoints.OTP) -> jsonResponse(chain, """{"message":"OTP sent","status":"SENT"}""")
             else -> chain.proceed(chain.request())
         }
     }

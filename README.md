@@ -455,6 +455,52 @@ if (activity != null) DisposableEffect(activity, navController) {
 | **`produceState`** | **Yes** | Cooperative cancellation | Key change / leaves composition | Bridging external async data into Compose `State<T>` |
 | **`derivedStateOf`** | No | No | Derived inputs change | Reducing recomposition frequency for high-velocity state |
 
+## Application Enums: Flow Steps & Operational Statuses
+
+Enums are used across the application to model type-safe state machines, multi-step navigation wizards, operation lifecycle statuses, and design system tokens. By restricting states to closed enum sets, the compiler enforces exhaustive `when` branches and prevents invalid state transitions.
+
+| Enum | Module / File | Values | Category | Purpose in Application |
+|---|---|---|---|---|
+| **`OnboardStep`** | `:app` (`Onboarding.kt`) | `PHONE`, `OTP` | Wizard Step | Controls the 2-step onboarding wizard progression (phone input → SMS OTP verification) |
+| **`TransferStep`** | `:feature:wallet` (`Wallet.kt`) | `FORM`, `REVIEW`, `RECEIPT` | Wizard Step | Drives the peer-to-peer wallet transfer wizard from amount entry to confirmation and receipt |
+| **`TransferStatus`** | `:feature:wallet` (`Wallet.kt`) | `IDLE`, `INSUFFICIENT`, `STEP_UP`, `PENDING`, `FAILED`, `DONE` | Lifecycle Status | Manages the wallet transfer state machine (balance checks, step-up biometric auth, in-flight posting, and terminal results) |
+| **`BankSheet`** | `:feature:banking` (`BankingSheets.kt`) | `UPI`, `PAYEE` | UI Modal Step | Determines which bottom sheet modal is open in the Banking hub (managing UPI ID vs adding a new payee) |
+| **`ChartTab`** | `:feature:budgets` (`Charts.kt`) | `MONTH`, `CATEGORY` | UI Step / Filter | Toggles spending analytics breakdowns between monthly historical trends and category distributions |
+| **`SyncPhase`** | `:core:model` (`SyncCoordinator.kt`) | `IDLE`, `ENQUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `BLOCKED` | System Status | Domain-level coordinator phase reported by WorkManager background sync jobs to update UI headers |
+| **`SyncState`** | `:core:designsystem` (`SyncIndicator.kt`) | `SYNCED`, `SYNCING`, `WAITING`, `FAILED` | UI Status | Visual sync indicator combining user-facing status label, semantic tone (`BannerTone`), and cloud status icon |
+| **`CaseStatus`** | `:app` (`KycCase.kt`) | `NEW`, `APPROVED` | Verification Status | Enforces valid KYC verification state machine transitions, preventing illegal direct state jumps |
+| **`DisputeReason`** | `:app` (`Tools.kt`) | `UNAUTHORISED`, `WRONG_AMOUNT`, `NOT_RECEIVED`, `DUPLICATE` | Business Status | Customer grievance categorization codes recorded when reporting a transaction dispute |
+| **`FxNotify`** | `:feature:fx` (`FxAlertWorker.kt`) | `POST`, `SKIP`, `QUIET` | Worker Status | Tri-state decision enum used by background workers to post notification, skip (no permission), or stay quiet |
+| **`PrepayMode`** | `:feature:banking` (`BankProducts.kt`) | `TENURE`, `EMI` | Calculation Strategy | Loan prepayment calculation strategy selecting between shortening loan tenure or reducing monthly instalment |
+| **`MoneyDirection`** | `:core:designsystem` (`Money.kt`) | `CREDIT`, `DEBIT`, `NEUTRAL` | Financial Indicator | Controls currency formatting colors (green credit, primary debit, neutral zero) and +/- prefixes |
+| **`BannerTone`** | `:core:designsystem` (`BannerTone.kt`) | `INFO`, `SUCCESS`, `WARNING`, `ERROR` | Design Token | Maps semantic visual intent to theme container colors and icon tints for banners, alerts, and badges |
+| **`ThemeMode`** | `:core:designsystem` (`Theme.kt`) | `SYSTEM`, `LIGHT`, `DARK` | User Preference | User interface appearance mode persisted in DataStore |
+| **`LedgerOneTextRole`** | `:core:designsystem` (`LedgerOneText.kt`) | `Display`, `Title`, `Body`, `Label` | Typography Token | Design system typography roles enforcing consistent font sizes, weights, and letter spacings |
+
+---
+
+### Key Step & Status State Machines
+
+#### 1. Peer-to-Peer Transfer (`TransferStep` & `TransferStatus`)
+The wallet transfer flow decouples screen steps from the underlying transaction status:
+- **`TransferStep.FORM`**: The user specifies amount and recipient. If the amount exceeds current balance, status immediately reflects `TransferStatus.INSUFFICIENT`.
+- **`TransferStep.REVIEW`**: Shows transfer fee and split legs. If high-value transfer thresholds are exceeded, `TransferStatus.STEP_UP` prompts for biometric confirmation.
+- **`TransferStep.RECEIPT`**: When the network worker posts the transaction (`TransferStatus.PENDING` → `TransferStatus.DONE`), the idempotency key and receipt reference are displayed. If rejected, `TransferStatus.FAILED` displays the failure reason with retry.
+
+#### 2. Onboarding Registration (`OnboardStep`)
+Scoped directly to `OnboardingFlow`, `OnboardStep` preserves the user's progress through registration:
+- **`OnboardStep.PHONE`**: Collects the user's mobile number and terms consent.
+- **`OnboardStep.OTP`**: Validates the 6-digit SMS verification code. Tapping "Edit" navigates cleanly back to `OnboardStep.PHONE` while retaining the entered phone number.
+
+#### 3. Dual-Layer Synchronization (`SyncPhase` vs `SyncState`)
+- **Domain layer (`SyncPhase`):** Emitted as a cold `Flow<SyncPhase>` by `SyncCoordinator`. Tracks granular worker lifecycle phases: `IDLE`, `ENQUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, and `BLOCKED` (waiting for network constraints).
+- **Presentation layer (`SyncState`):** Displayed in `SyncIndicator`. Maps domain phases into visual badges: `SYNCED` (green cloud checkmark), `SYNCING` (blue rotating sync), `WAITING` (amber cloud off), and `FAILED` (red error outline).
+
+#### 4. Loan Amortization Prepayment Strategy (`PrepayMode`)
+When prepaying an existing EMI loan, `PrepayMode` determines the amortization adjustment:
+- **`PrepayMode.TENURE` ("Reduce tenure"):** Keeps the monthly EMI payment constant while reducing the remaining months until loan maturity (`tenureFor`).
+- **`PrepayMode.EMI` ("Reduce EMI"):** Recalculates lower monthly EMI payments while keeping the original loan tenure unchanged (`emiMinor`).
+
 ## Business logic
 
 The application's domain rules are concentrated in pure Kotlin within `core/model`, ensuring they can be tested independently of the Android runtime and UI frameworks.

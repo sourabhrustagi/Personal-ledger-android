@@ -10,6 +10,7 @@ import com.ledger.personal.data.remote.api.StaticApi
 import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.ReleaseNotice
+import com.ledger.personal.domain.session.OtpService
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.domain.settings.CategoryCatalog
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
@@ -130,6 +131,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSession(session: com.ledger.personal.data.remote.api.InterceptorSession): Session = session
+
+    /** Supplies OTP service for phone verification. */
+    @Provides
+    @Singleton
+    fun provideOtpService(service: com.ledger.personal.data.remote.api.KtorOtpService): OtpService = service
 
     /** Supplies bill pay. Both sides derive the AES key from ECDH; the key is never posted. */
     @Provides

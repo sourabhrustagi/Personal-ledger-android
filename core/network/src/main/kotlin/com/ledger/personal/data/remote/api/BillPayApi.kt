@@ -34,13 +34,13 @@ class InterceptorBillPay @Inject constructor(
 ) : BillPay {
     private val local = LocalBillPay()
 
-    override suspend fun serverPublic(): ByteArray = if (config.localSession) {
+    override suspend fun serverPublic(): ByteArray = if (config.mockFlavor) {
         local.serverPublic()
     } else {
         Base64.getDecoder().decode(client.get("pay/key").body<PayKeyDto>().publicKey)
     }
 
-    override suspend fun fetch(sealed: SealedPay): Result<FetchedBill> = if (config.localSession) {
+    override suspend fun fetch(sealed: SealedPay): Result<FetchedBill> = if (config.mockFlavor) {
         local.fetch(sealed)
     } else {
         runCatching {
@@ -49,7 +49,7 @@ class InterceptorBillPay @Inject constructor(
         }.onFailure { if (it is CancellationException) throw it }
     }
 
-    override suspend fun submit(sealed: SealedPay): Result<Unit> = if (config.localSession) {
+    override suspend fun submit(sealed: SealedPay): Result<Unit> = if (config.mockFlavor) {
         local.submit(sealed)
     } else {
         runCatching {

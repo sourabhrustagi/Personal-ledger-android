@@ -16,12 +16,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.OtpField
@@ -30,6 +32,7 @@ import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.TextLink
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val RESEND_SECONDS = 30
 private const val OTP_LENGTH = 6
@@ -40,7 +43,7 @@ fun OtpStep(
     phone: String,
     sentMessage: String = "OTP sent",
     onEdit: () -> Unit,
-    onResend: (((Result<String>) -> Unit) -> Unit)? = null,
+    onResend: (suspend () -> Result<OtpResponse>)? = null,
     onVerified: () -> Unit,
 ) {
     var code by rememberSaveable { mutableStateOf("") }
@@ -48,6 +51,7 @@ fun OtpStep(
     var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
     var feedbackMessage by rememberSaveable { mutableStateOf<String?>(sentMessage) }
     var isResending by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(seconds) {
         if (seconds > 0) {
@@ -72,14 +76,15 @@ fun OtpStep(
     } else {
         TextLink(if (isResending) "Resending..." else "Resend code", {
             if (!isResending) {
-                seconds = RESEND_SECONDS
                 if (onResend != null) {
                     isResending = true
-                    onResend { result ->
+                    scope.launch {
+                        val result = onResend()
                         isResending = false
                         result.fold(
-                            onSuccess = { msg ->
-                                feedbackMessage = msg.ifBlank { "OTP sent" }
+                            onSuccess = { res ->
+                                feedbackMessage = res.message.ifBlank { "OTP sent" }
+                                seconds = RESEND_SECONDS
                             },
                             onFailure = {
                                 feedbackMessage = it.message ?: "Failed to resend OTP"

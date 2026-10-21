@@ -60,10 +60,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedButton
 import com.ledger.personal.ui.feature.BankingScreen
 import com.ledger.personal.ui.feature.CardsScreen
-import com.ledger.personal.ui.feature.ChartsScreen
 import com.ledger.personal.ui.feature.DepositsScreen
-import com.ledger.personal.ui.feature.FxAlertsScreen
-import com.ledger.personal.ui.feature.KycScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
 import com.ledger.personal.ui.feature.LoansScreen
 import com.ledger.personal.ui.feature.TickerScreen
@@ -278,10 +275,7 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
             onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
         )
     }
-    composable<Screen.Charts> { ChartsScreen(onBack = back) }
-    composable<Screen.FxAlerts> { FxAlertsScreen(onBack = back) }
     composable<Screen.Ticker> { TickerScreen(onBack = back) }
-    composable<Screen.Kyc> { KycScreen(onBack = back, liveCapture = BuildConfig.FLAVOR != "mock") }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
     composable<Screen.Banking> { BankingScreen(onBack = back) }
     composable<Screen.Cards> { CardsScreen(onBack = back) }

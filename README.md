@@ -324,6 +324,52 @@ Preserves the remaining seconds on SMS OTP cooldowns across activity recreation 
 var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
 ```
 
+#### E. Scroll Position & Viewport Form Access (`rememberScrollState`)
+In Jetpack Compose, standard containers like `Column` and `Row` are **not scrollable by default**. If content exceeds the physical height of the screen, it is simply clipped unless a scroll modifier is attached.
+
+`rememberScrollState()` creates and remembers a `ScrollState` instance to make layout columns scrollable via `Modifier.verticalScroll(rememberScrollState())`. Under the hood, Compose implements it directly on top of `rememberSaveable`:
+```kotlin
+@Composable
+fun rememberScrollState(initial: Int = 0): ScrollState {
+    return rememberSaveable(saver = ScrollState.Saver) {
+        ScrollState(initial = initial)
+    }
+}
+```
+
+##### Why `rememberScrollState` is Critical in LedgerOne:
+1. **Preventing Content Clipping Across Varied Screen Sizes:**
+   Android runs on thousands of screen resolutions, aspect ratios, and split-screen multi-window modes. In `CreateTransactionScreen.kt` and `EditTransactionScreen.kt`, input forms contain amount fields, category chips, notes, and action buttons. Attaching `.verticalScroll(rememberScrollState())` guarantees that all content remains accessible regardless of screen height.
+2. **On-Screen Keyboard (IME) Inset Adaptation:**
+   When a user taps an input field to enter an amount, name, or phone number, the software keyboard rises, consuming over 40–50% of the display height. Combined with `Modifier.safeDrawingPadding()`, `rememberScrollState()` allows the container to compress and scroll smoothly, preventing primary submission buttons and text fields from being trapped behind the keyboard (`PhoneStep.kt`, `OtpStep.kt`, `Onboarding.kt`).
+3. **Surviving Screen Rotation & Process Death:**
+   Because `rememberScrollState()` delegates to `rememberSaveable` with `ScrollState.Saver`, the user's exact scroll offset (in pixels) is serialized into the Android `Bundle`. If a user rotates their device midway through filling out a transaction form or onboarding flow, their viewport position is seamlessly restored rather than resetting back to the top.
+4. **Programmatic Scrolling & Observability:**
+   `ScrollState` exposes both reactive properties (`value`, `maxValue`, `isScrollInProgress`) and suspend functions (`scrollTo(position)`, `animateScrollTo(position)`). This allows composables to observe user scrolling activity (e.g., dynamically elevating top app bars) and programmatically scroll to validation errors.
+5. **Architectural Choice: `rememberScrollState` vs `rememberLazyListState`:**
+   - **`rememberScrollState()` with `Column`:** Used for fixed-size, moderate-length layouts where all elements are known and should be kept in the composition simultaneously (forms, auth steps, modal dialogs, `FeatureScaffold`).
+   - **`rememberLazyListState()` with `LazyColumn`:** Used for large or unbounded data streams (such as `TransactionListScreen` and `LedgerHistory`), where list items must be virtualized and recycled on-demand to avoid memory bloat.
+
+##### Key Usages in LedgerOne:
+- **Shared feature scaffold (`FeatureScaffold.kt`):**
+  ```kotlin
+  modifier = (if (scrollable) base.verticalScroll(rememberScrollState()) else base)
+  ```
+- **Transaction creation & editing forms (`CreateTransactionScreen.kt` & `EditTransactionScreen.kt`):**
+  ```kotlin
+  Column(
+      modifier = Modifier
+          .fillMaxSize()
+          .verticalScroll(rememberScrollState())
+          .padding(16.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+  )
+  ```
+- **Onboarding and authentication wizards (`Onboarding.kt`, `PhoneStep.kt`, `OtpStep.kt`):**
+  ```kotlin
+  Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)
+  ```
+
 ---
 
 ### 3. Screen & Business State: `ViewModel` + `StateFlow`
@@ -353,8 +399,9 @@ All screens consume ViewModel `StateFlow`s using `collectAsStateWithLifecycle()`
 
 | State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
 |---|---|---|---|---|---|---|
-| **`remember`** | Composition Memory | **Yes** | ❌ No | ❌ No | ❌ No | Ephemeral UI: animation clocks, scroll state, transient gestures |
+| **`remember`** | Composition Memory | **Yes** | ❌ No | ❌ No | ❌ No | Ephemeral UI: animation clocks, transient gestures |
 | **`rememberSaveable`** | `SavedStateRegistry` (Bundle) | **Yes** | **Yes** | **Yes** | ❌ No | Form text fields, wizard step index, dialog/sheet open state |
+| **`rememberScrollState`** | `SavedStateRegistry` (`ScrollState.Saver`) | **Yes** | **Yes** | **Yes** | ❌ No | Viewport scroll position in `Column`/`Row`, form keyboard adaptation |
 | **`ViewModel` (`StateFlow`)** | `ViewModelStore` (Heap) | **Yes** | **Yes** | ❌ No | ❌ No | Business logic, fetched accounts, live calculations, search queries |
 | **`SavedStateHandle`** | `SavedStateRegistry` + ViewModel | **Yes** | **Yes** | **Yes** | ❌ No | Navigation parameters (`transactionId`), search criteria across process death |
 | **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states |

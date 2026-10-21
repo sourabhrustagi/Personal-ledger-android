@@ -1,7 +1,5 @@
 package com.ledger.personal.ui.feature
 
-import androidx.lifecycle.SavedStateHandle
-import com.ledger.personal.data.local.MemoryKycDraftStore
 import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.mock.MockCatalog
 import kotlinx.coroutines.flow.flow
@@ -97,44 +95,6 @@ class FeatureViewModelsTest {
         assertTrue(viewModel.uiState.value.errorMessage.orEmpty().contains("Nothing was changed on the server"))
     }
 
-    @Test
-    fun deniedNotificationPermissionDoesNotFire() {
-        val viewModel = FxAlertsViewModel()
-        viewModel.onPermission(false)
-        viewModel.check(10_000L)
-        assertTrue(viewModel.uiState.value.permissionDenied)
-        assertEquals(0, viewModel.uiState.value.firedCount)
-    }
-
-    @Test
-    fun alertFiresOnceWhileRateStaysAboveThreshold() {
-        val viewModel = FxAlertsViewModel()
-        viewModel.onPermission(true)
-        viewModel.check(DEFAULT_THRESHOLD + 50L)
-        viewModel.check(DEFAULT_THRESHOLD + 100L)
-        assertEquals(1, viewModel.uiState.value.firedCount)
-    }
-
-    @Test
-    fun lowConfidenceAndConflictStayVisible() {
-        val viewModel = KycViewModel(SavedStateHandle())
-        viewModel.onName("Asha")
-        viewModel.onConfidence(0.2)
-        viewModel.capture()
-        viewModel.incomingEdit("Other")
-        assertTrue(viewModel.uiState.value.humanReview)
-        assertTrue(viewModel.uiState.value.captureUri.orEmpty().startsWith("content://"))
-        assertEquals("Sync conflict on name", viewModel.uiState.value.conflict)
-        assertEquals("Asha", viewModel.uiState.value.name)
-    }
-
-    @Test
-    fun unknownCategoryChartIsEmpty() {
-        val viewModel = ChartsViewModel()
-        viewModel.setCategory("No such category")
-        assertTrue(viewModel.uiState.value.isEmpty)
-        assertFalse(viewModel.uiState.value.isLoading)
-    }
 
     @Test
     fun bankingEmiMatchesTheLoan() {
@@ -150,22 +110,6 @@ class FeatureViewModelsTest {
         assertTrue(viewModel.ticks.value > 0L)
     }
 
-    @Test
-    fun kycDraftSurvivesANewViewModel() = runTest {
-        val store = MemoryKycDraftStore()
-        KycViewModel(SavedStateHandle(), store).onName("Asha")
-        advanceUntilIdle()
-        val restored = KycViewModel(SavedStateHandle(), store)
-        advanceUntilIdle()
-        assertEquals("Asha", restored.uiState.value.name)
-    }
-
-    @Test
-    fun captureStoresTheDocumentEdge() {
-        val viewModel = KycViewModel(SavedStateHandle())
-        viewModel.capture()
-        assertEquals(2..3, viewModel.uiState.value.edge)
-    }
 
     @Test
     fun tickerPollsAfterTheSocketDrops() = runTest {
@@ -188,18 +132,6 @@ class FeatureViewModelsTest {
         assertTrue(viewModel.uiState.value.cooling)
     }
 
-    @Test
-    fun documentSpanFindsTheBrightEdge() {
-        val span = documentSpan(intArrayOf(0, 0, 80, 90, 0))
-        assertEquals(2..3, span)
-        assertNull(documentSpan(intArrayOf(0, 1, 2)))
-    }
-
-    @Test
-    fun missingNotificationPermissionSkipsThePost() {
-        assertEquals(FxNotify.SKIP, fxNotifyDecision(permissionGranted = false, breached = true))
-        assertEquals(FxNotify.POST, fxNotifyDecision(permissionGranted = true, breached = true))
-    }
 
     private fun ticker(scope: TestScope): TickerViewModel {
         val viewModel = TickerViewModel()

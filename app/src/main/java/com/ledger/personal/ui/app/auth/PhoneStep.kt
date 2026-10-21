@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -28,11 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import kotlinx.coroutines.launch
 
 private const val PHONE_LENGTH = 10
 
@@ -41,12 +44,13 @@ private const val PHONE_LENGTH = 10
 fun PhoneStep(
     phone: String,
     onPhone: (String) -> Unit,
-    onSendCode: (phone: String, onResult: (Result<String>) -> Unit) -> Unit = { _, done -> done(Result.success("OTP sent")) },
-    onNext: (message: String) -> Unit,
+    onSendCode: suspend (phone: String) -> Result<OtpResponse> = { Result.success(OtpResponse()) },
+    onNext: (response: OtpResponse) -> Unit,
 ) {
     var consent by rememberSaveable { mutableStateOf(false) }
     var isSending by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Text("Enter your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text(
@@ -82,11 +86,12 @@ fun PhoneStep(
             if (phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) {
                 isSending = true
                 errorMessage = null
-                onSendCode(phone) { result ->
+                scope.launch {
+                    val result = onSendCode(phone)
                     isSending = false
                     result.fold(
-                        onSuccess = { msg ->
-                            onNext(msg.ifBlank { "OTP sent" })
+                        onSuccess = { res ->
+                            onNext(res)
                         },
                         onFailure = { error ->
                             errorMessage = error.message ?: "Failed to send OTP. Please try again."
@@ -112,7 +117,7 @@ private fun PhoneStepPreview() {
                 Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                PhoneStep(MockValues.DEFAULT_PHONE, {}, onSendCode = { _, done -> done(Result.success("OTP sent")) }) {}
+                PhoneStep(MockValues.DEFAULT_PHONE, {}, onSendCode = { Result.success(OtpResponse()) }) {}
             }
         }
     }

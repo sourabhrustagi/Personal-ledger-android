@@ -184,7 +184,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:app` | `AppViewModel` | Session lifecycle, force update, MPIN & biometric auth, device binding, and preferences |
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
 | `:app` | `ToolsViewModel` | Database export/import, monthly statement PDF generation, and dispute logs |
-| `:app` | `PayHubViewModel` | Quick payment shortcuts and actions on the Pay hub |
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and swipe-to-delete with undo |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |

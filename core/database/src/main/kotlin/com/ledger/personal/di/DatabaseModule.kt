@@ -14,6 +14,7 @@ import com.ledger.personal.data.local.MIGRATION_3_4
 import com.ledger.personal.data.local.PromotionDao
 import com.ledger.personal.data.local.TransactionDao
 import com.ledger.personal.data.local.seedPromotions
+import com.ledger.personal.data.local.seedTransactions
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +34,14 @@ object DatabaseModule {
         val builder = Room.databaseBuilder(context, LedgerDatabase::class.java, LedgerDatabase.NAME)
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .addCallback(object : RoomDatabase.Callback() {
-                override fun onCreate(db: SupportSQLiteDatabase) = db.seedPromotions()
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.seedPromotions()
+                    db.seedTransactions()
+                }
+
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    db.seedTransactions()
+                }
             })
         val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         if (debuggable) {

@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.api
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
@@ -43,7 +44,7 @@ class KtorTransactionApi @Inject constructor(
 ) : TransactionApi {
     /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto =
-        client.get("transactions") {
+        client.get(ApiEndpoints.TRANSACTIONS) {
             url {
                 parameters.append("page", page.toString())
                 parameters.append("pageSize", pageSize.toString())
@@ -52,14 +53,14 @@ class KtorTransactionApi @Inject constructor(
 
     /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): TransactionDto =
-        client.get { url { appendPathSegments("transactions", id) } }.body()
+        client.get { url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) } }.body()
 
     /**
      * Creates transaction. The key is fixed for this call, so the retry plugin resends the same one.
      * ponytail: a WorkManager re-run sends a new key; pass the local row id once the server accepts it.
      */
     override suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto =
-        client.post("transactions") {
+        client.post(ApiEndpoints.TRANSACTIONS) {
             header("Idempotency-Key", UUID.randomUUID().toString())
             setBody(request)
         }.body()
@@ -67,12 +68,12 @@ class KtorTransactionApi @Inject constructor(
     /** Patch transaction. */
     override suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto =
         client.patch {
-            url { appendPathSegments("transactions", id) }
+            url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) }
             setBody(request)
         }.body()
 
     /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String) {
-        client.delete { url { appendPathSegments("transactions", id) } }
+        client.delete { url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) } }
     }
 }

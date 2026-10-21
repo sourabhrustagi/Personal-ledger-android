@@ -134,13 +134,3 @@ object DemoModule {
         PaymentRail { post -> post() }
     }
 }
-
-/** Hilt bindings for offline. */
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class OfflineModule {
-    /** Binds kyc drafts. */
-    @Binds
-    @Singleton
-    abstract fun bindKycDrafts(store: com.ledger.personal.data.local.RoomKycDraftStore): com.ledger.personal.data.local.KycDraftStore
-}

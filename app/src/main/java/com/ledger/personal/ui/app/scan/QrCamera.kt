@@ -44,7 +44,7 @@ internal fun CameraScanner(onCode: (String) -> Unit) {
     )
     Text("Point the camera at the QR code", color = MaterialTheme.colorScheme.onSurfaceVariant)
     DisposableEffect(owner) {
-        if (context !is android.app.Activity) return@DisposableEffect onDispose {}
+        if (context.findActivity() == null) return@DisposableEffect onDispose {}
         val executor = Executors.newSingleThreadExecutor()
         bindQrScanner(context, owner, preview, executor) { raw ->
             if (!done) {
@@ -84,4 +84,10 @@ private fun bindQrScanner(
         provider.unbindAll()
         provider.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
     }, ContextCompat.getMainExecutor(context))
+}
+
+private tailrec fun Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

@@ -56,8 +56,8 @@ data class HomeUiState(
 
 private const val RECENT_LIMIT = 30
 
-/** Balance and recent activity stay on screen when the dashboard cannot be loaded. */
-private val essentialHome = listOf(HomeSection.Balance, HomeSection.Activity("Recent"))
+/** Balance stays on screen when the dashboard cannot be loaded. */
+private val essentialHome = listOf(HomeSection.Balance)
 
 /** Home stays reachable when the dashboard cannot be loaded. */
 private val essentialTabs = listOf(HomeTab("home", "Home"))

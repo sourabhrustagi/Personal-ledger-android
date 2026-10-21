@@ -110,13 +110,13 @@ Room, sync, view models, and screens are the same code in every flavor. Mock exe
 
 - **Compose only.** Each screen is a `@Composable` that receives state and callbacks. Screens with real logic have a Hilt `ViewModel` that exposes `StateFlow` UI state.
 - **Navigation** uses type-safe routes: the `Screen` sealed interface in `:app`, built with `@Serializable` objects and classes. `LedgerNavHost` is the only place that wires routes to screens, which is how features stay unaware of each other: a feature screen takes callbacks such as `onOpen(id)`, and the app decides where they go.
-- **App shell.** `LedgerOneApp` picks what to show: splash, then force-update, onboarding, MPIN login, or the main tabbed app. The app locks itself after 30 seconds in the background.
+- **App shell.** `LedgerOneApp` picks what to show: splash, then force-update, onboarding, OTP login, or the main tabbed app. The app locks itself after 30 seconds in the background.
 - **Design system.** Feature code takes colours from the theme and uses shared components. A hex colour in `feature/**` is a review failure.
 
 ## Security
 
 - **MPIN and biometrics.** The MPIN is stretched with PBKDF2 (600,000 iterations) and the verifier is sealed with an Android Keystore key, so a copied preferences file cannot be guessed offline. A verifier saved by an older build is upgraded the next time it unlocks. Three wrong attempts lock the keypad for 30 seconds. Biometric unlock is optional.
-- **Device binding.** During onboarding or from the Security centre, the phone creates an EC key in the Android Keystore that requires biometric authentication and is invalidated if biometrics change. The server sends a one-time challenge, the phone signs it after a fingerprint check (`SHA256withECDSA`), and the server verifies the signature before issuing a device ID. "Sign out everywhere" deletes the key.
+- **Device binding.** From the Security centre, the phone creates an EC key in the Android Keystore that requires biometric authentication and is invalidated if biometrics change. The server sends a one-time challenge, the phone signs it after a fingerprint check (`SHA256withECDSA`), and the server verifies the signature before issuing a device ID. "Sign out everywhere" deletes the key.
 - **Sensitive screens** (login, onboarding, send money, banking products, security) call `SecureWindow()`, which blocks screenshots and the recent-apps preview.
 - **Balances are hidden** until you tap to reveal them.
 - **Network.** Dev, staging, and prod use HTTPS. Debug builds also allow the emulator host and localhost. `CertificatePins` adds pinning once real pins are configured.

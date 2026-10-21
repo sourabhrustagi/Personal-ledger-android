@@ -43,7 +43,7 @@ flowchart TD
 | Module | Owns |
 |--------|------|
 | `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, and idempotency) |
-| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `KtorTransactionRepository` |
+| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `TransactionsRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared visual components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`) |
 | `:core:ui` | Shared Compose UI effects and window security utilities (`SecureWindow`) |
@@ -96,7 +96,7 @@ The app has one flavor dimension, `environment`: `mock` (default), `dev`, `stagi
 
 | Interface | `mock` | `dev`, `staging`, and `prod` |
 |-----------|--------|------------------------------|
-| `TransactionRemote` | `MockTransactionRepository` | `KtorTransactionRepository` |
+| `TransactionRemote` | `MockTransactionRepository` | `TransactionsRepository` |
 | `TickerSocket` | Mock price stream (can be told to drop) | Ktor WebSocket |
 | `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `KtorBindingServer` (`devices/challenge`, `devices/bind`) |
 

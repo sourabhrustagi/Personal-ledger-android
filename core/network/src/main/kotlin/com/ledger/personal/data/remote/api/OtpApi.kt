@@ -1,7 +1,6 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.ApiEndpoints
-import com.ledger.personal.di.ApiConfig
 import com.ledger.personal.di.StaticClient
 import com.ledger.personal.domain.session.OtpService
 import io.ktor.client.HttpClient
@@ -28,19 +27,14 @@ private const val PHONE_LENGTH = 10
 /** Ktor-backed service for requesting phone OTP verification codes. */
 @Singleton
 class KtorOtpService @Inject constructor(
-    private val config: ApiConfig,
     @param:StaticClient private val client: HttpClient,
 ) : OtpService {
     override suspend fun sendOtp(phone: String): Result<String> = runCatching {
         require(phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) { "Invalid 10-digit phone number" }
-        if (config.mockFlavor) {
-            MOCK_OTP_SENT_MESSAGE
-        } else {
-            val response = client.post(ApiEndpoints.OTP) {
-                contentType(ContentType.Application.Json)
-                setBody(OtpRequestDto(phone))
-            }.body<OtpResponseDto>()
-            response.message.ifBlank { MOCK_OTP_SENT_MESSAGE }
-        }
+        val response = client.post(ApiEndpoints.OTP) {
+            contentType(ContentType.Application.Json)
+            setBody(OtpRequestDto(phone))
+        }.body<OtpResponseDto>()
+        response.message.ifBlank { MOCK_OTP_SENT_MESSAGE }
     }.onFailure { if (it is CancellationException) throw it }
 }

@@ -13,7 +13,7 @@ flowchart TD
         ledger[":feature:ledger"]
         wallet[":feature:wallet"]
         banking[":feature:banking"]
-        others["budgets · fx · kyc · ticker"]
+        ticker[":feature:ticker"]
     end
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
@@ -42,7 +42,7 @@ flowchart TD
 
 | Module | Owns |
 |--------|------|
-| `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, idempotency, and KYC rules) |
+| `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, and idempotency) |
 | `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `KtorTransactionRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared visual components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`) |
@@ -52,9 +52,6 @@ flowchart TD
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
 | `:feature:wallet` | Send money, UPI request |
 | `:feature:banking` | Accounts, cards, loans, deposits |
-| `:feature:budgets` | Charts and spending trends |
-| `:feature:fx` | Exchange-rate quotes and alerts |
-| `:feature:kyc` | KYC case flow with saved drafts |
 | `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |
 
 ## How data flows
@@ -92,7 +89,6 @@ What this means in practice:
 4. **During a pull, local edits win.** A server row never overwrites a row that still has pending local changes.
 5. **Conflicts** (the same transaction changed on the phone and elsewhere) go to `ConflictInbox`. The conflict screen shows each differing field side by side and saves the version you merge.
 
-The same pattern applies to KYC drafts, which has its own Room table.
 
 ### Environments
 

@@ -55,7 +55,7 @@ import com.ledger.personal.util.toFormattedDateTime
 fun TransactionDetailScreen(
     uiState: TransactionDetailUiState,
     onNavigateBack: () -> Unit,
-    onNavigateEdit: (String) -> Unit,
+    onNavigateEdit: ((String) -> Unit)? = null,
     onRetry: () -> Unit,
     onShowDeleteDialog: (Boolean) -> Unit,
     onConfirmDelete: () -> Unit,
@@ -81,11 +81,13 @@ fun TransactionDetailScreen(
                 },
                 actions = {
                     if (uiState.transaction != null) {
-                        IconButton(onClick = { onNavigateEdit(uiState.transaction.id) }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Transaction"
-                            )
+                        onNavigateEdit?.let { editNav ->
+                            IconButton(onClick = { editNav(uiState.transaction.id) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Transaction"
+                                )
+                            }
                         }
                         IconButton(onClick = { onShowDeleteDialog(true) }) {
                             Icon(

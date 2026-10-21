@@ -54,7 +54,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Key Step & Status State Machines](#key-step--status-state-machines)
 - [Design System: ColorScheme, Semantic Colors & Theme Architecture](#design-system-colorscheme-semantic-colors--theme-architecture)
   - [1. Palette Foundation (`Color.kt`)](#1-palette-foundation-colorkt)
-  - [2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)](#2-material-3-colorschemes-light-vs-dark-themakt)
+  - [2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)](#2-material-3-colorschemes-light-vs-dark-themekt)
   - [3. Domain Financial Colors: `LedgerTheme.colors`](#3-domain-financial-colors-ledgerthemecolors)
   - [4. Theme Modes & Dynamic Switching (`ThemeMode`)](#4-theme-modes--dynamic-switching-thememode)
   - [5. Design System Components (`:core:designsystem`)](#5-design-system-components-coredesignsystem)
@@ -69,7 +69,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 
 ---
 
-## Quick start
+## <a id="quick-start"></a>Quick start
 
 
 Requirements: Android Studio (recent), JDK 17, an emulator or phone on Android 8.0 (API 26) or later.
@@ -87,7 +87,7 @@ In the mock build:
 - the sign-up and sign-in code is `123456` (`MockValues.OTP`);
 - Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, or a sync conflict.
 
-## Build flavors
+## <a id="build-flavors"></a>Build flavors
 
 The project defines one flavor dimension, `environment`, with four distinct flavors, combined with `debug` and `release` build types:
 
@@ -102,11 +102,11 @@ All four flavor apps can be installed side by side on the same device or emulato
 
 Certificate pinning is pre-configured, with `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` to be filled with server SPKI hashes before releasing to `prod`.
 
-## Mock values & demo credentials
+## <a id="mock-values--demo-credentials"></a><a id="mock-values-demo-credentials"></a>Mock values & demo credentials
 
 All mock values and seed catalogs are centralized in `:core:mock` so they can be easily reviewed, edited, or extended in one place without touching UI or business logic files:
 
-### Central constants (`MockValues.kt`)
+### <a id="central-constants-mockvalueskt"></a>Central constants (`MockValues.kt`)
 
 Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt):
 
@@ -116,7 +116,7 @@ Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt`](
 - **Default Phone Number (`MockValues.DEFAULT_PHONE`):** `9876543210` — used for onboarding phone input and previews.
 - **Default Session Token (`MockValues.SESSION_TOKEN`):** `mock-session` — used for local authenticated requests.
 
-### Central mock catalog (`MockCatalog.kt`)
+### <a id="central-mock-catalog-mockcatalogkt"></a>Central mock catalog (`MockCatalog.kt`)
 
 Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt):
 
@@ -128,7 +128,7 @@ Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt`]
 
 To customize test data, simply update the constants in `MockValues.kt` or records in `MockCatalog.kt`.
 
-## Force update
+## <a id="force-update"></a>Force update
 
 Force update applies only when all of these are true:
 
@@ -148,7 +148,7 @@ A soft update applies when `GET static/status` succeeds with `softUpdate: true` 
 
 Raise the published `versionCode` only when a build must be retired — broken crypto, a payment bug, or an unsupported Play services floor. Set `softUpdate` on `GET static/status` for a regular store update the person can skip.
 
-## What's in the app
+## <a id="whats-in-the-app"></a>What's in the app
 
 The app provides five primary navigation tabs:
 
@@ -162,43 +162,43 @@ From any transaction you can inspect its full metadata, double-entry legs, and s
 
 Screens below display the light and dark themes on mock data.
 
-### Opening the app
+### <a id="opening-the-app"></a>Opening the app
 
 | Welcome | Sign in | Update Required (Light) | Update Required (Dark) |
 | --- | --- | --- | --- |
 | <img src="docs/images/onboarding.png" width="200" alt="Welcome"> | <img src="docs/images/login.png" width="200" alt="Sign in with OTP"> | <img src="docs/images/force-update-light.png" width="200" alt="Force update, light"> | <img src="docs/images/force-update-dark.png" width="200" alt="Force update, dark"> |
 
-### Primary Navigation Tabs
+### <a id="primary-navigation-tabs"></a>Primary Navigation Tabs
 
 | Home | Pay | Offers |
 | --- | --- | --- |
 | <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/pay.png" width="200" alt="Pay"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
-### Banking & Financial Products
+### <a id="banking--financial-products"></a><a id="banking-financial-products"></a>Banking & Financial Products
 
 | Accounts & UPI | Cards Management | Loans & EMI | Fixed & Recurring Deposits |
 | --- | --- | --- | --- |
 | <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/cards.png" width="200" alt="Cards"> | <img src="docs/images/loans.png" width="200" alt="Loans"> | <img src="docs/images/deposits.png" width="200" alt="Deposits"> |
 
-### Pay & Transfers
+### <a id="pay--transfers"></a><a id="pay-transfers"></a>Pay & Transfers
 
 | UPI QR Scanner | Send Money (Wallet) |
 | --- | --- |
 | <img src="docs/images/scan.png" width="200" alt="Scan a UPI QR code"> | <img src="docs/images/wallet.png" width="200" alt="Send money"> |
 
-### Transactions & Double-Entry Ledger
+### <a id="transactions--double-entry-ledger"></a><a id="transactions-double-entry-ledger"></a>Transactions & Double-Entry Ledger
 
 | Transactions Stream | Transaction Details & Legs | New Transaction | Edit Transaction |
 | --- | --- | --- | --- |
 | <img src="docs/images/transactions.png" width="200" alt="Transactions"> | <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
 
-### Live Markets & Ticker
+### <a id="live-markets--ticker"></a><a id="live-markets-ticker"></a>Live Markets & Ticker
 
 | Live Crypto & Forex Markets |
 | --- |
 | <img src="docs/images/markets.png" width="200" alt="Markets"> |
 
-### Profile, Disputes & Developer Tools
+### <a id="profile-disputes--developer-tools"></a><a id="profile-disputes-developer-tools"></a>Profile, Disputes & Developer Tools
 
 | Profile Overview | App Settings | Developer Mock Controls |
 | --- | --- | --- |
@@ -208,7 +208,7 @@ Screens below display the light and dark themes on mock data.
 | --- | --- | --- |
 | <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> | <img src="docs/images/conflicts.png" width="200" alt="Sync conflicts"> |
 
-## Project layout
+## <a id="project-layout"></a>Project layout
 
 ```
 app/                 App shell: navigation graph (Screen), build flavors, DI wiring, and ui/app (auth, hubs, account, scan, tools)
@@ -226,7 +226,7 @@ docs/                Architecture document and decision records
 Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
 See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 
-## Architecture & How the app works
+## <a id="architecture--how-the-app-works"></a><a id="architecture-how-the-app-works"></a>Architecture & How the app works
 
 The application is structured into a modular three-tier architecture (`:app` → `:feature:*` → `:core:*`) that enforces strict feature isolation and an **offline-first** reactive data flow:
 
@@ -242,26 +242,26 @@ flowchart TD
     Repo <-->|Push Pending / Pull Remote| Net[Ktor Remote / Mock Repository]
 ```
 
-### 1. Offline-first local source of truth
+### <a id="1-offline-first-local-source-of-truth"></a>1. Offline-first local source of truth
 - Every user write (transaction creation, draft changes, bill payments) is immediately persisted to the local **Room** database with a synchronization status: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE`.
 - Screens never read directly from network endpoints. Jetpack Compose screens observe read-only `StateFlow` streams exposed by ViewModels, which in turn collect cold `Flow` emissions directly from Room DAOs. This guarantees instantaneous UI updates and seamless offline functionality.
 
-### 2. Resilient background synchronization & conflict resolution
+### <a id="2-resilient-background-synchronization--conflict-resolution"></a><a id="2-resilient-background-synchronization-conflict-resolution"></a>2. Resilient background synchronization & conflict resolution
 - **WorkManager** schedules `TransactionSyncWorker` with network constraints (`NetworkType.CONNECTED`).
 - Pending local mutations are pushed with exponential backoff (`withRetry`). Network calls use unique, client-generated idempotency keys (`TransferBook`) to prevent duplicate transactions during retries.
 - Remote changes are pulled and merged into Room without overwriting local un-synced edits. When a server responds with `409 Conflict`, the competing states are diverted into `ConflictInbox` for side-by-side user resolution.
 
-### 3. Build flavor dependency injection
+### <a id="3-build-flavor-dependency-injection"></a>3. Build flavor dependency injection
 - Dagger Hilt dynamically binds repositories based on the build flavor:
   - `mockDebug`: uses in-memory `MockTransactionRepository` seeded with accounts, contacts, and transactions, alongside `MockSwitches` to simulate network latency, offline mode, and server errors.
   - `dev`, `staging`, and `prod`: inject `KtorTransactionRepository` connecting to remote HTTPS endpoints with TLS certificate pinning and hardware-backed device binding.
 
-### 4. Multi-layer banking security
+### <a id="4-multi-layer-banking-security"></a>4. Multi-layer banking security
 - **MPIN & Keystore:** MPIN keys are stretched with PBKDF2 (600,000 iterations) and sealed using Android Keystore keys.
 - **Biometric Device Binding:** Devices register hardware-backed ECDSA P-256 keys in the Keystore, signing cryptographic server challenge nonces (`SHA256withECDSA`) upon biometric verification.
 - **Window Protection (`SecureWindow`):** Sensitive screens dynamically block screenshot capture and recent-app previews using Android's `FLAG_SECURE`.
 
-## View models
+## <a id="view-models"></a>View models
 
 Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back stack or the Activity lifecycle. State is exposed as read-only `StateFlow`s, and all asynchronous work runs structured in `viewModelScope`.
 
@@ -281,7 +281,7 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
 
-## State Management: `remember`, `rememberSaveable` & App State Architecture
+## <a id="state-management-remember-remembersaveable--app-state-architecture"></a><a id="state-management-remember-remembersaveable-app-state-architecture"></a>State Management: `remember`, `rememberSaveable` & App State Architecture
 
 State in this application represents any data that can change over time and causes the UI to update. Because Android components undergo configuration changes (e.g. device rotation, theme switching, language change) and system-initiated background process termination, the application manages state across a structured **4-tier hierarchy**:
 
@@ -312,7 +312,7 @@ flowchart TD
 
 ---
 
-### 1. `remember` vs `rememberSaveable`
+### <a id="1-remember-vs-remembersaveable"></a>1. `remember` vs `rememberSaveable`
 
 | Mechanism | Survives Recomposition? | Survives Device Rotation? | Survives Process Death? | Where Data Is Stored |
 |---|---|---|---|---|
@@ -332,7 +332,7 @@ In Compose, `remember { mutableStateOf(initialValue) }` keeps state alive across
 
 ---
 
-### 2. Real-World Uses of `rememberSaveable` in LedgerOne
+### <a id="2-real-world-uses-of-remembersaveable-in-ledgerone"></a>2. Real-World Uses of `rememberSaveable` in LedgerOne
 
 #### A. Transient Form Inputs & Typing Buffers
 Users should not lose their input while filling forms if they rotate their screen before pressing submit.
@@ -422,7 +422,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 
 ---
 
-### 3. Screen & Business State: `ViewModel` + `StateFlow`
+### <a id="3-screen--business-state-viewmodel--stateflow"></a><a id="3-screen-business-state-viewmodel-stateflow"></a>3. Screen & Business State: `ViewModel` + `StateFlow`
 
 While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
 - **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
@@ -431,19 +431,19 @@ While `rememberSaveable` handles screen-level UI state, domain logic and async d
 
 ---
 
-### 4. Architectural Patterns Used Across the Project
+### <a id="4-architectural-patterns-used-across-the-project"></a>4. Architectural Patterns Used Across the Project
 
-#### A. State Hoisting (Unidirectional Data Flow)
+#### <a id="a-state-hoisting-unidirectional-data-flow"></a>A. State Hoisting (Unidirectional Data Flow)
 In Compose screens, stateful containers are separated from stateless presentation components:
 - **State flows down:** Child composables receive immutable values via arguments (`value: String`, `enabled: Boolean`).
 - **Events flow up:** Child composables emit user intents through callback lambdas (`onValueChange: (String) -> Unit`, `onSubmit: () -> Unit`).
 - **Benefit:** Child components are 100% previewable with `@PreviewLightDark` and unit-testable in isolation.
 
-#### B. `collectAsStateWithLifecycle()` vs `collectAsState()`
+#### <a id="b-collectasstatewithlifecycle-vs-collectasstate"></a>B. `collectAsStateWithLifecycle()` vs `collectAsState()`
 All screens consume ViewModel `StateFlow`s using `collectAsStateWithLifecycle()`.
 - **Why?** Plain `collectAsState()` continues collecting flow emissions in the background even when the app is minimized. `collectAsStateWithLifecycle()` automatically suspends collection when the screen drops below `Lifecycle.State.STARTED`, preventing battery drain and background work.
 
-#### C. Edge-to-Edge Window Inset Management (`safeDrawingPadding`)
+#### <a id="c-edge-to-edge-window-inset-management-safedrawingpadding"></a>C. Edge-to-Edge Window Inset Management (`safeDrawingPadding`)
 Modern Android applications draw **edge-to-edge** by default (`enableEdgeToEdge()`), allowing background surfaces and gradients to bleed seamlessly beneath the system status bar and gesture navigation bar. However, interactive UI components (buttons, headers, text inputs) must never be obstructed by system furniture or physical hardware contours.
 
 `Modifier.safeDrawingPadding()` applies dynamic padding matching `WindowInsets.safeDrawing`, which is the union of four critical system boundaries:
@@ -478,7 +478,7 @@ produces a resilient UI container:
   Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)
   ```
 
-#### D. Layout Flow: Main Axis Arrangements vs Cross Axis Alignments in `Column` & `Row`
+#### <a id="d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row"></a><a id="d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column-row"></a>D. Layout Flow: Main Axis Arrangements vs Cross Axis Alignments in `Column` & `Row`
 In Jetpack Compose, the placement of child composables is governed by two orthogonal axes:
 - **`Column`:** Main Axis runs **vertically (&#8595;)**, Cross Axis runs **horizontally (&#8594;)**.
 - **`Row`:** Main Axis runs **horizontally (&#8594;)**, Cross Axis runs **vertically (&#8595;)**.
@@ -546,7 +546,7 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
 
 ---
 
-### 5. Application State Mechanism Comparison Matrix
+### <a id="5-application-state-mechanism-comparison-matrix"></a>5. Application State Mechanism Comparison Matrix
 
 | State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
 |---|---|---|---|---|---|---|
@@ -558,7 +558,7 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
 | **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states |
 | **`DataStore`** | Disk (`.preferences_pb`) | **Yes** | **Yes** | **Yes** | **Yes** | User preferences: theme mode, masked balance toggle, skipped app version |
 
-## Jetpack Compose Effects & Lifecycle Side-Effect Handling
+## <a id="jetpack-compose-effects--lifecycle-side-effect-handling"></a><a id="jetpack-compose-effects-lifecycle-side-effect-handling"></a>Jetpack Compose Effects & Lifecycle Side-Effect Handling
 
 In Jetpack Compose, composable functions should be fast, pure, and free of side effects. Because composables can recompose frequently, in any order, or be cancelled mid-execution, executing side effects (such as modifying non-Compose state, starting coroutines, registering system callbacks, or allocating system resources) directly inside a composable body can lead to memory leaks, repeated execution, and erratic app state.
 
@@ -566,7 +566,7 @@ Jetpack Compose provides built-in effect APIs to handle side effects in a contro
 
 ---
 
-### 1. `DisposableEffect` (Cleanup-Aware Side Effects)
+### <a id="1-disposableeffect-cleanup-aware-side-effects"></a>1. `DisposableEffect` (Cleanup-Aware Side Effects)
 
 `DisposableEffect` is specifically designed for side effects that require **teardown or cleanup** when the composable leaves the composition or when its observation keys change. It is intended for non-coroutine operations such as registering and unregistering listeners, releasing executors, or toggling window flags.
 
@@ -688,7 +688,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 2. `LaunchedEffect` (Coroutine-Scoped Side Effects)
+### <a id="2-launchedeffect-coroutine-scoped-side-effects"></a>2. `LaunchedEffect` (Coroutine-Scoped Side Effects)
 
 `LaunchedEffect` executes a suspend block within a `CoroutineScope` tied to the composable's lifecycle.
 
@@ -703,7 +703,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 3. `SideEffect` (Publishing Compose State to Non-Compose Code)
+### <a id="3-sideeffect-publishing-compose-state-to-non-compose-code"></a>3. `SideEffect` (Publishing Compose State to Non-Compose Code)
 
 `SideEffect` executes after **every successful recomposition**. Unlike `LaunchedEffect`, it does not support coroutines and does not take keys.
 
@@ -720,7 +720,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 4. `rememberCoroutineScope` (Event-Driven Coroutines)
+### <a id="4-remembercoroutinescope-event-driven-coroutines"></a>4. `rememberCoroutineScope` (Event-Driven Coroutines)
 
 `rememberCoroutineScope` returns a `CoroutineScope` bound to the composable's point in composition.
 
@@ -741,7 +741,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 5. `rememberUpdatedState` (Stable Callback References)
+### <a id="5-rememberupdatedstate-stable-callback-references"></a>5. `rememberUpdatedState` (Stable Callback References)
 
 `rememberUpdatedState` captures a changing value or lambda so that a long-running effect (such as a `LaunchedEffect` or `DisposableEffect`) can read the latest value without cancelling and restarting the effect.
 
@@ -749,7 +749,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 6. `produceState` (Converting Async Sources to Compose State)
+### <a id="6-producestate-converting-async-sources-to-compose-state"></a>6. `produceState` (Converting Async Sources to Compose State)
 
 `produceState` launches a coroutine scoped to the composition that can push values into a returned Compose `State<T>`.
 
@@ -757,7 +757,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### 7. `derivedStateOf` (Calculation Optimization)
+### <a id="7-derivedstateof-calculation-optimization"></a>7. `derivedStateOf` (Calculation Optimization)
 
 `derivedStateOf` creates a Compose `State` derived from other Compose state objects, recomputing its value only when input boundaries change.
 
@@ -766,7 +766,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### Summary of Compose Effect Handlers
+### <a id="summary-of-compose-effect-handlers"></a>Summary of Compose Effect Handlers
 
 | Effect API | Coroutine? | Cleanup (`onDispose`)? | Re-executes On | Primary Use Case |
 |---|---|---|---|---|
@@ -778,7 +778,7 @@ if (activity != null) DisposableEffect(activity, navController) {
 | **`produceState`** | **Yes** | Cooperative cancellation | Key change / leaves composition | Bridging external async data into Compose `State<T>` |
 | **`derivedStateOf`** | No | No | Derived inputs change | Reducing recomposition frequency for high-velocity state |
 
-## Application Enums: Flow Steps & Operational Statuses
+## <a id="application-enums-flow-steps--operational-statuses"></a><a id="application-enums-flow-steps-operational-statuses"></a>Application Enums: Flow Steps & Operational Statuses
 
 Enums are used across the application to model type-safe state machines, multi-step navigation wizards, operation lifecycle statuses, and design system tokens. By restricting states to closed enum sets, the compiler enforces exhaustive `when` branches and prevents invalid state transitions.
 
@@ -799,7 +799,7 @@ Enums are used across the application to model type-safe state machines, multi-s
 
 ---
 
-### Key Step & Status State Machines
+### <a id="key-step--status-state-machines"></a><a id="key-step-status-state-machines"></a>Key Step & Status State Machines
 
 #### 1. Peer-to-Peer Transfer (`TransferStep` & `TransferStatus`)
 The wallet transfer flow decouples screen steps from the underlying transaction status:
@@ -821,7 +821,7 @@ When prepaying an existing EMI loan, `PrepayMode` determines the amortization ad
 - **`PrepayMode.TENURE` ("Reduce tenure"):** Keeps the monthly EMI payment constant while reducing the remaining months until loan maturity (`tenureFor`).
 - **`PrepayMode.EMI` ("Reduce EMI"):** Recalculates lower monthly EMI payments while keeping the original loan tenure unchanged (`emiMinor`).
 
-## Design System: ColorScheme, Semantic Colors & Theme Architecture
+## <a id="design-system-colorscheme-semantic-colors--theme-architecture"></a><a id="design-system-colorscheme-semantic-colors-theme-architecture"></a>Design System: ColorScheme, Semantic Colors & Theme Architecture
 
 The visual foundation of LedgerOne is built inside `:core:designsystem` around **Material 3 (M3)** design principles tailored specifically for financial technology. It provides a harmonious, accessible color hierarchy across light and dark modes, and extends standard Material palettes with domain-specific financial semantic colors.
 
@@ -830,7 +830,7 @@ The visual foundation of LedgerOne is built inside `:core:designsystem` around *
 
 ---
 
-### 1. Palette Foundation (`Color.kt`)
+### <a id="1-palette-foundation-colorkt"></a>1. Palette Foundation (`Color.kt`)
 
 Rather than arbitrary colors, LedgerOne defines a tailored, cohesive primitive palette:
 - **Neutral Slate Scale (`Slate950` to `Slate50`):** Replaces pure flat black and stark white with rich, layered slate tones for premium depth and eye comfort.
@@ -841,7 +841,7 @@ Rather than arbitrary colors, LedgerOne defines a tailored, cohesive primitive p
 
 ---
 
-### 2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)
+### <a id="2-material-3-colorschemes-light-vs-dark-themekt"></a>2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)
 
 LedgerOne configures distinct Material 3 color schemes for light and dark modes:
 
@@ -872,7 +872,7 @@ LedgerOne configures distinct Material 3 color schemes for light and dark modes:
 
 ---
 
-### 3. Domain Financial Colors: `LedgerTheme.colors`
+### <a id="3-domain-financial-colors-ledgerthemecolors"></a>3. Domain Financial Colors: `LedgerTheme.colors`
 
 Standard Material 3 only defines an `error` state. In financial applications, **credits, inflows, approvals, warnings, and cooling periods** require dedicated, first-class semantic colors that guarantee WCAG AA contrast ratios in both light and dark modes:
 
@@ -917,7 +917,7 @@ val (background, content) = when (tone) {
 
 ---
 
-### 4. Theme Modes & Dynamic Switching (`ThemeMode`)
+### <a id="4-theme-modes--dynamic-switching-thememode"></a><a id="4-theme-modes-dynamic-switching-thememode"></a>4. Theme Modes & Dynamic Switching (`ThemeMode`)
 
 LedgerOne supports dynamic user theme selection via `ThemeMode`, persisted in DataStore preferences:
 
@@ -953,7 +953,7 @@ fun PersonalLedgerTheme(
 
 ---
 
-### 5. Design System Components (`:core:designsystem`)
+### <a id="5-design-system-components-coredesignsystem"></a>5. Design System Components (`:core:designsystem`)
 
 To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Single Responsibility Principle (SRP)**, all reusable presentation primitives are centralized in `:core:designsystem`. Feature modules consume these components directly instead of implementing custom widgets.
 
@@ -1000,11 +1000,11 @@ To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Sing
 3. **Stateless Presentation & Event Hoisting:**
    Components are strictly stateless presentation elements. They receive immutable state values via parameters and bubble user intents up via callback lambdas (`onClick`, `onValueChange`).
 
-## Business logic
+## <a id="business-logic"></a>Business logic
 
 The application's domain rules are concentrated in pure Kotlin within `core/model`, ensuring they can be tested independently of the Android runtime and UI frameworks.
 
-### Financial calculations & accounting invariants
+### <a id="financial-calculations--accounting-invariants"></a><a id="financial-calculations-accounting-invariants"></a>Financial calculations & accounting invariants
 
 - **Minor-unit precision:** Money is stored exclusively as positive 64-bit integers (`Long`) in minor currency units (paise or cents). Floating-point (`Double`/`Float`) representations are forbidden for financial data to eliminate rounding inaccuracies.
 - **Double-entry bookkeeping (`post`):** Every financial transaction decomposes into balanced ledger legs. Each leg is strictly a debit or a credit (`debitMinor == 0L || creditMinor == 0L`). A transaction is rejected unless $\sum \text{debits} == \sum \text{credits}$ and the leg list is non-empty.
@@ -1015,7 +1015,7 @@ The application's domain rules are concentrated in pure Kotlin within `core/mode
 - **Loan amortization schedules (`amortize`):** Generates month-by-month payment schedules tracking balance reduction. Each instalment splits into interest ($balance \times r$) and principal ($\min(\text{EMI} - interest, balance)$). The final instalment dynamically adjusts its principal payment to settle the residual balance down to zero.
 - **Loan prepayment tenure adjustment (`tenureFor`):** Calculates reduced loan duration when an upfront prepayment is made while holding the existing EMI payment constant. Rejects adjustments where monthly interest exceeds the EMI.
 
-### Payments, UPI & fraud prevention
+### <a id="payments-upi--fraud-prevention"></a><a id="payments-upi-fraud-prevention"></a>Payments, UPI & fraud prevention
 
 - **Idempotency tracking (`TransferBook`):** Every peer-to-peer transfer requires a unique client-generated idempotency key. The transfer book records transactions by key and returns the identical amount on repeated calls, preventing duplicate deductions during network retries.
 - **New payee cooling period (`coolingBlocks`):** Anti-fraud rule blocking fund transfers to newly added beneficiaries for 30 minutes ($30 \times 60 \times 1\,000\text{ ms}$) following addition.
@@ -1023,21 +1023,21 @@ The application's domain rules are concentrated in pure Kotlin within `core/mode
 - **Card Luhn checksum validation (`luhn`):** Validates primary card account numbers (13–19 digits) using the standard Luhn algorithm (doubling alternate digits from right to left).
 - **PAN data protection (`redactPans`):** Automatically redacts card numbers matching Luhn validity from audit strings and display text by masking the number with `****`.
 
-### Security, authentication & cryptography
+### <a id="security-authentication--cryptography"></a><a id="security-authentication-cryptography"></a>Security, authentication & cryptography
 
 - **MPIN authentication (`mpinAccepted`):** PIN authorization requires exactly four numerical digits (`pin.length == 4 && pin.all { it.isDigit() }`).
 - **Cryptographic device binding:** Hardware-backed ECDSA key pairs (P-256) are generated inside the Android Keystore. During registration, the server issues a random challenge nonce that the device signs. The server verifies the public key signature and prevents nonce replay before associating the device with an account.
 - **End-to-end encrypted utility bill pay (`PayBox`):** Utility bill queries and payments are protected using Elliptic Curve Diffie-Hellman (ECDH P-256) key agreement with AES-GCM (128-bit) authenticated encryption and unique 12-byte initialization vectors (IVs). Neither bill amounts nor customer identifiers travel in plaintext.
 - **Background auto-lock:** The app starts a 30-second countdown upon backgrounding. Exceeding this threshold locks the session, requiring biometric or MPIN authentication upon foregrounding.
 
-### Offline-first synchronization & conflict handling
+### <a id="offline-first-synchronization--conflict-handling"></a><a id="offline-first-synchronization-conflict-handling"></a>Offline-first synchronization & conflict handling
 
 - **Write-ahead local truth:** All writes commit first to Room with a synchronization state: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE`. The UI observes local Room flows and reflects changes immediately.
 - **Exponential backoff retry (`withRetry`):** Network requests retry up to 3 times on transient connection drops (`IOException` or `ServerBusy`), doubling delay (1s, 2s, 4s). Terminal rejections (`TransactionRejected`) fail immediately without retry. Coroutine `CancellationException` is always propagated.
 - **Three-way sync conflict resolution (`ConflictInbox`, `mergeField`):** Remote 409 conflict responses preserve both local and server transaction states in a persistent disk inbox (`ConflictInbox`). Competing field updates are flagged via `FieldMerge.Conflict(left, right)`, presenting differing fields side-by-side for manual user resolution rather than silent overwrite.
 
 
-## Dependencies
+## <a id="dependencies"></a>Dependencies
 
 Versions live in `gradle/libs.versions.toml`. A library is added only when the Android or Kotlin standard library does not already solve the problem. Why this stack instead of Retrofit, SQLDelight, Koin, and the rest is in [docs/LIBRARIES.md](docs/LIBRARIES.md).
 
@@ -1066,7 +1066,7 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 | Detekt, ktlint | Complexity, correctness, and formatting in CI |
 | Android Gradle Plugin, Compose / serialization compiler, KSP | Variants, R8, Compose, serializers, Hilt, and Room codegen |
 
-## Tests and checks
+## <a id="tests-and-checks"></a>Tests and checks
 
 ```bash
 ./gradlew testMockDebugUnitTest            # app unit tests (mock flavor)
@@ -1077,7 +1077,7 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 
 CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull request into `main`. It runs static analysis, the app mock unit tests, the core module unit tests, and assembles the `mockDebug` APK. A failing test fails the job.
 
-## Contributing
+## <a id="contributing"></a>Contributing
 
 - Put a new screen in its feature module. If two features need the same code, move it to a `core` module; don't add a dependency between features.
 - Store money as a `Long` in minor units (paise or cents), never as a `Double`. Display it with `formatMoney`.

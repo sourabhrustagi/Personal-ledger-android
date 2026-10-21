@@ -21,6 +21,9 @@ import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
+/** Steps in the onboarding flow. */
+private enum class OnboardStep { PHONE, OTP }
+
 private val steps = listOf("Phone", "Verify")
 
 /** Shows onboarding flow orchestrating phone entry and OTP verification. */

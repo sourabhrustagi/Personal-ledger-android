@@ -17,9 +17,9 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Reads and writes transactions through Ktor. */
+/** Reads and writes transactions through remote network endpoints. */
 @Singleton
-class KtorTransactionRepository @Inject constructor(
+class TransactionsRepository @Inject constructor(
     private val apiService: TransactionApi,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : TransactionRemote {
@@ -91,3 +91,10 @@ fun conflictOrNull(code: Int, body: String?): VersionConflict? {
     }.getOrNull() ?: return null
     return runCatching { VersionConflict(dto.toDomain()) }.getOrNull()
 }
+
+/** Backward-compatible typealias for [TransactionsRepository]. */
+@Deprecated(
+    message = "Renamed to TransactionsRepository",
+    replaceWith = ReplaceWith("TransactionsRepository")
+)
+typealias KtorTransactionRepository = TransactionsRepository

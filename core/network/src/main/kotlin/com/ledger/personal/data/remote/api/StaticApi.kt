@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.api
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.di.StaticClient
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -46,11 +47,11 @@ class KtorStaticApi @Inject constructor(
     @param:StaticClient private val client: HttpClient,
 ) : StaticApi {
     /** Returns the default category names. */
-    override suspend fun categories(): CategoryCatalogDto = client.get("static/categories").body()
+    override suspend fun categories(): CategoryCatalogDto = client.get(ApiEndpoints.STATIC_CATEGORIES).body()
 
     /** Returns the versionCode this install must reach. */
-    override suspend fun version(): VersionDto = client.get("static/version").body()
+    override suspend fun version(): VersionDto = client.get(ApiEndpoints.STATIC_VERSION).body()
 
     /** Returns whether a newer build can be skipped. */
-    override suspend fun status(): StatusDto = client.get("static/status").body()
+    override suspend fun status(): StatusDto = client.get(ApiEndpoints.STATIC_STATUS).body()
 }

@@ -89,7 +89,7 @@ Raise the published `versionCode` only when a build must be retired — broken c
 The app has four tabs:
 
 - **Home:** balance card (hidden until you tap the eye) and horizontal promotional offers.
-- **Pay:** send and receive money (Send money, Receive money, and Scan and pay).
+- **Pay:** scan and pay with camera QR scanner, and send to anyone by entering mobile number, UPI ID, or selecting from local contacts.
 - **Passbook:** transaction history with paging and tap-to-view details.
 - **Accounts:** user profile details (avatar, name, phone, KYC status), settings & mock controls, app lock, and logout.
 

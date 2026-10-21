@@ -254,7 +254,7 @@ flowchart TD
 ### <a id="3-build-flavor-dependency-injection"></a>3. Build flavor dependency injection
 - Dagger Hilt dynamically binds repositories based on the build flavor:
   - `mockDebug`: uses in-memory `MockTransactionRepository` seeded with accounts, contacts, and transactions, alongside `MockSwitches` to simulate network latency, offline mode, and server errors.
-  - `dev`, `staging`, and `prod`: inject `KtorTransactionRepository` connecting to remote HTTPS endpoints with TLS certificate pinning and hardware-backed device binding.
+  - `dev`, `staging`, and `prod`: inject `TransactionsRepository` connecting to remote HTTPS endpoints with TLS certificate pinning and hardware-backed device binding.
 
 ### <a id="4-multi-layer-banking-security"></a>4. Multi-layer banking security
 - **MPIN & Keystore:** MPIN keys are stretched with PBKDF2 (600,000 iterations) and sealed using Android Keystore keys.

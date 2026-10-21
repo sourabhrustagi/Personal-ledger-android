@@ -428,6 +428,72 @@ produces a resilient UI container:
   Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)
   ```
 
+#### D. Layout Flow: Main Axis Arrangements vs Cross Axis Alignments in `Column` & `Row`
+In Jetpack Compose, the placement of child composables is governed by two orthogonal axes:
+- **`Column`:** Main Axis runs **vertically (&#8595;)**, Cross Axis runs **horizontally (&#8594;)**.
+- **`Row`:** Main Axis runs **horizontally (&#8594;)**, Cross Axis runs **vertically (&#8595;)**.
+
+> **Rule of Thumb:**
+> - **`Arrangement`** dictates **spacing, distribution, and layout flow along the Main Axis**.
+> - **`Alignment`** dictates **positioning across the Cross Axis**.
+
+<p align="center">
+  <img src="docs/images/compose-arrangements.svg" alt="Jetpack Compose Column and Row Arrangements" width="100%">
+</p>
+
+##### Comparison of Arrangement Modes
+
+| Arrangement Mode | Visual Distribution Behavior | Common Production Use Case |
+|---|---|---|
+| **`Arrangement.Top` / `Start`** | Packs all children flush to the start of the layout. Any extra space remains at the end. (Default) | Standard vertical reading content, forms, documents |
+| **`Arrangement.Center`** | Groups all children tightly together in the exact middle of the available space. | Centered loading spinners, empty state illustrations, PIN verification dials |
+| **`Arrangement.Bottom` / `End`** | Packs all children flush against the bottom or end edge. | Sticky bottom action bars, trailing action icon clusters |
+| **`Arrangement.SpaceBetween`** | Pins the first child to the very start edge, the last child to the end edge, and divides all free space equally between interior items (zero space at the outer boundaries). | Card headers with trailing actions, transaction summary rows (`Title` on left, `₹Amount` on right) |
+| **`Arrangement.SpaceAround`** | Distributes available space evenly between children, placing **half-sized space** at the start and end edges. | Social share buttons, 3-step timeline indicators |
+| **`Arrangement.SpaceEvenly`** | Distributes available space such that **all gaps** (start margin, inter-child gaps, and end margin) are **100% equal**. | Evenly spaced dashboard navigation tiles, keypad rows |
+| **`Arrangement.spacedBy(dp)`** | Places a fixed, precise physical gap (e.g. `16.dp`) between adjacent children. Unlike manual `Spacer` elements, `spacedBy` does not add redundant spacing before the first or after the last child. | Vertical form fields, category filter chip rows, list cards |
+
+##### Key Examples from LedgerOne Codebase:
+
+1. **`Arrangement.SpaceBetween` for Key-Value Rows (`BankProducts.kt`, `TransactionListScreen.kt`):**
+   ```kotlin
+   Row(
+       modifier = Modifier.fillMaxWidth(),
+       horizontalArrangement = Arrangement.SpaceBetween,
+       verticalAlignment = Alignment.CenterVertically
+   ) {
+       LedgerOneText("Transfer Limit", role = LedgerOneTextRole.Body)
+       LedgerOneText("₹50,000.00", role = LedgerOneTextRole.Title)
+   }
+   ```
+2. **`Arrangement.spacedBy(dp)` for Form Fields & Carousels (`CreateTransactionScreen.kt`, `HomeScreen.kt`):**
+   ```kotlin
+   // Vertical form with consistent 16.dp gaps between inputs
+   Column(
+       modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+       verticalArrangement = Arrangement.spacedBy(16.dp)
+   ) {
+       LedgerOneTextField(...)
+       CategoryPicker(...)
+       LedgerOneButton(...)
+   }
+
+   // Horizontal category filter carousel with 12.dp gaps
+   LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+       items(categories) { category -> CategoryChip(category) }
+   }
+   ```
+3. **`Arrangement.Center` for Centered Identity & Loading Hubs (`Profile.kt`, `TickerScreen.kt`):**
+   ```kotlin
+   Column(
+       horizontalAlignment = Alignment.CenterHorizontally,
+       verticalArrangement = Arrangement.spacedBy(12.dp)
+   ) {
+       AvatarCircle(initials = "SR")
+       LedgerOneText("Sourabh Rustagi", role = LedgerOneTextRole.Title)
+   }
+   ```
+
 ---
 
 ### 5. Application State Mechanism Comparison Matrix

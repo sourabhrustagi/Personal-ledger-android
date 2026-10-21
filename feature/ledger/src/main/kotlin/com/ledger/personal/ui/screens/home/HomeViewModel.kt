@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.board.HomeTab
+import com.ledger.personal.domain.board.PromoOffer
+import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
@@ -49,6 +51,7 @@ data class HomeUiState(
     val sections: List<HomeSection> = emptyList(),
     val layoutReady: Boolean = false,
     val layoutMessage: String? = null,
+    val promotions: List<PromoOffer> = emptyList(),
 )
 
 private const val RECENT_LIMIT = 30
@@ -60,18 +63,22 @@ private val essentialHome = listOf(HomeSection.Balance, HomeSection.Activity("Re
 private val essentialTabs = listOf(HomeTab("home", "Home"))
 const val UNDO_WINDOW_MS = 4_000L
 
+private val PreviewPromotionsBackend = PromotionsBackend { Result.success(emptyList()) }
+
 /** State and actions for the home screen. */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: TransactionRepository,
     private val sync: SyncCoordinator,
     board: HomeBoard,
+    promotionsBackend: PromotionsBackend = PreviewPromotionsBackend,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val category = MutableStateFlow<String?>(null)
     private val pending = MutableStateFlow<Transaction?>(null)
     private val tabs = MutableStateFlow<List<HomeTab>>(emptyList())
     private val sections = MutableStateFlow<List<HomeSection>>(emptyList())
+    private val promotions = MutableStateFlow<List<PromoOffer>>(emptyList())
     private val layoutMessage = MutableStateFlow<String?>(null)
     private val layoutReady = MutableStateFlow(false)
     private var deleteJob: Job? = null
@@ -91,17 +98,28 @@ class HomeViewModel @Inject constructor(
             )
             layoutReady.value = true
         }
+        viewModelScope.launch {
+            promotionsBackend.tabs().fold(
+                onSuccess = { promoTabs ->
+                    promotions.value = promoTabs.flatMap { it.offers }
+                },
+                onFailure = {
+                    promotions.value = emptyList()
+                },
+            )
+        }
+    }
+
+    private val boardSlice = combine(tabs, sections, layoutMessage, layoutReady, promotions) { bar, board, message, ready, promoOffers ->
+        BoardSlice(bar, board, message, ready, promoOffers)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
         combine(repository.observeTransactions(), query, category, pending, sync.observe()) { all, q, cat, held, phase ->
             LedgerSlice(all, q, cat, held, phase)
         },
-        tabs,
-        sections,
-        layoutMessage,
-        layoutReady,
-    ) { slice, bar, board, message, ready ->
+        boardSlice,
+    ) { slice, boardState ->
         val (all, q, cat, held, phase) = slice
         val visible = all.filter { it.id != held?.id }
         val month = YearMonth.now()
@@ -121,10 +139,11 @@ class HomeViewModel @Inject constructor(
             sync = phase,
             pendingDelete = held,
             total = filtered.size,
-            tabs = bar,
-            sections = board,
-            layoutReady = ready,
-            layoutMessage = message,
+            tabs = boardState.tabs,
+            sections = boardState.sections,
+            layoutReady = boardState.ready,
+            layoutMessage = boardState.message,
+            promotions = boardState.promotions,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -176,6 +195,15 @@ private data class LedgerSlice(
     val category: String?,
     val pending: Transaction?,
     val sync: SyncPhase,
+)
+
+/** Dashboard board fields combined before merging with ledger data. */
+private data class BoardSlice(
+    val tabs: List<HomeTab>,
+    val sections: List<HomeSection>,
+    val message: String?,
+    val ready: Boolean,
+    val promotions: List<PromoOffer>,
 )
 
 /** Date. */

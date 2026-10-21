@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
@@ -54,6 +56,9 @@ import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.board.HomeTile
+import com.ledger.personal.domain.board.PromoOffer
+import com.ledger.personal.domain.board.PromoTab
+import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -91,7 +96,7 @@ data class QuickAction(val id: String, val label: String, val icon: androidx.com
 private fun tileIcon(id: String) = when (id) {
     "send" -> Icons.AutoMirrored.Outlined.Send
     "upi" -> Icons.Outlined.QrCode2
-    "bills" -> Icons.AutoMirrored.Outlined.ReceiptLong
+    "accounts" -> Icons.Outlined.AccountCircle
     else -> Icons.Outlined.Widgets
 }
 
@@ -165,7 +170,17 @@ fun HomeScreen(
                 state.layoutMessage?.let { message -> item { StatusBanner(message, BannerTone.WARNING, title = "Home layout") } }
                 state.sections.forEach { section ->
                     when (section) {
-                        HomeSection.Balance -> item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
+                        HomeSection.Balance -> {
+                            item { SummaryCard(balanceMinor, revealBalance, onToggleReveal, state) }
+                            if (state.promotions.isNotEmpty()) {
+                                item {
+                                    PromotionsHorizontalSection(
+                                        promotions = state.promotions,
+                                        onOfferClick = { onQuickAction("offers") },
+                                    )
+                                }
+                            }
+                        }
                         is HomeSection.Shortcuts -> item {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(section.tiles, key = { it.id }) { tile ->
@@ -346,6 +361,59 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
     ) { content() }
 }
 
+/** Shows promotions features in a horizontal scrollable view. */
+@Composable
+private fun PromotionsHorizontalSection(
+    promotions: List<PromoOffer>,
+    onOfferClick: (PromoOffer) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Offers & promotions", style = MaterialTheme.typography.titleSmall)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(promotions, key = { it.id }) { offer ->
+                androidx.compose.material3.Surface(
+                    onClick = { onOfferClick(offer) },
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.width(240.dp),
+                ) {
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            IconBadge(Icons.Outlined.LocalOffer, size = 32)
+                            Text(
+                                "PROMO",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Text(
+                            offer.pitch,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                        )
+                        if (offer.until.isNotBlank()) {
+                            Text(
+                                offer.until,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** Greeting. */
 private fun greeting(name: String): String {
     val hour = java.time.LocalTime.now().hour
@@ -382,7 +450,7 @@ private fun HomePreview() {
             onCreate = {},
             onSeeAll = {},
             onQuickAction = {},
-            viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard),
+            viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }
 }
@@ -403,7 +471,7 @@ private fun HomeOfflinePreview() {
             onCreate = {},
             onSeeAll = {},
             onQuickAction = {},
-            viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard),
+            viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }
 }
@@ -438,9 +506,25 @@ private val PreviewBoard = HomeBoard {
             tabs = listOf(HomeTab("home", "Home")),
             sections = listOf(
                 HomeSection.Balance,
-                HomeSection.Shortcuts(listOf(HomeTile("send", "Send"), HomeTile("bills", "Bills"))),
+                HomeSection.Shortcuts(listOf(HomeTile("send", "Send"), HomeTile("upi", "UPI"), HomeTile("accounts", "Accounts"))),
                 HomeSection.Activity("Recent"),
             ),
         ),
     )
 }
+
+private val PreviewPromotions = PromotionsBackend {
+    Result.success(
+        listOf(
+            PromoTab(
+                "festive",
+                "Festive",
+                listOf(
+                    PromoOffer("upi5", "5% back on UPI up to ₹100", "Until 31 Oct"),
+                    PromoOffer("grocery", "₹50 off groceries above ₹500", "Until 20 Oct"),
+                ),
+            ),
+        ),
+    )
+}
+

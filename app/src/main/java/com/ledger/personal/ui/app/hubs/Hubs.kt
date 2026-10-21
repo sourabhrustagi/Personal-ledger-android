@@ -1,5 +1,8 @@
 package com.ledger.personal.ui.app.hubs
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
@@ -21,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -28,14 +32,19 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.domain.board.PayShortcut
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
+import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.ui.app.HubFlags
+import com.ledger.personal.ui.feature.AmountText
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.ListRow
+import com.ledger.personal.ui.feature.MoneyDirection
 import com.ledger.personal.ui.feature.PaymentsOfflineNotice
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.feature.StatusBanner
+import com.ledger.personal.ui.feature.categoryIcon
 import com.ledger.personal.ui.navigation.Screen
+import com.ledger.personal.ui.theme.LedgerTheme
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows profile action. */
@@ -67,16 +76,18 @@ internal fun HubLink(
 fun PayHub(
     flags: HubFlags,
     shortcuts: Result<List<PayShortcut>>?,
+    recentTransactions: List<Transaction> = emptyList(),
     onProfile: () -> Unit,
     onOpen: (Screen) -> Unit,
+    onOpenTransaction: (String) -> Unit = {},
 ) {
     FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
         if (flags.offline) PaymentsOfflineNotice()
         val online = !flags.offline
-        SectionCard(title = "Send and request") {
-            HubLink(Icons.Outlined.QrCodeScanner, "Scan and pay", "Any UPI QR code", online) { onOpen(Screen.Scan) }
+        SectionCard(title = "Send and receive money") {
             HubLink(Icons.AutoMirrored.Outlined.Send, "Send money", "To a contact or bank account", online) { onOpen(Screen.Wallet) }
-            HubLink(Icons.Outlined.QrCode2, "UPI", "Request with QR or UPI ID", online) { onOpen(Screen.Banking) }
+            HubLink(Icons.Outlined.QrCode2, "Receive money", "Request via UPI or QR code", online) { onOpen(Screen.Banking) }
+            HubLink(Icons.Outlined.QrCodeScanner, "Scan and pay", "Any UPI QR code", online) { onOpen(Screen.Scan) }
             HubLink(Icons.Outlined.People, "Beneficiaries", "New payees cool for 30 minutes", online) { onOpen(Screen.Banking) }
         }
         SectionCard(title = "Recent people") {
@@ -91,6 +102,34 @@ fun PayHub(
                         subtitle = person.handle,
                         onClick = { onOpen(Screen.PayTo(person.handle, 0L)) }.takeIf { online },
                     )
+                }
+            }
+        }
+        SectionCard(title = "Recent transactions") {
+            if (recentTransactions.isEmpty()) {
+                Text("No recent transactions.")
+            } else {
+                recentTransactions.forEach { tx ->
+                    val credit = tx.category == "Salary"
+                    ListRow(
+                        icon = categoryIcon(tx.category),
+                        title = tx.description,
+                        subtitle = tx.category,
+                        iconTint = if (credit) LedgerTheme.colors.success else MaterialTheme.colorScheme.primary,
+                        onClick = { onOpenTransaction(tx.id) },
+                        trailingContent = {
+                            AmountText(
+                                tx.amountInCents,
+                                if (credit) MoneyDirection.CREDIT else MoneyDirection.DEBIT,
+                                currency = tx.currency,
+                            )
+                        },
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    TextButton(onClick = { onOpen(Screen.LedgerHistory) }) {
+                        Text("See all transactions")
+                    }
                 }
             }
         }

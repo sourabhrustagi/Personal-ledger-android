@@ -11,8 +11,11 @@ data class ApiConfig(
     val pinBackup: String,
     val paymentsBaseUrl: String,
     val promotionsBaseUrl: String,
-    val localSession: Boolean,
-)
+    val mockFlavor: Boolean,
+) {
+    /** True when running on the mock build flavor. */
+    val isMockFlavor: Boolean get() = mockFlavor
+}
 
 /** Ktor client that sends the current session token. */
 @Qualifier

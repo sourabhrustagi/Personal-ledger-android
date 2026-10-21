@@ -24,11 +24,16 @@ import com.ledger.personal.data.local.toDomain
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
 
-/** Shows the ledger history screen. */
+/** Shows the passbook / ledger history screen. */
 @Composable
-fun LedgerHistoryScreen(onBack: () -> Unit, viewModel: LedgerHistoryViewModel = hiltViewModel()) {
+fun LedgerHistoryScreen(
+    onBack: (() -> Unit)? = null,
+    title: String = "Passbook",
+    onOpenDetail: ((String) -> Unit)? = null,
+    viewModel: LedgerHistoryViewModel = hiltViewModel(),
+) {
     val pages = viewModel.pages.collectAsLazyPagingItems()
-    FeatureScaffold("History", onBack, subtitle = "Everything saved on this device", scrollable = false) {
+    FeatureScaffold(title, onBack, subtitle = "Everything saved on this device", scrollable = false) {
         val loading = pages.loadState.refresh is LoadState.Loading
         LoadingOrEmpty(loading && pages.itemCount == 0, isEmpty = false, errorMessage = null, label = "transactions")
         if (pages.itemCount == 0 && !loading) {
@@ -44,6 +49,7 @@ fun LedgerHistoryScreen(onBack: () -> Unit, viewModel: LedgerHistoryViewModel = 
                         subtitle = "${row.category} · ${row.timestampEpochMs.toFormattedDateTime()}",
                         trailing = row.amountInCents.toFormattedCurrency(row.currency),
                         trailingColor = MaterialTheme.colorScheme.onSurface,
+                        onClick = onOpenDetail?.let { { it(row.id) } },
                     )
                 }
             }

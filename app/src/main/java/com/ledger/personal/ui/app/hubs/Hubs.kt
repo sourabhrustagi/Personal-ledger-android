@@ -55,23 +55,6 @@ internal fun ProfileAction(onProfile: () -> Unit) {
     IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
 }
 
-/** Shows hub link. */
-@Composable
-internal fun HubLink(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    ListRow(
-        icon,
-        title,
-        subtitle = if (enabled) subtitle else "Unavailable offline",
-        iconTint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-        onClick = onClick.takeIf { enabled },
-    )
-}
 
 /** Shows pay hub. */
 @Composable

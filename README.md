@@ -235,6 +235,141 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
 | `:feature:budgets` | `ChartsViewModel` | Category spending breakdowns and visual trend curves |
 
+## State Management: `remember`, `rememberSaveable` & App State Architecture
+
+State in this application represents any data that can change over time and causes the UI to update. Because Android components undergo configuration changes (e.g. device rotation, theme switching, language change) and system-initiated background process termination, the application manages state across a structured **4-tier hierarchy**:
+
+```mermaid
+flowchart TD
+    subgraph UI ["Tier 1 & 2: Local UI State (Compose)"]
+        R["remember: Ephemeral UI (animation clocks, current scroll offset)"]
+        RS["rememberSaveable: Rotation & process-death safe UI (inputs, wizard step, sheet toggles)"]
+    end
+
+    subgraph VM ["Tier 3: Screen & Business State (ViewModel)"]
+        SF["StateFlow: Read-only observable UI state stream"]
+        SSH["SavedStateHandle: Navigation arguments surviving process death"]
+    end
+
+    subgraph Storage ["Tier 4: Durable Local Persistence"]
+        Room[("Room Database: Offline-first single source of truth")]
+        DS[("DataStore: Persistent user preferences")]
+    end
+
+    Room -->|Cold Flow| VM
+    DS -->|Cold Flow| VM
+    VM -->|collectAsStateWithLifecycle| UI
+    UI -->|User Events & Intents| VM
+    VM -->|Local Mutation Writes| Room
+    VM -->|Preference Updates| DS
+```
+
+---
+
+### 1. `remember` vs `rememberSaveable`
+
+| Mechanism | Survives Recomposition? | Survives Device Rotation? | Survives Process Death? | Where Data Is Stored |
+|---|---|---|---|---|
+| **`remember { ... }`** | **Yes** | ❌ **No** (resets to initial) | ❌ **No** | Composition memory tree |
+| **`rememberSaveable { ... }`** | **Yes** | **Yes** (restored) | **Yes** (restored) | Android `SavedStateRegistry` (`Bundle`) |
+
+#### Why `remember` Alone Is Not Enough
+In Compose, `remember { mutableStateOf(initialValue) }` keeps state alive across recompositions. However, when a user rotates their device or toggles dark mode, the host Android `Activity` is completely destroyed and recreated. All plain `remember` allocations are wiped out and reset to their initial value.
+
+#### How `rememberSaveable` Works Under the Hood
+`rememberSaveable` saves and restores values via Android's **`SavedStateRegistry`** (the same underlying mechanism as `onSaveInstanceState(Bundle)`):
+1. **During execution:** Reads and mutates the in-memory state object like standard `remember`.
+2. **On configuration change or background process termination:** Serializes the value into the Android `Bundle`.
+3. **Upon recreation:** Restores the saved value from the `Bundle` instead of resetting to the default initializer.
+
+> **Supported Types:** Primitives (`Int`, `Long`, `Float`, `Boolean`), `String`, `Bundle`, and `Parcelable` are supported automatically. Custom complex objects can be saved by supplying a custom Compose `Saver` (`rememberSaveable(stateSaver = ...)`).
+
+---
+
+### 2. Real-World Uses of `rememberSaveable` in LedgerOne
+
+#### A. Transient Form Inputs & Typing Buffers
+Users should not lose their input while filling forms if they rotate their screen before pressing submit.
+- **Wallet transfer amount input (`WalletScreen.kt`):**
+  ```kotlin
+  var amountText by rememberSaveable { mutableStateOf(initialAmount) }
+  ```
+- **Quick recipient input (`Hubs.kt`):**
+  ```kotlin
+  var recipientInput by rememberSaveable { mutableStateOf("") }
+  ```
+- **Loan prepayment text buffer (`BankProducts.kt`):**
+  ```kotlin
+  var prepayText by rememberSaveable { mutableStateOf("") }
+  ```
+
+#### B. Multi-Step Wizard Progression
+Prevents multi-step flows from resetting back to the very first step upon device rotation.
+- **Onboarding flow step (`Onboarding.kt`):**
+  ```kotlin
+  var step by rememberSaveable { mutableStateOf(OnboardStep.PHONE) }
+  var phone by rememberSaveable { mutableStateOf("") }
+  ```
+- **KYC identity verification step (`KycScreen.kt`):**
+  ```kotlin
+  var step by rememberSaveable { mutableIntStateOf(0) }
+  var document by rememberSaveable { mutableStateOf(documents.first()) }
+  var submitted by rememberSaveable { mutableStateOf(false) }
+  ```
+
+#### C. Bottom Sheet & Dialog Visibility Toggles
+Ensures that open modals and confirmation dialogs remain open during configuration changes.
+- **Banking modal sheet selection (`BankingScreen.kt`):**
+  ```kotlin
+  var sheet by rememberSaveable { mutableStateOf<BankSheet?>(null) }
+  ```
+- **Logout confirmation dialog (`Profile.kt`):**
+  ```kotlin
+  var confirmLogOut by rememberSaveable { mutableStateOf(false) }
+  ```
+
+#### D. Authentication Resend Countdown Timers
+Preserves the remaining seconds on SMS OTP cooldowns across activity recreation (`Login.kt`):
+```kotlin
+var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
+```
+
+---
+
+### 3. Screen & Business State: `ViewModel` + `StateFlow`
+
+While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
+- **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
+- **Atomic State Updates:** Mutations apply atomically using `MutableStateFlow.update { it.copy(...) }`, eliminating race conditions between concurrent coroutines.
+- **`SavedStateHandle` for Process Death:** Navigation arguments (e.g. `transactionId` in `TransactionDetailViewModel.kt`) are retrieved from `SavedStateHandle`, ensuring the screen can re-fetch its data even after Android kills the process in the background.
+
+---
+
+### 4. Architectural Patterns Used Across the Project
+
+#### A. State Hoisting (Unidirectional Data Flow)
+In Compose screens, stateful containers are separated from stateless presentation components:
+- **State flows down:** Child composables receive immutable values via arguments (`value: String`, `enabled: Boolean`).
+- **Events flow up:** Child composables emit user intents through callback lambdas (`onValueChange: (String) -> Unit`, `onSubmit: () -> Unit`).
+- **Benefit:** Child components are 100% previewable with `@PreviewLightDark` and unit-testable in isolation.
+
+#### B. `collectAsStateWithLifecycle()` vs `collectAsState()`
+All screens consume ViewModel `StateFlow`s using `collectAsStateWithLifecycle()`.
+- **Why?** Plain `collectAsState()` continues collecting flow emissions in the background even when the app is minimized. `collectAsStateWithLifecycle()` automatically suspends collection when the screen drops below `Lifecycle.State.STARTED`, preventing battery drain and background work.
+
+---
+
+### 5. Application State Mechanism Comparison Matrix
+
+| State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
+|---|---|---|---|---|---|---|
+| **`remember`** | Composition Memory | **Yes** | ❌ No | ❌ No | ❌ No | Ephemeral UI: animation clocks, scroll state, transient gestures |
+| **`rememberSaveable`** | `SavedStateRegistry` (Bundle) | **Yes** | **Yes** | **Yes** | ❌ No | Form text fields, wizard step index, dialog/sheet open state |
+| **`ViewModel` (`StateFlow`)** | `ViewModelStore` (Heap) | **Yes** | **Yes** | ❌ No | ❌ No | Business logic, fetched accounts, live calculations, search queries |
+| **`SavedStateHandle`** | `SavedStateRegistry` + ViewModel | **Yes** | **Yes** | **Yes** | ❌ No | Navigation parameters (`transactionId`), search criteria across process death |
+| **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states, KYC drafts |
+| **`DataStore`** | Disk (`.preferences_pb`) | **Yes** | **Yes** | **Yes** | **Yes** | User preferences: theme mode, masked balance toggle, skipped app version |
+
 ## Jetpack Compose Effects & Lifecycle Side-Effect Handling
 
 In Jetpack Compose, composable functions should be fast, pure, and free of side effects. Because composables can recompose frequently, in any order, or be cancelled mid-execution, executing side effects (such as modifying non-Compose state, starting coroutines, registering system callbacks, or allocating system resources) directly inside a composable body can lead to memory leaks, repeated execution, and erratic app state.

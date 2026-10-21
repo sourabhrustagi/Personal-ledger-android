@@ -1,7 +1,6 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
-import com.ledger.personal.di.ApiConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -22,41 +21,46 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InterceptorSessionTest {
+
     @Test
     fun mockBeginSetsALocalTokenAndEndClearsIt() = runBlocking {
         val auth = AuthInterceptor()
-        val session = InterceptorSession(auth, config(mockFlavor = true), unusedClient())
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    """{"token":"$MOCK_SESSION_TOKEN"}""",
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        ) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val session = InterceptorSession(auth, client)
         assertTrue(session.begin().isSuccess)
         assertEquals("Bearer $MOCK_SESSION_TOKEN", bearer(auth))
         session.end()
         assertNull(bearer(auth))
+        client.close()
     }
 
     @Test
     fun liveBeginStoresTheServerToken() = runBlocking {
         val auth = AuthInterceptor()
-        val client = HttpClient(MockEngine { respond("""{"token":"live-token"}""", headers = headersOf(HttpHeaders.ContentType, "application/json")) }) {
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    """{"token":"live-token"}""",
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        ) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
-        val session = InterceptorSession(auth, config(mockFlavor = false), client)
+        val session = InterceptorSession(auth, client)
         assertTrue(session.begin().isSuccess)
         assertEquals("Bearer live-token", bearer(auth))
         client.close()
     }
-
-
-    private fun config(mockFlavor: Boolean) = ApiConfig(
-        baseUrl = "https://api.example/retail/v1/",
-        logRequests = false,
-        debuggable = false,
-        pinSha256 = "",
-        pinBackup = "",
-        paymentsBaseUrl = "",
-        promotionsBaseUrl = "",
-        mockFlavor = mockFlavor,
-    )
-
-    private fun unusedClient() = HttpClient(MockEngine { error("mock session must not call the network") })
 
     private fun bearer(auth: AuthInterceptor): String? {
         var header: String? = null

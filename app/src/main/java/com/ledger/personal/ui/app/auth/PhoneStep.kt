@@ -34,36 +34,37 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 private const val PHONE_LENGTH = 10
 
-/** Shows phone and name input step. */
+/** Shows phone number input step. */
 @Composable
 fun PhoneStep(
-    name: String,
     phone: String,
-    onName: (String) -> Unit,
     onPhone: (String) -> Unit,
     onNext: () -> Unit,
 ) {
     var consent by rememberSaveable { mutableStateOf(false) }
-    Text("Let's get you set up", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-    OutlinedTextField(name, onName, label = { Text("Full name (as on PAN)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    Text("Enter your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    Text(
+        "We'll send a 6-digit verification code to verify your phone.",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     OutlinedTextField(
         phone,
         { next -> if (next.length <= PHONE_LENGTH && next.all(Char::isDigit)) onPhone(next) },
         label = { Text("Mobile number") },
         prefix = { Text("+91 ") },
-        supportingText = { Text("We'll send a one-time code by SMS") },
+        supportingText = { Text("10-digit mobile number") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(consent, { consent = it })
-        Text("I agree to the Terms and Privacy Policy and allow device binding.", style = MaterialTheme.typography.bodyMedium)
+        Text("I agree to the Terms of Service and Privacy Policy.", style = MaterialTheme.typography.bodyMedium)
     }
     PrimaryButton(
         "Send code",
         onClick = onNext,
-        enabled = consent && phone.length == PHONE_LENGTH && name.isNotBlank(),
+        enabled = consent && phone.length == PHONE_LENGTH,
         icon = Icons.Outlined.Sms,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -78,7 +79,7 @@ private fun PhoneStepPreview() {
                 Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                PhoneStep(MockValues.DEFAULT_NAME, MockValues.DEFAULT_PHONE, {}, {}) {}
+                PhoneStep(MockValues.DEFAULT_PHONE, {}) {}
             }
         }
     }

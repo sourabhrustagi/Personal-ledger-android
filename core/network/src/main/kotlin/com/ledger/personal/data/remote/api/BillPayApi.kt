@@ -1,6 +1,7 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.core.LocalBillPay
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.domain.pay.BillPay
 import com.ledger.personal.domain.pay.FetchedBill
 import com.ledger.personal.domain.pay.SealedPay
@@ -37,14 +38,14 @@ class InterceptorBillPay @Inject constructor(
     override suspend fun serverPublic(): ByteArray = if (config.mockFlavor) {
         local.serverPublic()
     } else {
-        Base64.getDecoder().decode(client.get("pay/key").body<PayKeyDto>().publicKey)
+        Base64.getDecoder().decode(client.get(ApiEndpoints.BILL_PAY_KEY).body<PayKeyDto>().publicKey)
     }
 
     override suspend fun fetch(sealed: SealedPay): Result<FetchedBill> = if (config.mockFlavor) {
         local.fetch(sealed)
     } else {
         runCatching {
-            val posted = client.post("bills/lookup") { setBody(sealed.toDto()) }.body<FetchedBillDto>()
+            val posted = client.post(ApiEndpoints.BILLS_LOOKUP) { setBody(sealed.toDto()) }.body<FetchedBillDto>()
             FetchedBill(posted.billNumber, posted.amountMinor, posted.holder)
         }.onFailure { if (it is CancellationException) throw it }
     }
@@ -53,7 +54,7 @@ class InterceptorBillPay @Inject constructor(
         local.submit(sealed)
     } else {
         runCatching {
-            client.post("bills/pay") { setBody(sealed.toDto()) }
+            client.post(ApiEndpoints.BILLS_PAY) { setBody(sealed.toDto()) }
             Unit
         }.onFailure { if (it is CancellationException) throw it }
     }

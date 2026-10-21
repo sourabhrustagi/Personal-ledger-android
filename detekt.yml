@@ -10,7 +10,8 @@ complexity:
     ignoreAnnotated: ['Composable']
   LongParameterList:
     functionThreshold: 8
-    ignoreAnnotated: ['Composable']
+    constructorThreshold: 8
+    ignoreAnnotated: ['Composable', 'Inject']
   LargeClass:
     threshold: 600
   TooManyFunctions:

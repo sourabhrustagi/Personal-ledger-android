@@ -39,14 +39,14 @@ class InterceptorSession @Inject constructor(
     override fun end() = auth.updateToken(null)
 
     override suspend fun begin(): Result<Unit> = runCatching {
-        val token = if (config.localSession) MOCK_SESSION_TOKEN else client.post("session").body<SessionDto>().token
+        val token = if (config.mockFlavor) MOCK_SESSION_TOKEN else client.post("session").body<SessionDto>().token
         require(token.isNotBlank()) { "Empty session" }
         auth.updateToken(token)
     }.onFailure { if (it is CancellationException) throw it }
 
     override suspend fun sendOtp(phone: String): Result<String> = runCatching {
         require(phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) { "Invalid 10-digit phone number" }
-        if (config.localSession) {
+        if (config.mockFlavor) {
             MOCK_OTP_SENT_MESSAGE
         } else {
             val response = client.post("auth/otp") {

@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.api
 
+import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
 import com.ledger.personal.di.StaticClient
 import com.ledger.personal.domain.session.Session
@@ -27,7 +28,7 @@ class InterceptorSession @Inject constructor(
     override fun end() = auth.updateToken(null)
 
     override suspend fun begin(): Result<Unit> = runCatching {
-        val token = client.post("session").body<SessionDto>().token
+        val token = client.post(ApiEndpoints.SESSION).body<SessionDto>().token
         require(token.isNotBlank()) { "Empty session" }
         auth.updateToken(token)
     }.onFailure { if (it is CancellationException) throw it }

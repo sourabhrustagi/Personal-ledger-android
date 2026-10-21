@@ -7,11 +7,13 @@ import com.ledger.personal.domain.session.Session
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class SessionDto(val token: String = "")
 

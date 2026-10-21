@@ -189,7 +189,6 @@ private fun NavGraphBuilder.tabRoutes(
             onToggleReveal = flags.onToggleReveal,
             onProfile = { nav.navigate(Screen.Profile) },
             onOpen = { nav.navigate(Screen.TransactionDetail(it)) },
-            onCreate = { nav.navigate(Screen.CreateTransaction) },
             onSeeAll = { nav.navigate(Screen.TransactionList) },
             onQuickAction = { action ->
                 val route = when (action) {

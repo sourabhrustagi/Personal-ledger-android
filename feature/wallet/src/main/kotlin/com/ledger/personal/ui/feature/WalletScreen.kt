@@ -1,22 +1,34 @@
 package com.ledger.personal.ui.feature
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.ContactsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -74,14 +86,78 @@ fun WalletScreen(
 /** Shows transfer form. */
 @Composable
 private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offline: Boolean) {
+    val context = LocalContext.current
+    val contactPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val contactUri: Uri? = result.data?.data
+            if (contactUri != null) {
+                try {
+                    context.contentResolver.query(
+                        contactUri,
+                        arrayOf(
+                            ContactsContract.CommonDataKinds.Phone.NUMBER,
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                        ),
+                        null,
+                        null,
+                        null,
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val numCol = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            val number = if (numCol >= 0) cursor.getString(numCol) else null
+                            val clean = number?.replace(Regex("[^0-9+]"), "")
+                            if (!clean.isNullOrBlank()) {
+                                viewModel.onRecipient(clean)
+                            }
+                        }
+                    }
+                } catch (_: SecurityException) {
+                    // Ignore gracefully
+                }
+            }
+        }
+    }
+
     var amountText by rememberSaveable {
         mutableStateOf(if (state.amountMinor > 0) BigDecimal.valueOf(state.amountMinor, 2).stripTrailingZeros().toPlainString() else "")
     }
     HeroCard(label = "Available balance", value = formatMoney(state.balanceMinor), supporting = "Savings •• 4821")
     SectionCard(title = "Send to") {
-        if (state.recipient.isNotBlank() && MockCatalog.contacts.none { it.handle == state.recipient }) {
-            ListRow(Icons.Outlined.Person, state.recipient, subtitle = "From scanned QR")
+        OutlinedTextField(
+            value = state.recipient,
+            onValueChange = viewModel::onRecipient,
+            label = { Text("Mobile number or UPI ID") },
+            placeholder = { Text("e.g. 9876543210 or name@upi") },
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            trailingIcon = {
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                    contactPicker.launch(intent)
+                }) {
+                    Icon(Icons.Outlined.Contacts, contentDescription = "Select from contacts")
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedButton(
+            onClick = {
+                val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                contactPicker.launch(intent)
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Outlined.Contacts, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Select from local contacts")
         }
+        Text(
+            "Saved contacts",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         MockCatalog.contacts.forEach { contact ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ListRow(

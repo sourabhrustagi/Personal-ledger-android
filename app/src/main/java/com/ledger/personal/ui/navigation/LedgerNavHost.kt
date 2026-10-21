@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -105,12 +106,14 @@ fun LedgerNavHost(
     fun routeFor(id: String): Screen? = when (id) {
         "home" -> Screen.Home
         "pay" -> Screen.PayHub
+        "accounts" -> Screen.Profile
         "offers" -> Screen.Promotions()
         else -> null
     }
     fun iconFor(id: String) = when (id) {
         "home" -> Icons.Outlined.Home
         "pay" -> Icons.Outlined.QrCodeScanner
+        "accounts" -> Icons.Outlined.AccountCircle
         "offers" -> Icons.Outlined.LocalOffer
         else -> null
     }
@@ -191,6 +194,7 @@ private fun NavGraphBuilder.tabRoutes(
                     "send" -> Screen.Wallet
                     "upi" -> Screen.Scan
                     "offers" -> Screen.Promotions()
+                    "accounts" -> Screen.Profile
                     else -> null
                 }
                 if (route != null) nav.navigate(route)
@@ -203,7 +207,15 @@ private fun NavGraphBuilder.tabRoutes(
     composable<Screen.PayHub> {
         val pay: PayHubViewModel = hiltViewModel()
         val shortcuts by pay.shortcuts.collectAsStateWithLifecycle()
-        PayHub(flags, shortcuts, { nav.navigate(Screen.Profile) }, nav::navigate)
+        val recentTx by pay.recentTransactions.collectAsStateWithLifecycle()
+        PayHub(
+            flags = flags,
+            shortcuts = shortcuts,
+            recentTransactions = recentTx,
+            onProfile = { nav.navigate(Screen.Profile) },
+            onOpen = nav::navigate,
+            onOpenTransaction = { nav.navigate(Screen.TransactionDetail(it)) },
+        )
     }
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
         val offers: PromotionsViewModel = hiltViewModel()
@@ -301,7 +313,7 @@ private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPref
         ProfileScreen(
             prefs = prefs,
             showMockControls = BuildConfig.DEBUG && BuildConfig.FLAVOR == "mock",
-            onBack = back,
+            onBack = null,
             onOpen = nav::navigate,
             onLock = app::lock,
             onLogOut = app::logOut,

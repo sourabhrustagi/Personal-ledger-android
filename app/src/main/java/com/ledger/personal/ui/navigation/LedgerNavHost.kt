@@ -234,8 +234,6 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
             onNavigateBack = { nav.popBackStack() },
             onNavigateEdit = null,
             onRetry = { viewModel.loadTransaction(route.transactionId) },
-            onShowDeleteDialog = viewModel::setDeleteDialogVisible,
-            onConfirmDelete = viewModel::confirmDelete,
             actions = { tx -> DetailActions(nav, tx) },
         )
     }

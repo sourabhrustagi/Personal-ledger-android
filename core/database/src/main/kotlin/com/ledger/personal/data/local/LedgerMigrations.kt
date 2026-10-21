@@ -51,3 +51,26 @@ fun SupportSQLiteDatabase.seedPromotions() {
             "('electricity', 'bills', 'Bills', '₹25 cashback on electricity', 'This week', 2)",
     )
 }
+
+/** Inserts initial dummy scan and pay transactions into the database. */
+fun SupportSQLiteDatabase.seedTransactions() {
+    val now = 1_760_200_000_000L
+    val seeds = listOf(
+        Triple("sp-1", 120_00L, "Chai Point · QR Pay"),
+        Triple("sp-2", 385_00L, "Starbucks · Scan & Pay"),
+        Triple("sp-3", 450_00L, "Swiggy Instamart · QR Pay"),
+        Triple("sp-4", 1_450_50L, "DMart Supermarket · Scan & Pay"),
+        Triple("sp-5", 312_00L, "Apollo Pharmacy · QR Pay"),
+        Triple("sp-6", 60_00L, "Metro Station · Scan & Pay"),
+        Triple("sp-7", 280_00L, "Blue Tokai Coffee · QR Pay"),
+        Triple("sp-8", 520_00L, "Corner Bookstore · Scan & Pay"),
+    )
+    seeds.forEachIndexed { i, (id, amount, desc) ->
+        val timestamp = now - ((i + 1) * 3_600_000L * 4)
+        execSQL(
+            "INSERT OR IGNORE INTO transactions (id, amount, currency, category, description, timestampEpochMs, syncState, updatedAtEpochMs) VALUES " +
+                "('tx-$id', $amount, 'INR', 'Scan & Pay', '$desc', $timestamp, 'SYNCED', $timestamp)",
+        )
+    }
+}
+

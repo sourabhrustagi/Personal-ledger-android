@@ -12,6 +12,7 @@ import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.ui.feature.FeatureScaffold
 import com.ledger.personal.ui.feature.ListRow
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows the promotions stored on the device. */
@@ -22,9 +23,9 @@ fun PromotionsHub(
 ) {
     val shelves = uiState.shelves
     val selected = uiState.selected
-    FeatureScaffold("Offers", onBack = null) {
+    FeatureScaffold(AppStrings.TITLE_OFFERS, onBack = null) {
         if (shelves.isEmpty()) {
-            Text("No promotions right now.")
+            Text(AppStrings.EMPTY_PROMOTIONS)
         } else {
             val index = shelves.indexOfFirst { it.id == selected }.coerceAtLeast(0)
             PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 16.dp) {
@@ -34,7 +35,7 @@ fun PromotionsHub(
             }
             val offers = shelves[index].offers
             if (offers.isEmpty()) {
-                Text("Nothing in this tab.")
+                Text(AppStrings.EMPTY_TAB_CONTENT)
             } else {
                 offers.forEach { offer ->
                     ListRow(Icons.Outlined.LocalOffer, offer.pitch, subtitle = offer.until.ifBlank { null })

@@ -183,7 +183,7 @@ fun EditTransactionScreen(
                                 )
 
                                 if (categoriesLoading) {
-                                    Text("Waiting for categories", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(AppStrings.LABEL_WAITING_FOR_CATEGORIES), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),

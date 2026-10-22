@@ -500,8 +500,9 @@ sequenceDiagram
 Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back stack or the Activity lifecycle. State is exposed as read-only `StateFlow`s, and all asynchronous work runs structured in `viewModelScope`.
 
 | Module | ViewModel | Responsibility |
-| --- | --- | --- |
-| `:app` | `AppViewModel` | Session lifecycle, force update, MPIN & biometric auth, device binding, and preferences |
+| `:app` | `AppViewModel` | Top-level app shell lifecycle, version/update evaluation, session lock state, and category availability (adhering to SRP) |
+| `:app` | `OnboardingViewModel` | User onboarding registration, phone input verification, and SMS OTP dispatch |
+| `:app` | `LoginViewModel` | Locked screen OTP verification, session unlock authorization, and device account reset |
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |

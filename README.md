@@ -1,6 +1,6 @@
 # LedgerOne (Personal Ledger)
 
-LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, and keeps working offline.
+LedgerOne is an Android personal-finance app. It tracks your transactions, sends and requests money by UPI, and keeps working offline.
 
 It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Retrofit.
 
@@ -19,11 +19,8 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 - [What's in the App](#whats-in-the-app)
   - [Opening the App](#opening-the-app)
   - [Primary Navigation Tabs](#primary-navigation-tabs)
-  - [Banking & Financial Products](#banking--financial-products)
   - [Pay & Transfers](#pay--transfers)
   - [Transactions & Double-Entry Ledger](#transactions--double-entry-ledger)
-  - [Live Markets & Ticker](#live-markets--ticker)
-  - [Profile, Disputes & Developer Tools](#profile-disputes--developer-tools)
 - [Project Layout](#project-layout)
 - [Architecture & How the App Works](#architecture--how-the-app-works)
   - [Clean Architecture & Layer Separation](#clean-architecture--layer-separation)
@@ -153,15 +150,14 @@ Raise the published `versionCode` only when a build must be retired — broken c
 
 ## <a id="whats-in-the-app"></a>What's in the app
 
-The app provides five primary navigation tabs:
+The app provides four primary navigation tabs:
 
-- **Home:** current bank account balance card (masked by default, tap the eye icon to reveal), sync conflict alerts, and quick actions.
+- **Home:** current bank account balance card (masked by default, tap the eye icon to reveal) and quick actions.
 - **Pay:** scan & pay with camera QR scanner, and send to anyone by entering mobile number, UPI ID, choosing from device contacts, or paying utility bills.
 - **Passbook:** real-time transaction history stream (`LedgerHistory`) with pagination, debit/credit indicators, category badges, and tap-to-view details.
-- **Accounts:** user profile details (avatar, name, phone), settings & mock controls, app security lock, and logout.
 - **Offers:** dynamic promotional shelves and marketing campaign banners.
 
-From any transaction you can inspect its full metadata, double-entry legs, and sync state, or tap **Report a problem** to file a dispute recorded in the local dispute log. Transactions maintain an immutable ledger history to ensure accounting integrity.
+Transactions maintain an immutable ledger history to ensure accounting integrity.
 
 Screens below display the light and dark themes on mock data.
 
@@ -177,12 +173,6 @@ Screens below display the light and dark themes on mock data.
 | --- | --- | --- |
 | <img src="docs/images/home.png" width="200" alt="Home"> | <img src="docs/images/pay.png" width="200" alt="Pay"> | <img src="docs/images/offers.png" width="200" alt="Offers"> |
 
-### <a id="banking--financial-products"></a><a id="banking-financial-products"></a>Banking & Financial Products
-
-| Accounts & UPI | Cards Management | Loans & EMI | Fixed & Recurring Deposits |
-| --- | --- | --- | --- |
-| <img src="docs/images/banking.png" width="200" alt="Accounts and UPI"> | <img src="docs/images/cards.png" width="200" alt="Cards"> | <img src="docs/images/loans.png" width="200" alt="Loans"> | <img src="docs/images/deposits.png" width="200" alt="Deposits"> |
-
 ### <a id="pay--transfers"></a><a id="pay-transfers"></a>Pay & Transfers
 
 | UPI QR Scanner | Send Money (Wallet) |
@@ -195,34 +185,18 @@ Screens below display the light and dark themes on mock data.
 | --- | --- | --- | --- |
 | <img src="docs/images/transactions.png" width="200" alt="Transactions"> | <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
 
-### <a id="live-markets--ticker"></a><a id="live-markets-ticker"></a>Live Markets & Ticker
-
-| Live Crypto & Forex Markets |
-| --- |
-| <img src="docs/images/markets.png" width="200" alt="Markets"> |
-
-### <a id="profile-disputes--developer-tools"></a><a id="profile-disputes-developer-tools"></a>Profile, Disputes & Developer Tools
-
-| Profile Overview | App Settings | Developer Mock Controls |
-| --- | --- | --- |
-| <img src="docs/images/profile.png" width="200" alt="Profile"> | <img src="docs/images/settings.png" width="200" alt="Settings"> | <img src="docs/images/mock-controls.png" width="200" alt="Mock controls"> |
-
-| Report a Problem (Dispute) | Dispute History | Offline Sync Conflicts |
-| --- | --- | --- |
-| <img src="docs/images/dispute.png" width="200" alt="Report a problem"> | <img src="docs/images/disputes.png" width="200" alt="Your disputes"> | <img src="docs/images/conflicts.png" width="200" alt="Sync conflicts"> |
-
 ## <a id="project-layout"></a>Project layout
 
 ```
-app/                 App shell: navigation graph (Screen), build flavors, DI wiring, and ui/app (auth, hubs, account, scan, tools)
+app/                 App shell: navigation graph (Screen), build flavors, DI wiring, and ui/app (auth, hubs, scan)
 core/model/          Plain Kotlin: domain types (Transaction, Money), repository interfaces, business rules (Rules.kt)
-core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, ticker socket, device binding
+core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, device binding
 core/database/       Room database, migrations, offline-first repository, sync worker, DataStore settings
 core/designsystem/   Theme, colours, money formatting, shared Compose components (FeatureScaffold, keypad, banners)
 core/ui/             Shared Compose UI effects and window security utilities (SecureWindow)
 core/mock/           Mock backend, seeded demo catalog, mock switches
 core/testing/        Shared test samples and fixtures
-feature/<name>/      One module per feature: ledger, wallet, ticker, banking
+feature/<name>/      One module per feature: ledger, wallet
 docs/                Architecture document and decision records
 ```
 
@@ -400,7 +374,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | --- | --- | --- |
 | `:app` | `AppViewModel` | Session lifecycle, force update, MPIN & biometric auth, device binding, and preferences |
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
-| `:app` | `ToolsViewModel` | Database export/import, monthly statement PDF generation, and dispute logs |
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
@@ -409,8 +382,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `GetPagedTransactionsUseCase` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
-| `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
-| `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |
 
 ## <a id="state-management-remember-remembersaveable--app-state-architecture"></a><a id="state-management-remember-remembersaveable-app-state-architecture"></a>State Management: `remember`, `rememberSaveable` & App State Architecture
 
@@ -475,10 +446,6 @@ Users should not lose their input while filling forms if they rotate their scree
   ```kotlin
   var recipientInput by rememberSaveable { mutableStateOf("") }
   ```
-- **Loan prepayment text buffer (`BankProducts.kt`):**
-  ```kotlin
-  var prepayText by rememberSaveable { mutableStateOf("") }
-  ```
 
 #### B. Multi-Step Wizard Progression
 Prevents multi-step flows from resetting back to the very first step upon device rotation.
@@ -490,13 +457,9 @@ Prevents multi-step flows from resetting back to the very first step upon device
 
 #### C. Bottom Sheet & Dialog Visibility Toggles
 Ensures that open modals and confirmation dialogs remain open during configuration changes.
-- **Banking modal sheet selection (`BankingScreen.kt`):**
+- **Transaction delete confirmation dialog (`TransactionDetailScreen.kt`):**
   ```kotlin
-  var sheet by rememberSaveable { mutableStateOf<BankSheet?>(null) }
-  ```
-- **Logout confirmation dialog (`Profile.kt`):**
-  ```kotlin
-  var confirmLogOut by rememberSaveable { mutableStateOf(false) }
+  var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
   ```
 
 #### D. Authentication Resend Countdown Timers
@@ -664,7 +627,7 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
        items(categories) { category -> CategoryChip(category) }
    }
    ```
-3. **`Arrangement.Center` for Centered Identity & Loading Hubs (`Profile.kt`, `TickerScreen.kt`):**
+3. **`Arrangement.Center` for Centered Identity & Loading Hubs (`Onboarding.kt`, `Login.kt`):**
    ```kotlin
    Column(
        horizontalAlignment = Alignment.CenterHorizontally,
@@ -918,11 +881,8 @@ Enums are used across the application to model type-safe state machines, multi-s
 | **`OnboardStep`** | `:app` (`Onboarding.kt`) | `PHONE`, `OTP` | Wizard Step | Controls the 2-step onboarding wizard progression (phone input → SMS OTP verification) |
 | **`TransferStep`** | `:feature:wallet` (`Wallet.kt`) | `FORM`, `REVIEW`, `RECEIPT` | Wizard Step | Drives the peer-to-peer wallet transfer wizard from amount entry to confirmation and receipt |
 | **`TransferStatus`** | `:feature:wallet` (`Wallet.kt`) | `IDLE`, `INSUFFICIENT`, `STEP_UP`, `PENDING`, `FAILED`, `DONE` | Lifecycle Status | Manages the wallet transfer state machine (balance checks, step-up biometric auth, in-flight posting, and terminal results) |
-| **`BankSheet`** | `:feature:banking` (`BankingSheets.kt`) | `UPI`, `PAYEE` | UI Modal Step | Determines which bottom sheet modal is open in the Banking hub (managing UPI ID vs adding a new payee) |
 | **`SyncPhase`** | `:core:model` (`SyncCoordinator.kt`) | `IDLE`, `ENQUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `BLOCKED` | System Status | Domain-level coordinator phase reported by WorkManager background sync jobs to update UI headers |
 | **`SyncState`** | `:core:designsystem` (`SyncIndicator.kt`) | `SYNCED`, `SYNCING`, `WAITING`, `FAILED` | UI Status | Visual sync indicator combining user-facing status label, semantic tone (`BannerTone`), and cloud status icon |
-| **`DisputeReason`** | `:app` (`Tools.kt`) | `UNAUTHORISED`, `WRONG_AMOUNT`, `NOT_RECEIVED`, `DUPLICATE` | Business Status | Customer grievance categorization codes recorded when reporting a transaction dispute |
-| **`PrepayMode`** | `:feature:banking` (`BankProducts.kt`) | `TENURE`, `EMI` | Calculation Strategy | Loan prepayment calculation strategy selecting between shortening loan tenure or reducing monthly instalment |
 | **`MoneyDirection`** | `:core:designsystem` (`Money.kt`) | `CREDIT`, `DEBIT`, `NEUTRAL` | Financial Indicator | Controls currency formatting colors (green credit, primary debit, neutral zero) and +/- prefixes |
 | **`BannerTone`** | `:core:designsystem` (`BannerTone.kt`) | `INFO`, `SUCCESS`, `WARNING`, `ERROR` | Design Token | Maps semantic visual intent to theme container colors and icon tints for banners, alerts, and badges |
 | **`ThemeMode`** | `:core:designsystem` (`Theme.kt`) | `SYSTEM`, `LIGHT`, `DARK` | User Preference | User interface appearance mode persisted in DataStore |
@@ -946,11 +906,6 @@ Scoped directly to `OnboardingFlow`, `OnboardStep` preserves the user's progress
 #### 3. Dual-Layer Synchronization (`SyncPhase` vs `SyncState`)
 - **Domain layer (`SyncPhase`):** Emitted as a cold `Flow<SyncPhase>` by `SyncCoordinator`. Tracks granular worker lifecycle phases: `IDLE`, `ENQUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, and `BLOCKED` (waiting for network constraints).
 - **Presentation layer (`SyncState`):** Displayed in `SyncIndicator`. Maps domain phases into visual badges: `SYNCED` (green cloud checkmark), `SYNCING` (blue rotating sync), `WAITING` (amber cloud off), and `FAILED` (red error outline).
-
-#### 4. Loan Amortization Prepayment Strategy (`PrepayMode`)
-When prepaying an existing EMI loan, `PrepayMode` determines the amortization adjustment:
-- **`PrepayMode.TENURE` ("Reduce tenure"):** Keeps the monthly EMI payment constant while reducing the remaining months until loan maturity (`tenureFor`).
-- **`PrepayMode.EMI` ("Reduce EMI"):** Recalculates lower monthly EMI payments while keeping the original loan tenure unchanged (`emiMinor`).
 
 ## <a id="design-system-colorscheme-semantic-colors--theme-architecture"></a><a id="design-system-colorscheme-semantic-colors-theme-architecture"></a>Design System: ColorScheme, Semantic Colors & Theme Architecture
 
@@ -1023,7 +978,7 @@ data class LedgerColors(
 |---|---|---|---|
 | **`success`** | `Green700` (`#15803D`) | `Green400` (`#4ADE80`) | Credit (+) transaction amounts, successful transfer confirmations, synced status |
 | **`successContainer`** | `Green100` (`#DCFCE7`) | `Green950` (`#052E16`) | Background pill for success badges, synced status chips, inflow banners |
-| **`warning`** | `Amber700` (`#B45309`) | `Amber400` (`#FBBF24`) | Beneficiary cooling period warnings, in-flight sync notices, dispute under review |
+| **`warning`** | `Amber700` (`#B45309`) | `Amber400` (`#FBBF24`) | Step-up auth notices, in-flight sync alerts |
 | **`warningContainer`** | `Amber100` (`#FEF3C7`) | `Amber950` (`#451A03`) | Cooldown badge container, caution banner background, step-up auth cards |
 | **`danger`** | `Red700` (`#B91C1C`) | `Red300` (`#FCA5A5`) | Debit (-) transaction amounts, payment declines, session auto-lock alerts |
 | **`dangerContainer`** | `Red100` (`#FEE2E2`) | `Red950` (`#450A0A`) | Decline banner container, failed transfer card surface |
@@ -1098,7 +1053,7 @@ To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Sing
 | **`LedgerOneCard`** | `LedgerOneCard.kt` | Surface container with standardized elevation, outline borders (`outlineVariant`), and consistent corner radius (`8.dp`). |
 | **`LoadingState`** | `LoadingState.kt` | Centered indeterminate circular indicator with customizable loading message for async screen loads. |
 | **`ErrorState`** | `ErrorState.kt` | Standard error presentation card displaying an alert icon, error description, and a retry callback button. |
-| **`EmptyState`** | `EmptyState.kt` | Visual placeholder displayed when transaction lists, disputes, or conflict inboxes have zero items. |
+| **`EmptyState`** | `EmptyState.kt` | Visual placeholder displayed when transaction lists or offer shelves have zero items. |
 
 #### B. Domain Financial & Security Components (`ui/feature/`)
 
@@ -1111,13 +1066,13 @@ To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Sing
 | **`OtpField`** | `OtpField.kt` | 6-box individual digit OTP entry with auto-advance, backspace handling, and focused box border highlighting. |
 | **`SyncIndicator`** | `SyncIndicator.kt` | Reactive cloud synchronization chip displaying `SYNCED` (green check), `SYNCING` (rotating blue indicator), `WAITING` (amber cloud off), or `FAILED` (red alert). |
 | **`StatusBanner`** | `StatusBanner.kt` | Semantic informational or alert banner tied to `BannerTone` (`INFO`, `SUCCESS`, `WARNING`, `ERROR`) with custom icon and optional title. |
-| **`StatusChip`** | `StatusChip.kt` | Compact semantic status badge used in transaction details, dispute records, and account profile chips. |
+| **`StatusChip`** | `StatusChip.kt` | Compact semantic status badge used in transaction details and sync state indicators. |
 | **`OfflineBanner`** | `OfflineBanner.kt` | Sticky amber warning banner automatically displayed across screens when network connectivity is lost. |
 | **`HeroCard`** | `HeroCard.kt` | Prominent dashboard balance card with high-emphasis typography, masked balance toggle, and quick action buttons. |
 | **`SectionCard`** | `SectionCard.kt` | Rounded card container used to visually group related form fields, account details, or key-value summary rows. |
 | **`DetailRow`** | `DetailRow.kt` | Clean key-value label/value row with optional visual emphasis for monetary amounts and timestamps. |
 | **`ListRow`** | `ListRow.kt` | Standard list item with leading icon badge, title, subtitle, trailing amount, and chevron indicator. |
-| **`Timeline`** | `Timeline.kt` | Vertical step-by-step audit progression tracker (e.g. tracking dispute submission → review → resolution). |
+| **`Timeline`** | `Timeline.kt` | Vertical step-by-step audit progression tracker. |
 | **`StepHeader`** | `StepHeader.kt` | Horizontal multi-step progress bar displaying active, completed, and upcoming wizard steps. |
 | **`Skeleton`** | `Skeleton.kt` | Shimmer animated placeholder loader preventing layout shift while fetching remote transaction lists or account data. |
 | **`ProtectedBadge`** | `ProtectedBadge.kt` | Security indicator badge confirming hardware Keystore / biometric authorization protection. |
@@ -1219,8 +1174,8 @@ CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull
 - Follow [Kotlin functions](https://kotlinlang.org/docs/functions.html#tail-recursive-functions): default and named arguments instead of overloads, a data class instead of `Pair` when the values mean different things, and a single-expression body when the function is one expression. Mark a self-call `tailrec` only when it is the last operation (not inside `try`/`catch`/`finally`, not on an `open` member) so the compiler turns it into a loop.
 - Follow [Kotlin lambdas](https://kotlinlang.org/docs/lambdas.html): trailing lambda outside the `()`, `it` for a single used parameter, `_` when unused, and a callable reference (`TransactionEntity::toDomain`) instead of `{ x -> toDomain(x) }`. Keep `Unit` in a function type. Use an anonymous function only when you need a local `return` or an explicit return type.
 - Follow [Kotlin inline functions](https://kotlinlang.org/docs/inline-functions.html): mark a small higher-order function `inline` so the lambda is copied into the call site. Use `reified` when the body needs the type (`is`/`as`, `navDeepLink<T>`). Mark a lambda `noinline` if it is stored or passed on, `crossinline` if it is called from a nested object or function. Do not inline a large function. A public inline body may only use public or `@PublishedApi` declarations.
-- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): a `data class` for a named record (`Leg`), an `object` when there is no instance state (`SteadyConditions`). Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`). Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`). Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `DisputeReason`). Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
-- Follow [functional interfaces](https://kotlinlang.org/docs/fun-interfaces.html): `fun interface` plus a SAM lambda (`AppRelease { }`, `CategoryCatalog { }`, `TickerSocket { }`, `HomeBoard { }`, `AssistantBackend { }`) when there is one abstract member. Use a function type when the API only needs a function; keep a plain interface when there are several members.
+- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): a `data class` for a named record (`Leg`), an `object` when there is no instance state (`SteadyConditions`). Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`). Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`). Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `ThemeMode`). Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
+- Follow [functional interfaces](https://kotlinlang.org/docs/fun-interfaces.html): `fun interface` plus a SAM lambda (`AppRelease { }`, `CategoryCatalog { }`, `HomeBoard { }`, `AssistantBackend { }`) when there is one abstract member. Use a function type when the API only needs a function; keep a plain interface when there are several members.
 - Follow [properties](https://kotlinlang.org/docs/properties.html) for argument-free reads (`TransferBook.size`), `private set` for a value the type mutates (`ChargeQueue.charges`), `const` for compile-time primitives, and `lateinit` only for injection or test setup. Follow [delegated properties](https://kotlinlang.org/docs/delegated-properties.html): `by lazy` for a one-time init (`DeviceKeys.store`); do not write a custom delegate the stdlib already covers.
 - Follow [null safety](https://kotlinlang.org/docs/null-safety.html): `?.` / `?:` / `orEmpty()` / `as?` instead of `!!` or `as`. Use `requireNotNull` when null is a programming error. Do not invent a nullable type you immediately assert.
 - Follow [Kotlin scope functions](https://kotlinlang.org/docs/scope-functions.html#context-object-this-or-it): `apply` (`this`, returns the object) to configure members; `also` (`it`, returns the object) for a side effect that takes the object as an argument; `let` (`it`, returns the lambda) for a non-null value or a local name; `run` (`this`, returns the lambda) to use members and compute a result, or non-extension `run` where an expression is required; `with` to group calls. Prefer `takeIf` / `takeUnless` over an `if` that only filters one value. Do not nest scope functions.

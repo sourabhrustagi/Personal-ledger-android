@@ -9,25 +9,21 @@ object ApiEndpoints {
     object BaseUrl {
         // Mock / Local emulator defaults
         const val MOCK_API = "http://10.0.2.2:8080/retail/v1/"
-        const val MOCK_TICKER = "ws://10.0.2.2:8080/retail/v1/ticks"
         const val MOCK_PAYMENTS = "http://10.0.2.2:8091/v1/"
         const val MOCK_PROMOTIONS = "http://10.0.2.2:8094/v1/"
 
         // Dev environment
         const val DEV_API = "https://dev-api.personal-ledger.com/retail/v1/"
-        const val DEV_TICKER = "wss://dev-api.personal-ledger.com/retail/v1/ticks"
         const val DEV_PAYMENTS = "https://dev-payments.personal-ledger.com/v1/"
         const val DEV_PROMOTIONS = "https://dev-promotions.personal-ledger.com/v1/"
 
         // Staging environment
         const val STAGING_API = "https://staging-api.personal-ledger.com/retail/v1/"
-        const val STAGING_TICKER = "wss://staging-api.personal-ledger.com/retail/v1/ticks"
         const val STAGING_PAYMENTS = "https://staging-payments.personal-ledger.com/v1/"
         const val STAGING_PROMOTIONS = "https://staging-promotions.personal-ledger.com/v1/"
 
         // Production environment
         const val PROD_API = "https://api.personal-ledger.com/retail/v1/"
-        const val PROD_TICKER = "wss://api.personal-ledger.com/retail/v1/ticks"
         const val PROD_PAYMENTS = "https://payments.personal-ledger.com/v1/"
         const val PROD_PROMOTIONS = "https://promotions.personal-ledger.com/v1/"
     }
@@ -70,11 +66,6 @@ object ApiEndpoints {
         const val BIND = "devices/bind"
     }
 
-    /** WebSocket market price ticker path. */
-    object Ticker {
-        const val TICKS = "ticks"
-    }
-
     // Direct top-level accessors for concise usage
     const val SESSION = Auth.SESSION
     const val OTP = Auth.OTP
@@ -90,5 +81,4 @@ object ApiEndpoints {
     const val BILLS_PAY = BillPay.PAY
     const val DEVICE_CHALLENGE = Devices.CHALLENGE
     const val DEVICE_BIND = Devices.BIND
-    const val TICKS = Ticker.TICKS
 }

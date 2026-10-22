@@ -10,6 +10,12 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 
 ## Table of Contents
 
+- [Business Problem & Use Cases Solved](#business-problem--use-cases-solved)
+  - [1. Offline-First Resilient Personal Bookkeeping](#1-offline-first-resilient-personal-bookkeeping)
+  - [2. Strict Double-Entry Financial Integrity](#2-strict-double-entry-financial-integrity)
+  - [3. Frictionless Peer-to-Peer & Retail UPI Payments](#3-frictionless-peer-to-peer--retail-upi-payments)
+  - [4. Enterprise-Grade Financial Security & Privacy](#4-enterprise-grade-financial-security--privacy)
+  - [5. Promotional Campaign & Offers Discovery](#5-promotional-campaign--offers-discovery)
 - [Quick Start](#quick-start)
 - [Build Flavors](#build-flavors)
 - [Mock Values & Demo Credentials](#mock-values--demo-credentials)
@@ -71,6 +77,63 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 
 ---
 
+## <a id="business-problem--use-cases-solved"></a>Business Problem & Use Cases Solved
+
+Modern consumers and retail users face significant friction with everyday digital banking and personal finance applications:
+- **Offline vulnerability:** Most fintech applications freeze or fail when network connectivity drops (in transit, underground, rural areas, or high-congestion zones), blocking users from recording expenses, reviewing history, or inspecting balances.
+- **Financial inaccuracies & data loss:** Unsanitized floating-point currency representations cause fractional currency leakage, while unverified expense splits introduce rounding errors across ledger entries.
+- **Payment deduplication risks:** Network retries on slow connections frequently lead to duplicate payment submissions and accidental double-charges.
+- **Security vs. convenience friction:** Users are exposed to shoulder-surfing, unauthorized screenshot scraping, and SIM-swap fraud unless hardware-grade biometric and cryptographic protections are implemented seamlessly.
+
+LedgerOne directly resolves these real-world business challenges through five core use cases:
+
+---
+
+### 1. Offline-First Resilient Personal Bookkeeping
+- **Problem:** Users need to track transactions, categorize spend, and manage finances in real-time regardless of cellular connectivity.
+- **Solution:** Employs an offline-first **Room database** as the singular local source of truth. Every transaction write, category change, or record modification commits immediately to local disk with an atomic sync state (`SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, `PENDING_DELETE`).
+- **Business Impact:** Instantaneous UI responsiveness with zero perceived network latency. Background workers seamlessly synchronize mutations via WorkManager once connectivity is restored, featuring deterministic conflict resolution.
+
+---
+
+### 2. Strict Double-Entry Financial Integrity
+- **Problem:** Financial applications that store balances and amounts as floating-point numbers (`Float` / `Double`) suffer from precision drift, rounding discrepancies, and unbalanced debit/credit entries.
+- **Solution:** 
+  - Strictly represents all monetary values as 64-bit integer minor currency units (`Long` in paise or cents). Floating-point arithmetic for currency is strictly prohibited across the codebase.
+  - Implements **double-entry bookkeeping invariants**: every transaction decomposes into balanced legs where $\sum \text{debits} == \sum \text{credits}$.
+  - Remainder-preserving expense splitting (`splitEvenly`): when dividing amounts among $N$ participants, remainder paise (`totalMinor % parts`) are allocated one-by-one to the earliest participants, guaranteeing zero financial leakage down to the single paisa.
+- **Business Impact:** Complete mathematical precision, audit-grade accounting records, and elimination of balance drift.
+
+---
+
+### 3. Frictionless Peer-to-Peer & Retail UPI Payments
+- **Problem:** Sending money to friends, merchants, or utility providers should be instantaneous without navigating cumbersome multi-tier banking menus.
+- **Solution:**
+  - **Camera QR Scanner:** Decodes standard NPCI-compliant UPI QR codes (`upi://pay?pa=...&am=...`) and automatically transitions into the payment flow with prefilled recipient VPA and amount.
+  - **Contact & Shortcut Transfers:** Allows instant money transfers to frequent contacts or verified VPAs with real-time balance validation.
+  - **Idempotency Protection (`TransferBook`):** Generates client-side idempotency keys for every transfer intent. Network retries return the exact recorded transaction reference without double-debiting user funds.
+- **Business Impact:** Fast, reliable payments with built-in protection against accidental duplicate transfers during poor network handoffs.
+
+---
+
+### 4. Enterprise-Grade Financial Security & Privacy
+- **Problem:** Mobile financial apps are primary targets for credential theft, unauthorized screenshot capture by malicious background software, and shoulder-surfing in public.
+- **Solution:**
+  - **Hardware Keystore Device Binding:** Generates elliptic curve (ECDSA P-256) cryptographic keys secured inside the Android Hardware Keystore, signing cryptographic server challenges upon biometric confirmation to block unauthorized access.
+  - **Window Protection (`SecureWindow`):** Enforces `FLAG_SECURE` across authentication, payment, and sensitive ledger screens, blocking screenshot capture and masking screen contents in the recent apps task switcher.
+  - **Masked Balances:** Hides account balances by default (`••••••`), revealing values only upon explicit user eye-icon toggle.
+  - **Inactivity Auto-Lock:** Automatically locks the application after 30 seconds of backgrounding, requiring biometric or OTP re-authentication upon return.
+- **Business Impact:** Bank-grade privacy and anti-fraud defense protecting user funds and confidential transaction metadata.
+
+---
+
+### 5. Promotional Campaign & Offers Discovery
+- **Problem:** Users miss out on merchant cashbacks, festive deals, and utility payment discounts scattered across external promotional emails and notifications.
+- **Solution:** Dynamic promotional shelves (`PromotionsHub`) fetched from remote campaigns APIs and cached locally, grouping deals by category (e.g. festive discounts, utility bill cashbacks, groceries).
+- **Business Impact:** Drives user engagement, lowers transaction costs for consumers through targeted rebates, and boosts retail payment volume.
+
+---
+
 ## <a id="quick-start"></a>Quick start
 
 
@@ -87,7 +150,7 @@ Or open the folder in Android Studio, pick the `mockDebug` build variant, and pr
 In the mock build:
 
 - the sign-up and sign-in code is `123456` (`MockValues.OTP`);
-- Profile → **Mock controls** lets you simulate a slow network, server errors, going offline, empty data, or a sync conflict.
+- Built-in demo switches let you simulate slow network, server errors, going offline, and empty data.
 
 ## <a id="build-flavors"></a>Build flavors
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.domain.usecase.CreateTransactionUseCase
 import com.ledger.personal.util.toMinorUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +17,10 @@ import javax.inject.Inject
 /** State and actions for the create transaction screen. */
 @HiltViewModel
 class CreateTransactionViewModel @Inject constructor(
-    private val repository: TransactionRepository
+    private val createTransactionUseCase: CreateTransactionUseCase,
 ) : ViewModel() {
+
+    constructor(repository: TransactionRepository) : this(CreateTransactionUseCase(repository))
 
     private val _uiState = MutableStateFlow(CreateTransactionUiState())
     val uiState: StateFlow<CreateTransactionUiState> = _uiState.asStateFlow()
@@ -58,11 +61,11 @@ class CreateTransactionViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
-            repository.createTransaction(
+            createTransactionUseCase(
                 amountInCents = amountInCents,
                 currency = state.currency,
                 category = state.category.trim(),
-                description = state.description.trim().ifBlank { "Uncategorized" }
+                description = state.description.trim().ifBlank { "Uncategorized" },
             ).fold(
                 onSuccess = {
                     _uiState.update { it.copy(isSubmitting = false, isSuccess = true) }
@@ -71,10 +74,10 @@ class CreateTransactionViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = transactionFailureMessage(error)
+                            errorMessage = transactionFailureMessage(error),
                         )
                     }
-                }
+                },
             )
         }
     }

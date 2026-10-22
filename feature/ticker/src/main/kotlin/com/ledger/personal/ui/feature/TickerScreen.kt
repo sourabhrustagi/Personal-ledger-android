@@ -40,12 +40,11 @@ import java.math.RoundingMode
 /** Shows the ticker screen. */
 @Composable
 fun TickerScreen(onBack: () -> Unit, viewModel: TickerViewModel = hiltViewModel()) {
-    val tick by viewModel.ticks.collectAsStateWithLifecycle()
-    val polling by viewModel.polling.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val history = remember { mutableStateListOf<Long>() }
-    LaunchedEffect(tick) {
-        if (tick > 0L) {
-            history += tick
+    LaunchedEffect(uiState.tick) {
+        if (uiState.tick > 0L) {
+            history += uiState.tick
             if (history.size > 90) history.removeAt(0)
         }
     }
@@ -54,16 +53,22 @@ fun TickerScreen(onBack: () -> Unit, viewModel: TickerViewModel = hiltViewModel(
         onBack,
         subtitle = "USD → INR",
         actions = {
-            StatusChip(if (polling) "Delayed" else "Live", if (polling) BannerTone.WARNING else BannerTone.SUCCESS, Modifier.padding(end = 12.dp))
+            StatusChip(
+                if (uiState.isPolling) "Delayed" else "Live",
+                if (uiState.isPolling) BannerTone.WARNING else BannerTone.SUCCESS,
+                Modifier.padding(end = 12.dp),
+            )
         },
     ) {
-        TickerBody(tick, polling, history)
+        TickerBody(uiState, history)
     }
 }
 
 /** Shows ticker body. */
 @Composable
-private fun ColumnScope.TickerBody(tick: Long, polling: Boolean, history: List<Long>) {
+private fun ColumnScope.TickerBody(uiState: TickerUiState, history: List<Long>) {
+    val tick = uiState.tick
+    val polling = uiState.isPolling
     if (tick == 0L) {
         Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -154,7 +159,7 @@ private fun TickerPreview() {
 private fun TickerConnectingPreview() {
     PersonalLedgerTheme {
         FeatureScaffold("Markets", onBack = {}, subtitle = "USD → INR") {
-            TickerBody(0L, polling = false, history = emptyList())
+            TickerBody(TickerUiState(tick = 0L, isPolling = false), history = emptyList())
         }
     }
 }
@@ -169,7 +174,7 @@ private fun TickerLivePreview() {
             subtitle = "USD → INR",
             actions = { StatusChip("Live", BannerTone.SUCCESS, Modifier.padding(end = 12.dp)) },
         ) {
-            TickerBody(8_342L, polling = false, history = ticks)
+            TickerBody(TickerUiState(tick = 8_342L, isPolling = false), history = ticks)
         }
     }
 }
@@ -184,7 +189,7 @@ private fun TickerDelayedPreview() {
             subtitle = "USD → INR",
             actions = { StatusChip("Delayed", BannerTone.WARNING, Modifier.padding(end = 12.dp)) },
         ) {
-            TickerBody(8_342L, polling = true, history = ticks)
+            TickerBody(TickerUiState(tick = 8_342L, isPolling = true), history = ticks)
         }
     }
 }

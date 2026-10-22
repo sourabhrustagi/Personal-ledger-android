@@ -50,6 +50,7 @@ import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
@@ -90,7 +91,7 @@ fun TransactionListScreen(
                     val syncStatus = uiState.syncStatus
                     Column {
                         Text(
-                            text = "Personal Ledger",
+                            text = AppStrings.APP_NAME,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         if (syncStatus != null) {
@@ -132,7 +133,7 @@ fun TransactionListScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "New Transaction"
+                    contentDescription = AppStrings.TITLE_NEW_TRANSACTION
                 )
             }
         }
@@ -156,7 +157,7 @@ fun TransactionListScreen(
             }
             when {
                 loading -> {
-                    LoadingState(message = "Loading your transactions...")
+                    LoadingState(message = AppStrings.LOADING_TRANSACTIONS)
                 }
                 failure != null && (paging?.itemCount ?: uiState.items.size) == 0 -> {
                     ErrorState(
@@ -166,9 +167,9 @@ fun TransactionListScreen(
                 }
                 empty -> {
                     EmptyState(
-                        title = "No transactions yet",
-                        message = "Your financial journey begins with your first record.",
-                        actionLabel = "Add Transaction",
+                        title = AppStrings.EMPTY_TRANSACTIONS_DEFAULT_TITLE,
+                        message = AppStrings.EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE,
+                        actionLabel = AppStrings.ACTION_ADD_TRANSACTION,
                         onActionClick = onCreateClick
                     )
                 }

@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.ledger.personal.ui.app.account
 
 import androidx.compose.foundation.layout.Row
@@ -34,15 +36,27 @@ fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boole
     }
 }
 
-/** Shows the settings screen. */
+/** UI state for the settings screen. */
+data class SettingsUiState(
+    val theme: ThemeMode = ThemeMode.SYSTEM,
+    val hideBalances: Boolean = false,
+    val language: String = "English",
+)
+
+/** Shows the settings screen with SettingsUiState. */
 @Composable
-fun SettingsScreen(prefs: AppPrefs, onBack: () -> Unit, onTheme: (ThemeMode) -> Unit, onHideBalances: (Boolean) -> Unit) {
+fun SettingsScreen(
+    uiState: SettingsUiState,
+    onBack: () -> Unit,
+    onTheme: (ThemeMode) -> Unit,
+    onHideBalances: (Boolean) -> Unit,
+) {
     FeatureScaffold("Settings", onBack) {
         SectionCard(title = "Appearance") {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 ThemeMode.entries.forEachIndexed { index, mode ->
                     SegmentedButton(
-                        selected = prefs.theme == mode,
+                        selected = uiState.theme == mode,
                         onClick = { onTheme(mode) },
                         shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
                     ) { Text(mode.label) }
@@ -54,15 +68,31 @@ fun SettingsScreen(prefs: AppPrefs, onBack: () -> Unit, onTheme: (ThemeMode) -> 
                 Icons.Outlined.Visibility,
                 "Hide balances",
                 "Tap the eye icon to reveal for this session",
-                prefs.hideBalances,
+                uiState.hideBalances,
                 onHideBalances,
             )
         }
         SectionCard(title = "Language") {
-            ListRow(Icons.Outlined.Language, prefs.language, subtitle = "Chosen during setup")
+            ListRow(Icons.Outlined.Language, uiState.language, subtitle = "Chosen during setup")
         }
         Text("LedgerOne 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/** Shows the settings screen. */
+@Composable
+fun SettingsScreen(
+    prefs: AppPrefs,
+    onBack: () -> Unit,
+    onTheme: (ThemeMode) -> Unit,
+    onHideBalances: (Boolean) -> Unit,
+) {
+    SettingsScreen(
+        uiState = SettingsUiState(prefs.theme, prefs.hideBalances, prefs.language),
+        onBack = onBack,
+        onTheme = onTheme,
+        onHideBalances = onHideBalances,
+    )
 }
 
 @PreviewLightDark

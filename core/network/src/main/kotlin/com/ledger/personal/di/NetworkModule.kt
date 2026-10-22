@@ -33,16 +33,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.request.accept
-import io.ktor.client.request.url
-import io.ktor.http.ContentType
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
@@ -174,21 +164,6 @@ object NetworkModule {
         .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
         .build()
 
-    /** Supplies the authenticated Ktor client for WebSockets. */
-    @Provides
-    @Singleton
-    @AuthenticatedClient
-    fun provideHttpClient(
-        @AuthenticatedClient engineClient: OkHttpClient,
-        config: ApiConfig,
-        json: Json,
-    ): HttpClient = ktorClient(
-        engineClient = engineClient,
-        config = config,
-        json = json,
-        authenticated = true,
-    )
-
     /** Supplies the session. Lock drops the token; unlock posts a new one. */
     @Provides
     @Singleton
@@ -301,32 +276,6 @@ object NetworkModule {
                     .getOrNull()
             }
             ReleaseNotice(version.await()?.versionCode, status.await()?.softUpdate == true, status.await()?.versionCode ?: 0)
-        }
-    }
-
-    /**
-     * Builds a Ktor client on the hardened OkHttp engine for WebSocket ticker connections.
-     */
-    private fun ktorClient(
-        engineClient: OkHttpClient,
-        config: ApiConfig,
-        json: Json,
-        authenticated: Boolean = false,
-        rooted: Boolean = true,
-    ): HttpClient = HttpClient(OkHttp) {
-        engine { preconfigured = engineClient }
-        expectSuccess = true
-        install(ContentNegotiation) { json(json) }
-        install(DefaultRequest) {
-            if (rooted) url(config.baseUrl)
-            accept(ContentType.Application.Json)
-        }
-        if (authenticated) {
-            install(WebSockets)
-            install(HttpRequestRetry) {
-                retryOnExceptionOrServerErrors(maxRetries = TRANSACTION_ATTEMPTS - 1)
-                exponentialDelay()
-            }
         }
     }
 

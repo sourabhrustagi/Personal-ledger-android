@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -58,7 +59,6 @@ fun CreateTransactionScreen(
     quickCategories: List<String> = emptyList(),
     categoriesLoading: Boolean = false,
 ) {
-
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onNavigateBack()
@@ -68,7 +68,7 @@ fun CreateTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(AppStrings.TITLE_NEW_TRANSACTION, fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(AppStrings.TITLE_NEW_TRANSACTION), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -121,7 +121,7 @@ fun CreateTransactionScreen(
                     OutlinedTextField(
                         value = uiState.amountInput,
                         onValueChange = onAmountChange,
-                        label = { Text("Amount (e.g. 25.50)") },
+                        label = { Text(stringResource(AppStrings.LABEL_AMOUNT)) },
                         prefix = { Text("$ ") },
                         isError = uiState.amountError != null,
                         supportingText = {
@@ -137,7 +137,7 @@ fun CreateTransactionScreen(
                     OutlinedTextField(
                         value = uiState.category,
                         onValueChange = onCategoryChange,
-                        label = { Text("Category") },
+                        label = { Text(stringResource(AppStrings.LABEL_CATEGORY)) },
                         isError = uiState.categoryError != null,
                         supportingText = {
                             if (uiState.categoryError != null) {
@@ -149,7 +149,7 @@ fun CreateTransactionScreen(
                     )
 
                     Text(
-                        text = "Quick Select Category:",
+                        text = stringResource(AppStrings.LABEL_QUICK_SELECT_CATEGORY),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -173,7 +173,7 @@ fun CreateTransactionScreen(
                     OutlinedTextField(
                         value = uiState.description,
                         onValueChange = onDescriptionChange,
-                        label = { Text("Description (Optional)") },
+                        label = { Text(stringResource(AppStrings.LABEL_DESCRIPTION)) },
                         minLines = 2,
                         maxLines = 4,
                         modifier = Modifier.fillMaxWidth()
@@ -199,10 +199,10 @@ fun CreateTransactionScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Recording...")
+                        Text(stringResource(AppStrings.ACTION_SAVING_CHANGES))
                     }
                 } else {
-                    Text("Save Transaction", fontWeight = FontWeight.Bold)
+                    Text(stringResource(AppStrings.ACTION_SAVE), fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -7,6 +7,7 @@ kotlin {
 }
 
 dependencies {
+    api(libs.javax.inject)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.paging.common)
     testImplementation(libs.junit)

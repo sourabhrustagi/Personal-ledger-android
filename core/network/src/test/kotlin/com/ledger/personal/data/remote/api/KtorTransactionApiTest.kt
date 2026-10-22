@@ -1,39 +1,86 @@
 package com.ledger.personal.data.remote.api
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.url
-import io.ktor.http.HttpHeaders
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 class KtorTransactionApiTest {
+    private val json = Json { ignoreUnknownKeys = true }
+
     @Test
     fun listUsesTheConfiguredHostAndPagingQuery() = runBlocking {
         var requested = ""
-        val engine = MockEngine { request ->
-            requested = request.url.toString()
-            respond(
-                """{"items":[],"page":2,"page_size":25,"total_items":0}""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
-        }
-        val client = HttpClient(engine) {
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-            install(DefaultRequest) { url("https://api.example/retail/v1/") }
-        }
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                requested = chain.request().url.toString()
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(
+                        """{"items":[],"page":2,"page_size":25,"total_items":0}"""
+                            .toResponseBody("application/json".toMediaType()),
+                    )
+                    .build()
+            }
+            .build()
 
-        val response = KtorTransactionApi(client).getTransactions(page = 2, pageSize = 25)
+        val retrofitApi = Retrofit.Builder()
+            .baseUrl("https://api.example/retail/v1/")
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(TransactionRetrofitApi::class.java)
+
+        val dataSource = RetrofitTransactionNetworkDataSource(retrofitApi, Dispatchers.Unconfined)
+        val response = dataSource.getTransactions(page = 2, pageSize = 25)
 
         assertEquals(2, response.page)
         assertEquals("https://api.example/retail/v1/transactions?page=2&pageSize=25", requested)
-        client.close()
+    }
+
+    @Test
+    fun deleteReturnsDeleteTransactionResponseDto() = runBlocking {
+        var requestedMethod = ""
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                requestedMethod = chain.request().method
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body(
+                        """{"success":true,"id":"tx-123"}"""
+                            .toResponseBody("application/json".toMediaType()),
+                    )
+                    .build()
+            }
+            .build()
+
+        val retrofitApi = Retrofit.Builder()
+            .baseUrl("https://api.example/retail/v1/")
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(TransactionRetrofitApi::class.java)
+
+        val dataSource = RetrofitTransactionNetworkDataSource(retrofitApi, Dispatchers.Unconfined)
+        val response = dataSource.deleteTransaction("tx-123")
+
+        assertEquals("DELETE", requestedMethod)
+        assertTrue(response.success)
+        assertEquals("tx-123", response.id)
     }
 }

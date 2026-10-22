@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -91,7 +92,7 @@ fun TransactionListScreen(
                     val syncStatus = uiState.syncStatus
                     Column {
                         Text(
-                            text = AppStrings.APP_NAME,
+                            text = stringResource(AppStrings.APP_NAME),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         if (syncStatus != null) {
@@ -133,7 +134,7 @@ fun TransactionListScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = AppStrings.TITLE_NEW_TRANSACTION
+                    contentDescription = stringResource(AppStrings.TITLE_NEW_TRANSACTION)
                 )
             }
         }
@@ -157,7 +158,7 @@ fun TransactionListScreen(
             }
             when {
                 loading -> {
-                    LoadingState(message = AppStrings.LOADING_TRANSACTIONS)
+                    LoadingState(message = stringResource(AppStrings.LOADING_TRANSACTIONS))
                 }
                 failure != null && (paging?.itemCount ?: uiState.items.size) == 0 -> {
                     ErrorState(
@@ -167,9 +168,9 @@ fun TransactionListScreen(
                 }
                 empty -> {
                     EmptyState(
-                        title = AppStrings.EMPTY_TRANSACTIONS_DEFAULT_TITLE,
-                        message = AppStrings.EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE,
-                        actionLabel = AppStrings.ACTION_ADD_TRANSACTION,
+                        title = stringResource(AppStrings.EMPTY_TRANSACTIONS_DEFAULT_TITLE),
+                        message = stringResource(AppStrings.EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE),
+                        actionLabel = stringResource(AppStrings.ACTION_ADD_TRANSACTION),
                         onActionClick = onCreateClick
                     )
                 }

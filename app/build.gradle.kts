@@ -187,7 +187,9 @@ dependencies {
     implementation(libs.mlkit.barcode)
     implementation(libs.androidx.biometric)
 
-    // Networking: Ktor with the OkHttp engine
+    // Networking: Retrofit with the OkHttp engine
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.ktor.client.core)
 
     // Kotlinx Serialization & Coroutines

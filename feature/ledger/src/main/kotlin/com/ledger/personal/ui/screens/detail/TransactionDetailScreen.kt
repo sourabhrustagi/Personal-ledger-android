@@ -28,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -56,7 +57,7 @@ fun TransactionDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(AppStrings.TITLE_TRANSACTION_DETAILS, fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(AppStrings.TITLE_TRANSACTION_DETAILS), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -71,7 +72,7 @@ fun TransactionDetailScreen(
                             IconButton(onClick = { editNav(uiState.transaction.id) }) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = AppStrings.TITLE_EDIT_TRANSACTION
+                                    contentDescription = stringResource(AppStrings.TITLE_EDIT_TRANSACTION)
                                 )
                             }
                         }
@@ -91,7 +92,7 @@ fun TransactionDetailScreen(
         ) {
             when {
                 uiState.isLoading -> {
-                    LoadingState(message = AppStrings.LOADING_TRANSACTION_DETAILS)
+                    LoadingState(message = stringResource(AppStrings.LOADING_TRANSACTION_DETAILS))
                 }
                 uiState.errorMessage != null && uiState.transaction == null -> {
                     ErrorState(
@@ -101,9 +102,9 @@ fun TransactionDetailScreen(
                 }
                 uiState.isEmpty -> {
                     EmptyState(
-                        title = AppStrings.NO_MATCHING_TRANSACTIONS,
-                        message = AppStrings.EMPTY_TRANSACTION_NOT_FOUND,
-                        actionLabel = AppStrings.ACTION_BACK_TO_LIST,
+                        title = stringResource(AppStrings.NO_MATCHING_TRANSACTIONS),
+                        message = stringResource(AppStrings.EMPTY_TRANSACTION_NOT_FOUND),
+                        actionLabel = stringResource(AppStrings.ACTION_BACK_TO_LIST),
                         onActionClick = onNavigateBack
                     )
                 }

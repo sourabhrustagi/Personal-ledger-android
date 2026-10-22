@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,13 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.mock.MockValues
+import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import kotlinx.coroutines.launch
 
 private const val PHONE_LENGTH = 10
 
@@ -44,28 +42,29 @@ private const val PHONE_LENGTH = 10
 fun PhoneStep(
     phone: String,
     onPhone: (String) -> Unit,
-    onSendCode: suspend (phone: String) -> Result<OtpResponse> = { Result.success(OtpResponse()) },
-    onNext: (response: OtpResponse) -> Unit,
+    uiState: OtpUiState = OtpUiState(),
+    onSendClick: () -> Unit = {},
 ) {
     var consent by rememberSaveable { mutableStateOf(false) }
-    var isSending by rememberSaveable { mutableStateOf(false) }
-    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
+    var validationError by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val activeError = uiState.errorMessage ?: validationError
+    val isSending = uiState.isSending
 
     Text("Enter your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text(
         "We'll send a 6-digit verification code to verify your phone.",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    if (errorMessage != null) {
-        StatusBanner(errorMessage ?: "Failed to send code. Please try again.", BannerTone.ERROR)
+    if (activeError != null) {
+        StatusBanner(activeError, BannerTone.ERROR)
     }
     OutlinedTextField(
         value = phone,
         onValueChange = { next ->
             if (next.length <= PHONE_LENGTH && next.all(Char::isDigit)) {
                 onPhone(next)
-                errorMessage = null
+                validationError = null
             }
         },
         label = { Text("Mobile number") },
@@ -84,22 +83,10 @@ fun PhoneStep(
         text = if (isSending) "Sending code..." else "Send code",
         onClick = {
             if (phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) {
-                isSending = true
-                errorMessage = null
-                scope.launch {
-                    val result = onSendCode(phone)
-                    isSending = false
-                    result.fold(
-                        onSuccess = { res ->
-                            onNext(res)
-                        },
-                        onFailure = { error ->
-                            errorMessage = error.message ?: "Failed to send OTP. Please try again."
-                        },
-                    )
-                }
+                validationError = null
+                onSendClick()
             } else {
-                errorMessage = "Please enter a valid 10-digit mobile number."
+                validationError = "Please enter a valid 10-digit mobile number."
             }
         },
         enabled = consent && phone.length == PHONE_LENGTH && !isSending,
@@ -117,7 +104,7 @@ private fun PhoneStepPreview() {
                 Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                PhoneStep(MockValues.DEFAULT_PHONE, {}, onSendCode = { Result.success(OtpResponse()) }) {}
+                PhoneStep(MockValues.DEFAULT_PHONE, {})
             }
         }
     }

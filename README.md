@@ -17,6 +17,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Central Mock Catalog (`MockCatalog.kt`)](#central-mock-catalog-mockcatalogkt)
 - [Force Update & Versioning](#force-update)
 - [What's in the App](#whats-in-the-app)
+  - [Screen Navigation Flow Diagram](#screen-navigation-flow-diagram)
   - [Opening the App](#opening-the-app)
   - [Primary Navigation Tabs](#primary-navigation-tabs)
   - [Pay & Transfers](#pay--transfers)
@@ -161,6 +162,70 @@ The app provides four primary navigation tabs:
 Transactions maintain an immutable ledger history to ensure accounting integrity.
 
 Screens below display the light and dark themes on mock data.
+
+### <a id="screen-navigation-flow-diagram"></a>Screen Navigation Flow Diagram
+
+The diagram below maps all screen transitions, authentication barriers, bottom navigation tabs, and sub-flows across the entire application:
+
+```mermaid
+flowchart TD
+    Launch([App Launch]) --> CheckStatus{AppStatus Evaluation}
+
+    %% Lifecycle and Shell Transitions
+    CheckStatus -->|versionCode < min| UpdateScreen["ForceUpdateScreen<br/>(Play Store Redirect)"]
+    CheckStatus -->|First Launch / No Session| OnboardFlow["OnboardingFlow<br/>(PhoneStep ➔ OtpStep)"]
+    CheckStatus -->|Session Locked / >30s Background| LockScreen["OtpLoginScreen<br/>(Unlock with OTP)"]
+    CheckStatus -->|Active Authenticated Session| MainTabs
+
+    OnboardFlow -->|OTP Verified & Terms Accepted| MainTabs["Main Shell: LedgerNavHost<br/>(Bottom Navigation Bar)"]
+    LockScreen -->|OTP Verified| MainTabs
+    LockScreen -->|Sign Out Everywhere| OnboardFlow
+
+    %% Bottom Navigation Bar Tabs
+    subgraph BottomNav ["Bottom Navigation Bar (LedgerNavHost)"]
+        direction TB
+        TabHome["Home Tab<br/>(HomeScreen)"]
+        TabPay["Pay Tab<br/>(PayHub)"]
+        TabPassbook["Passbook Tab<br/>(LedgerHistoryScreen)"]
+        TabOffers["Offers Tab<br/>(PromotionsHub)"]
+    end
+
+    MainTabs --> BottomNav
+
+    %% Home Screen Navigation Actions
+    TabHome -->|Quick Action: Send Money| WalletFlow["WalletScreen<br/>(P2P Transfers)"]
+    TabHome -->|Quick Action: Scan QR| ScanFlow["ScanScreen<br/>(Live Camera QR Scanner)"]
+    TabHome -->|Recent Tx / 'View All'| TxList["TransactionListScreen<br/>(Search, Filter & Paging 3)"]
+
+    %% Pay Hub Navigation Actions
+    TabPay -->|Tap QR Scanner| ScanFlow
+    TabPay -->|Select Contact / Enter VPA| WalletPrefill["WalletScreen<br/>(Prefilled Handle & Amount)"]
+    ScanFlow -->|QR Decoded| PayToRoute["Screen.PayTo(vpa, amount)"]
+    PayToRoute --> WalletPrefill
+
+    %% Passbook & List to Detail Flow
+    TabPassbook -->|Tap Transaction Item| TxDetail["TransactionDetailScreen<br/>(Metadata, Legs, Status)"]
+    TxList -->|Tap Transaction Item| TxDetail
+    TxList -->|FAB: Create Transaction| CreateTx["CreateTransactionScreen<br/>(Form Validation & Submit)"]
+
+    %% Transaction Detail Sub-Flows
+    TxDetail -->|Edit Action| EditTx["EditTransactionScreen<br/>(Patch & Conflict Resolution)"]
+    TxDetail -->|Delete Action| DeleteDialog["Delete Confirmation Dialog"]
+
+    %% Wallet Multi-Step Wizard
+    subgraph WalletWizard ["Wallet Transfer Wizard (WalletScreen)"]
+        direction LR
+        WForm["1. FORM<br/>(Amount & Recipient)"] --> WReview["2. REVIEW<br/>(Fee Breakdown & Biometric Step-Up)"]
+        WReview --> WReceipt["3. RECEIPT<br/>(Idempotency Key & Status)"]
+    end
+    WalletFlow -.-> WalletWizard
+    WalletPrefill -.-> WalletWizard
+
+    %% Promotions Flow
+    TabOffers -->|Select Tab / Banner| Shelves["Dynamic Promotional Shelves<br/>(Festive, Bills, Cashbacks)"]
+```
+
+---
 
 ### <a id="opening-the-app"></a>Opening the app
 

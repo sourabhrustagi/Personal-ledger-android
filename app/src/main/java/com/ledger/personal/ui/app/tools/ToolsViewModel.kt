@@ -29,7 +29,15 @@ import kotlin.coroutines.cancellation.CancellationException
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
+
+/** UI state for the Sync Conflict screen. */
+data class ConflictUiState(
+    val conflicts: List<SyncConflict> = emptyList(),
+    val errorMessage: String? = null,
+)
 
 /** State and actions for the tools screen. */
 @HiltViewModel
@@ -41,6 +49,11 @@ class ToolsViewModel @Inject constructor(
     val transactions: StateFlow<List<Transaction>> =
         repository.observeTransactions().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val mutableConflictError = MutableStateFlow<String?>(null)
+    val conflictUiState: StateFlow<ConflictUiState> = combine(inbox.conflicts, mutableConflictError) { conflicts, error ->
+        ConflictUiState(conflicts = conflicts, errorMessage = error)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConflictUiState())
+
     /** Files dispute. */
     fun fileDispute(tx: Transaction, reason: DisputeReason, details: String) = disputeDesk.file(tx, reason, details)
 
@@ -50,6 +63,20 @@ class ToolsViewModel @Inject constructor(
             val local = repository.observeTransactions().first().firstOrNull() ?: return@launch
             val server = local.copy(description = "${local.description} (edited on web)", amountInCents = local.amountInCents + 100)
             inbox.add(SyncConflict(local, server))
+        }
+    }
+
+    /** Resolve without callback, updating [conflictUiState]. */
+    fun resolve(conflict: SyncConflict, keepMine: Map<String, Boolean>) {
+        val merged = resolveConflict(conflict.local, conflict.server, keepMine)
+        viewModelScope.launch {
+            mutableConflictError.value = null
+            val result = repository.patchTransaction(merged.id, merged.category, merged.description, merged.amountInCents).map { }
+            if (result.isSuccess) {
+                inbox.remove(conflict.local.id)
+            } else {
+                mutableConflictError.value = result.exceptionOrNull()?.message
+            }
         }
     }
 

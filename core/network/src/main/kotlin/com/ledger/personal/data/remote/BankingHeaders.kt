@@ -41,6 +41,9 @@ object BankingHeaders {
     /** Unique cryptographic hardware or KeyStore device identifier bound to the user account. */
     const val X_DEVICE_ID = "X-Device-Id"
 
+    /** Standard device identifier header. */
+    const val DEVICE_ID = "Device-Id"
+
     /** Hash or fingerprint of hardware parameters for anomaly and fraud scoring. */
     const val X_DEVICE_FINGERPRINT = "X-Device-Fingerprint"
 
@@ -53,6 +56,9 @@ object BankingHeaders {
     // --- Client Environment & Telemetry ---
     /** Operating system platform (e.g. android, ios). */
     const val X_PLATFORM = "X-Platform"
+
+    /** Standard platform header. */
+    const val PLATFORM = "Platform"
 
     /** Client app semantic version (e.g. 1.0.0). */
     const val X_APP_VERSION = "X-App-Version"

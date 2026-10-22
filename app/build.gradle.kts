@@ -141,8 +141,6 @@ dependencies {
     implementation(project(":core:mock"))
     implementation(project(":feature:ledger"))
     implementation(project(":feature:wallet"))
-    implementation(project(":feature:ticker"))
-    implementation(project(":feature:banking"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

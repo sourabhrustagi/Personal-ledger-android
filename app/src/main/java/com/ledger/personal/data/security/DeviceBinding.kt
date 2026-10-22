@@ -94,10 +94,6 @@ class RetrofitBindingServer @Inject constructor(
     }.onFailure { if (it is CancellationException) throw it }
 }
 
-/** Backward-compatible typealias for [RetrofitBindingServer]. */
-typealias KtorBindingServer = RetrofitBindingServer
-
-
 /** Hardware-backed EC key that can only sign after a strong biometric check, and dies if biometrics are re-enrolled. */
 @Singleton
 class DeviceKeys @Inject constructor() {

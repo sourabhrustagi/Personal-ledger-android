@@ -41,14 +41,24 @@ import kotlin.math.roundToLong
 private const val CREDIT_LIMIT_MINOR = 30_000_000L
 private const val CREDIT_USED_MINOR = 8_245_000L
 
+/** UI state for the cards screen. */
+data class CardsUiState(
+    val frozen: Boolean = false,
+    val online: Boolean = true,
+    val international: Boolean = false,
+    val contactless: Boolean = true,
+    val limit: Float = 50_000f,
+)
+
 /** Shows the cards screen. */
 @Composable
 fun CardsScreen(onBack: () -> Unit) {
-    var frozen by rememberSaveable { mutableStateOf(false) }
-    var online by rememberSaveable { mutableStateOf(true) }
-    var international by rememberSaveable { mutableStateOf(false) }
-    var contactless by rememberSaveable { mutableStateOf(true) }
-    var limit by rememberSaveable { mutableFloatStateOf(50_000f) }
+    var uiState by rememberSaveable { mutableStateOf(CardsUiState()) }
+    val frozen = uiState.frozen
+    val online = uiState.online
+    val international = uiState.international
+    val contactless = uiState.contactless
+    val limit = uiState.limit
     SecureWindow()
     FeatureScaffold("Cards", onBack, subtitle = "Debit and credit", actions = { ProtectedBadge(Modifier.padding(end = 12.dp)) }) {
         HeroCard(
@@ -58,14 +68,22 @@ fun CardsScreen(onBack: () -> Unit) {
         )
         if (frozen) StatusBanner("All payments on this card are blocked until you unfreeze it.", BannerTone.WARNING, title = "Card frozen")
         SectionCard(title = "Controls") {
-            ToggleRow(Icons.Outlined.AcUnit, "Freeze card", "Temporarily block every transaction", frozen) { frozen = it }
-            ToggleRow(Icons.Outlined.CreditCard, "Online payments", "E-commerce and in-app", online && !frozen) { online = it }
-            ToggleRow(Icons.Outlined.CreditCard, "International use", "Payments outside India", international && !frozen) { international = it }
-            ToggleRow(Icons.Outlined.CreditCard, "Tap to pay", "Contactless up to ₹5,000", contactless && !frozen) { contactless = it }
+            ToggleRow(Icons.Outlined.AcUnit, "Freeze card", "Temporarily block every transaction", frozen) {
+                uiState = uiState.copy(frozen = it)
+            }
+            ToggleRow(Icons.Outlined.CreditCard, "Online payments", "E-commerce and in-app", online && !frozen) {
+                uiState = uiState.copy(online = it)
+            }
+            ToggleRow(Icons.Outlined.CreditCard, "International use", "Payments outside India", international && !frozen) {
+                uiState = uiState.copy(international = it)
+            }
+            ToggleRow(Icons.Outlined.CreditCard, "Tap to pay", "Contactless up to ₹5,000", contactless && !frozen) {
+                uiState = uiState.copy(contactless = it)
+            }
         }
         SectionCard(title = "Daily spend limit") {
             Text(formatMoney(limit.toLong() * 100), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Slider(limit, { limit = it }, valueRange = 5_000f..2_00_000f, steps = 38, enabled = !frozen)
+            Slider(limit, { uiState = uiState.copy(limit = it) }, valueRange = 5_000f..2_00_000f, steps = 38, enabled = !frozen)
         }
         SectionCard(title = "Credit card · ${mask("9034")}") {
             DetailRow("Credit limit", formatMoney(CREDIT_LIMIT_MINOR))
@@ -92,14 +110,24 @@ private fun ToggleRow(icon: androidx.compose.ui.graphics.vector.ImageVector, tit
 /** Allowed values of prepay mode. */
 enum class PrepayMode(val label: String) { TENURE("Reduce tenure"), EMI("Reduce EMI") }
 
+/** UI state for the loans screen. */
+data class LoansUiState(
+    val amountLakh: Float = 5f,
+    val ratePct: Float = 12f,
+    val months: Int = LOAN_MONTHS,
+    val prepayText: String = "",
+    val mode: PrepayMode = PrepayMode.TENURE,
+)
+
 /** Shows the loans screen. */
 @Composable
 fun LoansScreen(onBack: () -> Unit) {
-    var amountLakh by rememberSaveable { mutableFloatStateOf(5f) }
-    var ratePct by rememberSaveable { mutableFloatStateOf(12f) }
-    var months by rememberSaveable { mutableIntStateOf(LOAN_MONTHS) }
-    var prepayText by rememberSaveable { mutableStateOf("") }
-    var mode by rememberSaveable { mutableStateOf(PrepayMode.TENURE) }
+    var uiState by rememberSaveable { mutableStateOf(LoansUiState()) }
+    val amountLakh = uiState.amountLakh
+    val ratePct = uiState.ratePct
+    val months = uiState.months
+    val prepayText = uiState.prepayText
+    val mode = uiState.mode
     val principal = (amountLakh * 1_00_000).roundToLong() * 100
     val bps = (ratePct * 100).roundToLong().toInt()
     val emi = emiMinor(principal, bps, months)
@@ -110,14 +138,25 @@ fun LoansScreen(onBack: () -> Unit) {
             supporting = "Next EMI ${formatMoney(emiMinor(MockCatalog.loanPrincipalMinor, LOAN_BPS, LOAN_MONTHS))} on 5 Nov · 12% p.a.",
         )
         SectionCard(title = "EMI calculator") {
-            LabeledSlider("Loan amount", "₹${"%.1f".format(amountLakh)} lakh", amountLakh, 1f..50f) { amountLakh = it }
-            LabeledSlider("Interest rate", "${"%.1f".format(ratePct)}% p.a.", ratePct, 8f..18f) { ratePct = it }
-            LabeledSlider("Tenure", "$months months", months.toFloat(), 12f..84f) { months = it.roundToLong().toInt() }
+            LabeledSlider("Loan amount", "₹${"%.1f".format(amountLakh)} lakh", amountLakh, 1f..50f) {
+                uiState = uiState.copy(amountLakh = it)
+            }
+            LabeledSlider("Interest rate", "${"%.1f".format(ratePct)}% p.a.", ratePct, 8f..18f) {
+                uiState = uiState.copy(ratePct = it)
+            }
+            LabeledSlider("Tenure", "$months months", months.toFloat(), 12f..84f) {
+                uiState = uiState.copy(months = it.roundToLong().toInt())
+            }
             DetailRow("Monthly EMI", formatMoney(emi), emphasize = true)
             DetailRow("Total interest", formatMoney(emi * months - principal))
             DetailRow("Total payable", formatMoney(emi * months))
         }
-        PrepaySection(prepayText, { prepayText = it }, mode, { mode = it })
+        PrepaySection(
+            prepayText,
+            { uiState = uiState.copy(prepayText = it) },
+            mode,
+            { uiState = uiState.copy(mode = it) },
+        )
     }
 }
 
@@ -174,13 +213,21 @@ private const val FD_RATE = 0.0725
 fun fdMaturityMinor(principalMinor: Long, months: Int, annualRate: Double = FD_RATE): Long =
     (principalMinor * (1 + annualRate / 4).pow(months / 3.0)).roundToLong()
 
+/** UI state for the deposits screen. */
+data class DepositsUiState(
+    val text: String = "",
+    val months: Int = 12,
+    val booked: String? = null,
+)
+
 /** Shows the deposits screen. */
 @Composable
 fun DepositsScreen(onBack: () -> Unit) {
     val fd = MockCatalog.bankAccounts.last()
-    var text by rememberSaveable { mutableStateOf("") }
-    var months by rememberSaveable { mutableIntStateOf(12) }
-    var booked by rememberSaveable { mutableStateOf<String?>(null) }
+    var uiState by rememberSaveable { mutableStateOf(DepositsUiState()) }
+    val text = uiState.text
+    val months = uiState.months
+    val booked = uiState.booked
     val amount = parseMinor(text)
     FeatureScaffold("Deposits", onBack, subtitle = "Fixed deposits at 7.25% p.a.") {
         SectionCard(title = "Your deposits") {
@@ -189,10 +236,10 @@ fun DepositsScreen(onBack: () -> Unit) {
         }
         booked?.let { StatusBanner(it, BannerTone.SUCCESS, title = "Deposit booked") }
         SectionCard(title = "Open a new FD") {
-            AmountField(text, { text = it }, label = "Deposit amount", supportingText = "Minimum ₹5,000")
+            AmountField(text, { uiState = uiState.copy(text = it) }, label = "Deposit amount", supportingText = "Minimum ₹5,000")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(6, 12, 24, 36).forEach { option ->
-                    androidx.compose.material3.FilterChip(option == months, { months = option }, label = { Text("$option mo") })
+                    androidx.compose.material3.FilterChip(option == months, { uiState = uiState.copy(months = option) }, label = { Text("$option mo") })
                 }
             }
             if (amount != null) {
@@ -201,7 +248,9 @@ fun DepositsScreen(onBack: () -> Unit) {
             }
             PrimaryButton(
                 "Book deposit",
-                onClick = { booked = "${formatMoney(amount ?: 0)} for $months months from Savings ${mask("4821")}." },
+                onClick = {
+                    uiState = uiState.copy(booked = "${formatMoney(amount ?: 0)} for $months months from Savings ${mask("4821")}.")
+                },
                 enabled = amount != null && amount >= 5_00_000,
                 modifier = Modifier.fillMaxWidth(),
             )

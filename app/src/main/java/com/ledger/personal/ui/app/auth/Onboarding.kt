@@ -17,7 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.domain.session.OtpResponse
+import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -30,12 +30,15 @@ private val steps = listOf("Phone", "Verify")
 /** Shows onboarding flow orchestrating phone entry and OTP verification. */
 @Composable
 fun OnboardingFlow(
-    onSendOtp: suspend (phone: String) -> Result<OtpResponse> = { Result.success(OtpResponse()) },
+    otpState: OtpUiState = OtpUiState(),
+    onSendOtp: (phone: String) -> Unit = {},
     onFinish: (phone: String) -> Unit,
 ) {
-    var step by rememberSaveable { mutableStateOf(OnboardStep.PHONE) }
     var phone by rememberSaveable { mutableStateOf("") }
-    var otpMessage by rememberSaveable { mutableStateOf("OTP sent") }
+    var editPhoneRequested by rememberSaveable { mutableStateOf(false) }
+
+    val step = if (otpState.isOtpSent && !editPhoneRequested) OnboardStep.OTP else OnboardStep.PHONE
+
     SecureWindow()
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -47,16 +50,16 @@ fun OnboardingFlow(
                 OnboardStep.PHONE -> PhoneStep(
                     phone = phone,
                     onPhone = { phone = it },
-                    onSendCode = onSendOtp,
-                    onNext = { response ->
-                        otpMessage = response.message.ifBlank { "OTP sent" }
-                        step = OnboardStep.OTP
+                    uiState = otpState,
+                    onSendClick = {
+                        editPhoneRequested = false
+                        onSendOtp(phone)
                     },
                 )
                 OnboardStep.OTP -> OtpStep(
                     phone = phone,
-                    sentMessage = otpMessage,
-                    onEdit = { step = OnboardStep.PHONE },
+                    uiState = otpState,
+                    onEdit = { editPhoneRequested = true },
                     onResend = { onSendOtp(phone) },
                     onVerified = { onFinish(phone) },
                 )

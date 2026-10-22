@@ -362,7 +362,7 @@ The application is structured into a modular multi-tier hierarchy to enforce sep
 |---|---|---|---|
 | **`app/`** | App Shell | Top-level application shell, navigation graph (`Screen`), build flavors, DI wiring, and application-level flows (`ui/app`: auth, hubs, scan) | `LedgerOneApp.kt`, `LedgerNavHost.kt`, `RepositoryModule.kt` |
 | **`core/model/`** | Domain (Pure Kotlin) | Domain models (`Transaction`, `Money`), abstract repository interfaces, Use Cases, and core business rules (`Rules.kt`) | `Transaction.kt`, `Rules.kt`, `SendOtpUseCase.kt` |
-| **`core/network/`** | Data (Remote) | Ktor/Retrofit REST API, serialization DTOs, auth interceptor, TLS certificate pinning, and device binding | `TransactionsApi.kt`, `SafeApiCall.kt`, `DeviceBinding.kt` |
+| **`core/network/`** | Data (Remote) | Retrofit REST API, serialization DTOs, auth interceptor, TLS certificate pinning, and device binding | `TransactionApi.kt`, `SafeApiCall.kt`, `DeviceBinding.kt` |
 | **`core/database/`** | Data (Local) | Room database, schema migrations, offline-first repository, WorkManager sync worker, and DataStore preferences | `LedgerDatabase.kt`, `TransactionDao.kt`, `TransactionSyncWorker.kt` |
 | **`core/designsystem/`** | Design System | Theme, semantic financial colors, typography roles, money formatting, and shared Compose components (`FeatureScaffold`, keypad, banners) | `Theme.kt`, `Color.kt`, `FeatureScaffold.kt`, `Money.kt` |
 | **`core/ui/`** | UI Utilities | Shared Compose UI effects, lifecycle helpers, and window security utilities (`SecureWindow` for screenshot blocking) | `SecureWindow.kt` |
@@ -547,7 +547,7 @@ Dagger Hilt dynamically binds repositories and network clients based on the acti
 | Build Flavor | Repository Implementation | Network Client / Data Source | Security & Inspection Levers |
 |---|---|---|---|
 | **`mockDebug`** | `MockTransactionRepository` | In-memory seeded catalog (accounts, contacts, transactions) | `MockSwitches` for latency, errors, and offline simulation |
-| **`dev`** / **`staging`** / **`prod`** | `TransactionsRepository` | Remote HTTPS endpoints via Retrofit / Ktor | TLS certificate pinning, hardware-backed ECDSA device binding |
+| **`dev`** / **`staging`** / **`prod`** | `TransactionsRepository` | Remote HTTPS endpoints via Retrofit | TLS certificate pinning, hardware-backed ECDSA device binding |
 
 ---
 
@@ -1396,17 +1396,17 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 | Dependency | Purpose |
 | --- | --- |
 | Kotlin, coroutines, Flow | Language, background work, and streams for Room, network, and UI state |
-| kotlinx.serialization | Compile-time JSON for Ktor DTOs and type-safe navigation routes |
+| kotlinx.serialization | Compile-time JSON for Retrofit DTOs and type-safe navigation routes |
 | Jetpack Compose, Material 3, Compose Foundation / Animation | Screens, theme, motion, and shared components |
 | Compose UI Tooling | `@Preview` / `@PreviewLightDark` in the app and library modules |
 | Navigation Compose | Back stack, deep links, and typed routes; only `:app` joins feature screens |
 | Lifecycle, Activity Compose, ViewModel | Configuration-change state and lifecycle-aware collection |
-| Hilt, Hilt Navigation, Hilt Work | Compile-time graphs for repositories, Ktor clients, ViewModels, and workers |
+| Hilt, Hilt Navigation, Hilt Work | Compile-time graphs for repositories, Retrofit APIs, ViewModels, and workers |
 | Room, Room Paging | Local source of truth, migrations, and paged transaction history |
 | DataStore Preferences | Small settings: theme, privacy, categories, skipped update code |
 | WorkManager | Durable sync work that survives process death |
 | Paging 3 | Incremental transaction lists from Room into Compose |
-| Ktor Client (OkHttp engine) | REST, static API, device binding, and the market WebSocket |
+| Retrofit (OkHttp engine) | REST, static API, device binding, and secure networking |
 | OkHttp, logging interceptor | TLS, certificate pinning, HTTP cache; debug-only request summaries |
 | CameraX | Lifecycle-aware camera for UPI QR capture |
 | ML Kit barcode scanning | On-device QR decode from CameraX frames |
@@ -1414,7 +1414,7 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 | Timber | App logging; debug tree only on debug builds |
 | Chucker | On-device HTTP inspector in debug; no-op artifact in release |
 | LeakCanary | Debug-only leak detection for Activities and Compose hosts |
-| JUnit, AndroidX Test, Espresso, Compose UI Test, Ktor MockEngine | Local rules, instrumented UI, and HTTP tests without a server |
+| JUnit, AndroidX Test, Espresso, Compose UI Test | Local rules, instrumented UI, and HTTP mock tests without a server |
 | Detekt, ktlint | Complexity, correctness, and formatting in CI |
 | Android Gradle Plugin, Compose / serialization compiler, KSP | Variants, R8, Compose, serializers, Hilt, and Room codegen |
 

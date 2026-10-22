@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,7 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun LedgerHistoryScreen(
     onBack: (() -> Unit)? = null,
-    title: String = AppStrings.TITLE_PASSBOOK,
+    title: String = stringResource(AppStrings.TITLE_PASSBOOK),
     onOpenDetail: ((String) -> Unit)? = null,
     viewModel: LedgerHistoryViewModel = hiltViewModel(),
 ) {
@@ -36,7 +37,11 @@ fun LedgerHistoryScreen(
         val loading = pages.loadState.refresh is LoadState.Loading
         LoadingOrEmpty(loading && pages.itemCount == 0, isEmpty = false, errorMessage = null, label = "transactions")
         if (pages.itemCount == 0 && !loading) {
-            EmptyState(Icons.AutoMirrored.Outlined.ReceiptLong, AppStrings.EMPTY_TRANSACTIONS_TITLE, AppStrings.EMPTY_TRANSACTIONS_SUBTITLE)
+            EmptyState(
+                Icons.AutoMirrored.Outlined.ReceiptLong,
+                stringResource(AppStrings.EMPTY_TRANSACTIONS_TITLE),
+                stringResource(AppStrings.EMPTY_TRANSACTIONS_SUBTITLE)
+            )
         }
         SectionCard(Modifier.weight(1f, fill = false)) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -15,7 +15,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockValues
+import com.ledger.personal.ui.app.auth.LoginViewModel
 import com.ledger.personal.ui.app.auth.OnboardingFlow
+import com.ledger.personal.ui.app.auth.OnboardingViewModel
 import com.ledger.personal.ui.app.auth.OtpLoginScreen
 import com.ledger.personal.ui.app.auth.OtpLoginUiState
 import com.ledger.personal.ui.app.update.ForceUpdateScreen
@@ -37,8 +39,12 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
         when (val screen = status) {
             AppStatus.Loading -> Surface(Modifier.fillMaxSize()) {}
             AppStatus.Update -> ForceUpdateScreen(ForceUpdateUiState(BuildConfig.VERSION_NAME))
-            is AppStatus.Onboard -> Onboard(viewModel)
-            is AppStatus.Locked -> Locked(screen.prefs, viewModel)
+            is AppStatus.Onboard -> Onboard(onOnboarded = viewModel::unlock)
+            is AppStatus.Locked -> Locked(
+                prefs = screen.prefs,
+                onUnlocked = viewModel::unlock,
+                onReset = viewModel::resetSession,
+            )
             is AppStatus.Personal -> LedgerNavHost(screen.prefs, viewModel)
         }
         if (status.softUpdate) {
@@ -47,27 +53,44 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
     }
 }
 
-/** Runs onboarding with phone and OTP. */
+/** Runs onboarding with phone and OTP using dedicated OnboardingViewModel. */
 @Composable
-private fun Onboard(viewModel: AppViewModel) {
+private fun Onboard(
+    onOnboarded: () -> Unit,
+    viewModel: OnboardingViewModel = hiltViewModel(),
+) {
     val otpState by viewModel.otpState.collectAsStateWithLifecycle()
     OnboardingFlow(
         otpState = otpState,
         onSendOtp = viewModel::sendOtp,
-        onFinish = viewModel::completeOnboarding,
+        onFinish = { phone ->
+            viewModel.completeOnboarding(phone, onOnboarded)
+        },
     )
 }
 
-/** OTP unlock. */
+/** OTP unlock using dedicated LoginViewModel. */
 @Composable
-private fun Locked(prefs: AppPrefs, viewModel: AppViewModel) {
+private fun Locked(
+    prefs: AppPrefs,
+    onUnlocked: () -> Unit,
+    onReset: () -> Unit,
+    viewModel: LoginViewModel = hiltViewModel(),
+) {
     OtpLoginScreen(
         uiState = OtpLoginUiState(
             phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
             demoOtp = BuildConfig.FLAVOR == "mock",
         ),
-        onVerifyOtp = viewModel::verifyOtp,
-        onReset = viewModel::signOutEverywhere,
+        onVerifyOtp = { code, onResult ->
+            viewModel.verifyOtp(code) { success ->
+                onResult(success)
+                if (success) onUnlocked()
+            }
+        },
+        onReset = {
+            viewModel.signOutEverywhere(onReset)
+        },
     )
 }
 

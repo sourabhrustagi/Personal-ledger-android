@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.sample
@@ -37,6 +38,10 @@ class TickerViewModel @Inject constructor(socket: TickerSocket) : ViewModel() {
         }
         .sample(200)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+
+    val uiState: StateFlow<TickerUiState> = combine(ticks, polling) { tick, isPolling ->
+        TickerUiState(tick = tick, isPolling = isPolling)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TickerUiState())
 
     /** Poll. `delay` is the cancellation check; a cancelled collector stops the loop. */
     private fun poll(): Flow<Long> = flow {

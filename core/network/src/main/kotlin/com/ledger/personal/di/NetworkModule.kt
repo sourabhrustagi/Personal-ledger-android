@@ -15,9 +15,11 @@ import com.ledger.personal.data.remote.api.RetrofitTransactionNetworkDataSource
 import com.ledger.personal.data.remote.api.SessionRetrofitApi
 import com.ledger.personal.data.remote.api.StaticApi
 import com.ledger.personal.data.remote.api.TransactionNetworkDataSource
+import com.ledger.personal.data.remote.BankingHeaders
 import com.ledger.personal.data.remote.api.TransactionRetrofitApi
 import com.ledger.personal.data.remote.certificatePinner
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
+import com.ledger.personal.data.remote.interceptor.BankingHeaderInterceptor
 import com.ledger.personal.data.remote.interceptor.MockInterceptor
 import com.ledger.personal.data.remote.interceptor.StaticCacheInterceptor
 import com.ledger.personal.data.remote.interceptor.StaticFreshnessInterceptor
@@ -70,8 +72,11 @@ object NetworkModule {
     @Singleton
     fun provideHttpLoggingInterceptor(config: ApiConfig): HttpLoggingInterceptor {
         val interceptor = HttpLoggingInterceptor()
-        interceptor.redactHeader("Authorization")
+        interceptor.redactHeader(BankingHeaders.AUTHORIZATION)
+        interceptor.redactHeader(BankingHeaders.X_SESSION_ID)
+        interceptor.redactHeader(BankingHeaders.X_SIGNATURE)
         interceptor.redactHeader("Cookie")
+        interceptor.redactHeader("Set-Cookie")
         interceptor.level = if (config.logRequests) {
             HttpLoggingInterceptor.Level.BASIC
         } else {
@@ -87,11 +92,12 @@ object NetworkModule {
     fun provideAuthenticatedOkHttpClient(
         config: ApiConfig,
         authInterceptor: AuthInterceptor,
+        bankingHeaderInterceptor: BankingHeaderInterceptor,
         loggingInterceptor: HttpLoggingInterceptor,
         mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
     ): OkHttpClient = finish(
-        timeouts().addInterceptor(authInterceptor),
+        timeouts().addInterceptor(bankingHeaderInterceptor).addInterceptor(authInterceptor),
         config,
         context,
         loggingInterceptor,
@@ -104,12 +110,14 @@ object NetworkModule {
     @StaticClient
     fun provideStaticOkHttpClient(
         config: ApiConfig,
+        bankingHeaderInterceptor: BankingHeaderInterceptor,
         loggingInterceptor: HttpLoggingInterceptor,
         mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
     ): OkHttpClient = finish(
         timeouts()
             .cache(Cache(File(context.cacheDir, "static-http"), STATIC_CACHE_BYTES))
+            .addInterceptor(bankingHeaderInterceptor)
             .addInterceptor(StaticCacheInterceptor())
             .addNetworkInterceptor(StaticFreshnessInterceptor()),
         config,
@@ -125,11 +133,12 @@ object NetworkModule {
     fun provideTeamOkHttpClient(
         config: ApiConfig,
         authInterceptor: AuthInterceptor,
+        bankingHeaderInterceptor: BankingHeaderInterceptor,
         loggingInterceptor: HttpLoggingInterceptor,
         mockInterceptor: MockInterceptor,
         @ApplicationContext context: Context,
     ): OkHttpClient = finish(
-        timeouts().addInterceptor(authInterceptor),
+        timeouts().addInterceptor(bankingHeaderInterceptor).addInterceptor(authInterceptor),
         config,
         context,
         loggingInterceptor,
@@ -301,7 +310,13 @@ object NetworkModule {
         if (config.debuggable) {
             builder.addInterceptor(
                 com.chuckerteam.chucker.api.ChuckerInterceptor.Builder(context)
-                    .redactHeaders("Authorization", "Cookie")
+                    .redactHeaders(
+                        BankingHeaders.AUTHORIZATION,
+                        BankingHeaders.X_SESSION_ID,
+                        BankingHeaders.X_SIGNATURE,
+                        "Cookie",
+                        "Set-Cookie",
+                    )
                     .build(),
             )
         }

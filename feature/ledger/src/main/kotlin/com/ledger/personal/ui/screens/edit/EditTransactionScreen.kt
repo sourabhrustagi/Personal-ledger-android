@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -72,7 +73,7 @@ fun EditTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(AppStrings.TITLE_EDIT_TRANSACTION, fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(AppStrings.TITLE_EDIT_TRANSACTION), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -95,7 +96,7 @@ fun EditTransactionScreen(
         ) {
             when {
                 uiState.isLoadingInitial -> {
-                    LoadingState(message = AppStrings.LOADING_TRANSACTION_DATA)
+                    LoadingState(message = stringResource(AppStrings.LOADING_TRANSACTION_DATA))
                 }
                 uiState.errorMessage != null && uiState.transactionId.isBlank() -> {
                     ErrorState(
@@ -105,9 +106,9 @@ fun EditTransactionScreen(
                 }
                 uiState.isEmpty -> {
                     EmptyState(
-                        title = AppStrings.NO_MATCHING_TRANSACTIONS,
-                        message = AppStrings.EMPTY_TRANSACTION_NOT_FOUND,
-                        actionLabel = AppStrings.ACTION_BACK_TO_LIST,
+                        title = stringResource(AppStrings.NO_MATCHING_TRANSACTIONS),
+                        message = stringResource(AppStrings.EMPTY_TRANSACTION_NOT_FOUND),
+                        actionLabel = stringResource(AppStrings.ACTION_BACK_TO_LIST),
                         onActionClick = onNavigateBack
                     )
                 }
@@ -148,7 +149,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.amountInput,
                                     onValueChange = onAmountChange,
-                                    label = { Text(AppStrings.LABEL_AMOUNT) },
+                                    label = { Text(stringResource(AppStrings.LABEL_AMOUNT)) },
                                     prefix = { Text("$ ") },
                                     isError = uiState.amountError != null,
                                     supportingText = {
@@ -164,7 +165,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.category,
                                     onValueChange = onCategoryChange,
-                                    label = { Text(AppStrings.LABEL_CATEGORY) },
+                                    label = { Text(stringResource(AppStrings.LABEL_CATEGORY)) },
                                     isError = uiState.categoryError != null,
                                     supportingText = {
                                         if (uiState.categoryError != null) {
@@ -176,7 +177,7 @@ fun EditTransactionScreen(
                                 )
 
                                 Text(
-                                    text = AppStrings.LABEL_QUICK_SELECT_CATEGORY,
+                                    text = stringResource(AppStrings.LABEL_QUICK_SELECT_CATEGORY),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -200,7 +201,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.description,
                                     onValueChange = onDescriptionChange,
-                                    label = { Text(AppStrings.LABEL_DESCRIPTION) },
+                                    label = { Text(stringResource(AppStrings.LABEL_DESCRIPTION)) },
                                     minLines = 2,
                                     maxLines = 4,
                                     modifier = Modifier.fillMaxWidth()
@@ -224,10 +225,10 @@ fun EditTransactionScreen(
                                         strokeWidth = 2.dp
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
-                                    Text(AppStrings.ACTION_SAVING_CHANGES)
+                                    Text(stringResource(AppStrings.ACTION_SAVING_CHANGES))
                                 }
                             } else {
-                                Text(AppStrings.ACTION_UPDATE_TRANSACTION, fontWeight = FontWeight.Bold)
+                                Text(stringResource(AppStrings.ACTION_UPDATE_TRANSACTION), fontWeight = FontWeight.Bold)
                             }
                         }
                     }

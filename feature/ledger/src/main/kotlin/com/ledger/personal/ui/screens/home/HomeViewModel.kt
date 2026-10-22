@@ -22,11 +22,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import com.ledger.personal.core.LedgerConstants
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import com.ledger.personal.domain.usecase.GetTransactionsUseCase
 
-const val INCOME_CATEGORY = "Salary"
+const val INCOME_CATEGORY = LedgerConstants.CATEGORY_SALARY
 
 /** Reports whether this is credit. */
 fun Transaction.isCredit(): Boolean = category == INCOME_CATEGORY
@@ -53,7 +54,7 @@ data class HomeUiState(
     val promotions: List<PromoOffer> = emptyList(),
 )
 
-private const val RECENT_LIMIT = 30
+private const val RECENT_LIMIT = LedgerConstants.DEFAULT_RECENT_LIMIT
 
 /** Balance stays on screen when the dashboard cannot be loaded. */
 private val essentialHome = listOf(HomeSection.Balance)

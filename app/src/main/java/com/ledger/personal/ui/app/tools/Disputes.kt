@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.ledger.personal.ui.app.tools
 
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,7 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.data.tools.Dispute
 import com.ledger.personal.data.tools.DisputeReason
+import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.sync.SyncConflict
 import com.ledger.personal.data.tools.conflictFields
 import com.ledger.personal.data.tools.stage
@@ -48,15 +51,43 @@ import com.ledger.personal.ui.feature.Timeline
 import com.ledger.personal.ui.feature.TimelineStep
 import com.ledger.personal.ui.feature.formatMoney
 
-/** Shows the dispute screen. */
+/** UI state for the single transaction dispute screen. */
+data class DisputeUiState(
+    val transaction: Transaction? = null,
+    val existingDispute: Dispute? = null,
+)
+
+/** Shows the dispute screen using ToolsViewModel. */
 @Composable
 fun DisputeScreen(transactionId: String, tools: ToolsViewModel, onBack: () -> Unit, onTrack: () -> Unit) {
     val all by tools.transactions.collectAsStateWithLifecycle()
     val filed by tools.disputeDesk.disputes.collectAsStateWithLifecycle()
-    val tx = all.firstOrNull { it.id == transactionId }
+    val uiState = remember(all, filed, transactionId) {
+        DisputeUiState(
+            transaction = all.firstOrNull { it.id == transactionId },
+            existingDispute = filed.firstOrNull { it.transactionId == transactionId },
+        )
+    }
+    DisputeScreen(
+        uiState = uiState,
+        onBack = onBack,
+        onTrack = onTrack,
+        onSubmit = { tx, reason, details -> tools.fileDispute(tx, reason, details) },
+    )
+}
+
+/** Shows the dispute screen. */
+@Composable
+fun DisputeScreen(
+    uiState: DisputeUiState,
+    onBack: () -> Unit,
+    onTrack: () -> Unit,
+    onSubmit: (Transaction, DisputeReason, String) -> Unit,
+) {
+    val tx = uiState.transaction
+    val existing = uiState.existingDispute
     var reason by rememberSaveable { mutableStateOf<DisputeReason?>(null) }
     var details by rememberSaveable { mutableStateOf("") }
-    val existing = filed.firstOrNull { it.transactionId == transactionId }
     FeatureScaffold("Report a problem", onBack) {
         if (tx == null) {
             EmptyState(Icons.Outlined.Gavel, "Transaction not found", "It may still be syncing. Try again in a moment.")
@@ -101,7 +132,7 @@ fun DisputeScreen(transactionId: String, tools: ToolsViewModel, onBack: () -> Un
         }
         PrimaryButton(
             "Submit dispute",
-            onClick = { reason?.let { tools.fileDispute(tx, it, details) } },
+            onClick = { reason?.let { onSubmit(tx, it, details) } },
             enabled = reason != null && details.trim().length >= 10,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -125,35 +156,55 @@ private fun DisputeStatus(dispute: Dispute) {
     }
 }
 
-/** Shows the disputes screen. */
+/** UI state for the disputes list screen. */
+data class DisputesUiState(
+    val disputes: List<Dispute> = emptyList(),
+)
+
+/** Shows the disputes screen using ToolsViewModel. */
 @Composable
 fun DisputesScreen(tools: ToolsViewModel, onBack: () -> Unit) {
     val filed by tools.disputeDesk.disputes.collectAsStateWithLifecycle()
+    DisputesScreen(uiState = DisputesUiState(filed), onBack = onBack)
+}
+
+/** Shows the disputes screen. */
+@Composable
+fun DisputesScreen(uiState: DisputesUiState, onBack: () -> Unit) {
     FeatureScaffold("Your disputes", onBack) {
-        if (filed.isEmpty()) {
+        if (uiState.disputes.isEmpty()) {
             EmptyState(Icons.Outlined.Gavel, "No disputes", "Open a transaction and tap Report a problem to raise one.")
         }
-        filed.forEach { DisputeStatus(it) }
+        uiState.disputes.forEach { DisputeStatus(it) }
     }
 }
 
-/** Shows the conflict screen. */
+/** Shows the conflict screen using ToolsViewModel. */
 @Composable
 fun ConflictScreen(tools: ToolsViewModel, onBack: () -> Unit) {
-    val conflicts by tools.inbox.conflicts.collectAsStateWithLifecycle()
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val uiState by tools.conflictUiState.collectAsStateWithLifecycle()
+    ConflictScreen(uiState = uiState, onBack = onBack, onResolve = tools::resolve)
+}
+
+/** Shows the conflict screen with ConflictUiState. */
+@Composable
+fun ConflictScreen(
+    uiState: ConflictUiState,
+    onBack: () -> Unit,
+    onResolve: (SyncConflict, Map<String, Boolean>) -> Unit,
+) {
     FeatureScaffold("Sync conflicts", onBack, subtitle = "Changed on this phone and elsewhere") {
-        error?.let { StatusBanner(it, BannerTone.ERROR) }
-        if (conflicts.isEmpty()) {
+        uiState.errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
+        if (uiState.conflicts.isEmpty()) {
             EmptyState(
                 Icons.Outlined.SyncProblem,
                 "Everything is in sync",
                 "Conflicts appear here when the same transaction changes in two places.",
             )
         }
-        conflicts.forEach { conflict ->
+        uiState.conflicts.forEach { conflict ->
             ConflictCard(conflict) { keepMine ->
-                tools.resolve(conflict, keepMine) { result -> error = result.exceptionOrNull()?.message }
+                onResolve(conflict, keepMine)
             }
         }
     }

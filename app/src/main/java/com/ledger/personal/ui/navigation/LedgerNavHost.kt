@@ -196,9 +196,8 @@ private fun NavGraphBuilder.tabRoutes(
     }
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
         val offers: PromotionsViewModel = hiltViewModel()
-        val shelves by offers.shelves.collectAsStateWithLifecycle()
-        val selected by offers.selected.collectAsStateWithLifecycle()
-        PromotionsHub(shelves, selected, offers::select) { nav.navigate(Screen.Profile) }
+        val uiState by offers.uiState.collectAsStateWithLifecycle()
+        PromotionsHub(uiState, offers::select) { nav.navigate(Screen.Profile) }
     }
 }
 

@@ -73,6 +73,3 @@ class RetrofitHomeBoard @Inject constructor(
         api.getDashboard().toLayout()
     }.onFailure { if (it is CancellationException) throw it }
 }
-
-/** Backward-compatible typealias for [RetrofitHomeBoard]. */
-typealias KtorHomeBoard = RetrofitHomeBoard

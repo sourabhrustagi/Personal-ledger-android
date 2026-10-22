@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -155,7 +157,7 @@ private fun PromotionsHorizontalSection(
     onOfferClick: (PromoOffer) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(com.ledger.personal.ui.theme.AppStrings.SECTION_OFFERS, style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(AppStrings.SECTION_OFFERS), style = MaterialTheme.typography.titleSmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(promotions, key = { it.id }) { offer ->
                 androidx.compose.material3.Surface(

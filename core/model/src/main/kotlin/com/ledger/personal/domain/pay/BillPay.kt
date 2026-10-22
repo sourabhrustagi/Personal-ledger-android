@@ -15,5 +15,5 @@ interface BillPay {
     suspend fun fetch(sealed: SealedPay): Result<FetchedBill>
 
     /** Decrypts [sealed] with the key both sides derived from ECDH. */
-    suspend fun submit(sealed: SealedPay): Result<Unit>
+    suspend fun submit(sealed: SealedPay): Result<BillPayResponse>
 }

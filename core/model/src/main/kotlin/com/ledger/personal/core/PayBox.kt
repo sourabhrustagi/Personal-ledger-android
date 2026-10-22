@@ -1,6 +1,7 @@
 package com.ledger.personal.core
 
 import com.ledger.personal.domain.pay.BillPay
+import com.ledger.personal.domain.pay.BillPayResponse
 import com.ledger.personal.domain.pay.FetchedBill
 import com.ledger.personal.domain.pay.SealedPay
 import java.security.KeyFactory
@@ -90,13 +91,14 @@ class LocalBillPay : BillPay {
         FetchedBill(parts[2], amount, "BESCOM")
     }
 
-    override suspend fun submit(sealed: SealedPay): Result<Unit> = runCatching {
+    override suspend fun submit(sealed: SealedPay): Result<BillPayResponse> = runCatching {
         val parts = open(sealed)
         require(parts.size in 4..5 && mpinAccepted(parts[3])) { "PIN rejected" }
         if (parts[1] == "electricity") {
             val due = ElectricityBills.onFile[parts.getOrNull(4).orEmpty()] ?: error("bill not on file")
             require(parts[2] == due.toString()) { "amount mismatch" }
         }
+        BillPayResponse(status = "SUCCESS", message = "Bill paid successfully")
     }
 
     private fun open(sealed: SealedPay): List<String> {

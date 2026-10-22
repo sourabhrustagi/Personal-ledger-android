@@ -33,6 +33,8 @@ dependencies {
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)

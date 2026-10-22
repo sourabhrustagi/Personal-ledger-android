@@ -1,5 +1,6 @@
 package com.ledger.personal.ui.feature
 
+import com.ledger.personal.ui.theme.AppStrings
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Currency
@@ -9,8 +10,8 @@ import java.util.Locale
 enum class MoneyDirection { CREDIT, DEBIT, NEUTRAL }
 
 /** Formats money. */
-fun formatMoney(minor: Long, currency: String = "INR"): String {
-    if (currency == "INR") return formatRupees(minor)
+fun formatMoney(minor: Long, currency: String = AppStrings.CURRENCY_INR): String {
+    if (currency == AppStrings.CURRENCY_INR) return formatRupees(minor)
     val format = NumberFormat.getCurrencyInstance(Locale.US)
     runCatching { format.currency = Currency.getInstance(currency) }
     return "${format.format(BigDecimal.valueOf(minor, 2))} $currency"
@@ -32,7 +33,7 @@ private tailrec fun groupIndian(digits: String, suffix: String = ""): String = w
 }
 
 /** Formats signed. */
-fun formatSigned(minor: Long, direction: MoneyDirection, currency: String = "INR"): String {
+fun formatSigned(minor: Long, direction: MoneyDirection, currency: String = AppStrings.CURRENCY_INR): String {
     val body = formatMoney(kotlin.math.abs(minor), currency)
     return when (direction) {
         MoneyDirection.CREDIT -> "+$body"
@@ -42,7 +43,7 @@ fun formatSigned(minor: Long, direction: MoneyDirection, currency: String = "INR
 }
 
 /** Spoken amount. */
-fun spokenAmount(minor: Long, currency: String = "INR"): String {
+fun spokenAmount(minor: Long, currency: String = AppStrings.CURRENCY_INR): String {
     val whole = kotlin.math.abs(minor) / 100
     val fraction = kotlin.math.abs(minor) % 100
     val units = spokenUnits(currency)
@@ -52,8 +53,8 @@ fun spokenAmount(minor: Long, currency: String = "INR"): String {
 private data class SpokenUnits(val major: String, val fraction: String)
 
 private fun spokenUnits(currency: String) = when (currency) {
-    "INR" -> SpokenUnits("rupees", "paise")
-    "USD" -> SpokenUnits("US dollars", "cents")
+    AppStrings.CURRENCY_INR -> SpokenUnits("rupees", "paise")
+    AppStrings.CURRENCY_USD -> SpokenUnits("US dollars", "cents")
     else -> SpokenUnits(currency, "hundredths")
 }
 

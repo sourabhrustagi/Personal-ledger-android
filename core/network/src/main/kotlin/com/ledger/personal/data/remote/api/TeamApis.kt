@@ -1,9 +1,6 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.ApiEndpoints
-import com.ledger.personal.di.AuthenticatedClient
-import com.ledger.personal.di.ApiConfig
-import com.ledger.personal.di.TeamClient
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
@@ -14,10 +11,8 @@ import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
+import retrofit2.http.GET
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
@@ -53,7 +48,6 @@ data class PaymentsDto(val payees: List<PayeeDto> = emptyList())
 /** One payee as the payments team sends it. */
 @Serializable
 data class PayeeDto(val displayName: String = "", val vpa: String = "")
-
 
 /** Promotions payload. Field names are this team's, not the dashboard's. */
 @Serializable
@@ -92,7 +86,6 @@ fun SectionDto.toSection(): HomeSection? = when (kind) {
 fun PayeeDto.toShortcut(): PayShortcut? =
     if (displayName.isBlank() || vpa.isBlank()) null else PayShortcut(displayName, vpa)
 
-
 /** Drops a deal with no id or pitch. */
 fun OfferDto.toOffer(): PromoOffer? = if (sku.isBlank() || pitch.isBlank()) null else PromoOffer(sku, pitch, until)
 
@@ -102,39 +95,63 @@ fun ShelfDto.toTab(): PromoTab? {
     return PromoTab(key, name, offers.mapNotNull { it.toOffer() })
 }
 
+/** Retrofit API contract for dashboard layout. */
+interface DashboardRetrofitApi {
+    @GET(ApiEndpoints.DASHBOARD)
+    suspend fun getDashboard(): DashboardDto
+}
+
+/** Retrofit API contract for payment shortcuts. */
+interface PaymentsRetrofitApi {
+    @GET(ApiEndpoints.PAY_SHORTCUTS)
+    suspend fun getPayShortcuts(): PaymentsDto
+}
+
+/** Retrofit API contract for promotional campaigns. */
+interface PromotionsRetrofitApi {
+    @GET(ApiEndpoints.CAMPAIGN_SHELVES)
+    suspend fun getCampaignShelves(): PromotionsDto
+}
+
 /** Reads the home layout from the app team's dashboard. */
 @Singleton
-class KtorHomeBoard @Inject constructor(
-    @param:AuthenticatedClient private val client: HttpClient,
+class RetrofitHomeBoard @Inject constructor(
+    private val api: DashboardRetrofitApi,
 ) : HomeBoard {
     /** Returns layout. */
     override suspend fun layout(): Result<HomeLayout> = runCatching {
-        client.get(ApiEndpoints.DASHBOARD).body<DashboardDto>().toLayout()
+        api.getDashboard().toLayout()
     }.onFailure { if (it is CancellationException) throw it }
 }
 
 /** Reads payees from the payments host. */
 @Singleton
-class KtorPaymentsBackend @Inject constructor(
-    @param:TeamClient private val client: HttpClient,
-    private val config: ApiConfig,
+class RetrofitPaymentsBackend @Inject constructor(
+    private val api: PaymentsRetrofitApi,
 ) : PaymentsBackend {
     /** Returns shortcuts. */
     override suspend fun shortcuts(): Result<List<PayShortcut>> = runCatching {
-        client.get("${config.paymentsBaseUrl}${ApiEndpoints.PAY_SHORTCUTS}").body<PaymentsDto>().payees.mapNotNull { it.toShortcut() }
+        api.getPayShortcuts().payees.mapNotNull { it.toShortcut() }
     }.onFailure { if (it is CancellationException) throw it }
 }
-
-
 
 /** Reads shelves from the promotions host. */
 @Singleton
-class KtorPromotionsBackend @Inject constructor(
-    @param:TeamClient private val client: HttpClient,
-    private val config: ApiConfig,
+class RetrofitPromotionsBackend @Inject constructor(
+    private val api: PromotionsRetrofitApi,
 ) : PromotionsBackend {
     /** Returns tabs. */
     override suspend fun tabs(): Result<List<PromoTab>> = runCatching {
-        client.get("${config.promotionsBaseUrl}${ApiEndpoints.CAMPAIGN_SHELVES}").body<PromotionsDto>().shelves.mapNotNull { it.toTab() }
+        api.getCampaignShelves().shelves.mapNotNull { it.toTab() }
     }.onFailure { if (it is CancellationException) throw it }
 }
+
+/** Backward-compatible typealias for [RetrofitHomeBoard]. */
+typealias KtorHomeBoard = RetrofitHomeBoard
+
+/** Backward-compatible typealias for [RetrofitPaymentsBackend]. */
+typealias KtorPaymentsBackend = RetrofitPaymentsBackend
+
+/** Backward-compatible typealias for [RetrofitPromotionsBackend]. */
+typealias KtorPromotionsBackend = RetrofitPromotionsBackend
+

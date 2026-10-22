@@ -17,7 +17,9 @@ import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.app.auth.OnboardingFlow
 import com.ledger.personal.ui.app.auth.OtpLoginScreen
+import com.ledger.personal.ui.app.auth.OtpLoginUiState
 import com.ledger.personal.ui.app.update.ForceUpdateScreen
+import com.ledger.personal.ui.app.update.ForceUpdateUiState
 import com.ledger.personal.ui.app.update.SoftUpdateDialog
 import com.ledger.personal.ui.navigation.LedgerNavHost
 import com.ledger.personal.ui.theme.LedgerOneTheme
@@ -34,7 +36,7 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
     LedgerOneTheme(prefs?.theme ?: ThemeMode.SYSTEM) {
         when (val screen = status) {
             AppStatus.Loading -> Surface(Modifier.fillMaxSize()) {}
-            AppStatus.Update -> ForceUpdateScreen(BuildConfig.VERSION_NAME)
+            AppStatus.Update -> ForceUpdateScreen(ForceUpdateUiState(BuildConfig.VERSION_NAME))
             is AppStatus.Onboard -> Onboard(viewModel)
             is AppStatus.Locked -> Locked(screen.prefs, viewModel)
             is AppStatus.Personal -> LedgerNavHost(screen.prefs, viewModel)
@@ -48,7 +50,9 @@ fun LedgerOneApp(viewModel: AppViewModel = hiltViewModel()) {
 /** Runs onboarding with phone and OTP. */
 @Composable
 private fun Onboard(viewModel: AppViewModel) {
+    val otpState by viewModel.otpState.collectAsStateWithLifecycle()
     OnboardingFlow(
+        otpState = otpState,
         onSendOtp = viewModel::sendOtp,
         onFinish = viewModel::completeOnboarding,
     )
@@ -58,10 +62,12 @@ private fun Onboard(viewModel: AppViewModel) {
 @Composable
 private fun Locked(prefs: AppPrefs, viewModel: AppViewModel) {
     OtpLoginScreen(
-        phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
+        uiState = OtpLoginUiState(
+            phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
+            demoOtp = BuildConfig.FLAVOR == "mock",
+        ),
         onVerifyOtp = viewModel::verifyOtp,
         onReset = viewModel::signOutEverywhere,
-        demoOtp = BuildConfig.FLAVOR == "mock",
     )
 }
 

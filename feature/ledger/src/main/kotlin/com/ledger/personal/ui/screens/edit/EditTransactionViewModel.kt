@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.domain.usecase.GetTransactionByIdUseCase
+import com.ledger.personal.domain.usecase.UpdateTransactionUseCase
 import com.ledger.personal.util.toMajorUnitsString
 import com.ledger.personal.util.toMinorUnits
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,9 +20,19 @@ import javax.inject.Inject
 /** State and actions for the edit transaction screen. */
 @HiltViewModel
 class EditTransactionViewModel @Inject constructor(
-    private val repository: TransactionRepository,
-    savedStateHandle: SavedStateHandle
+    private val getTransactionByIdUseCase: GetTransactionByIdUseCase,
+    private val updateTransactionUseCase: UpdateTransactionUseCase,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    constructor(
+        repository: TransactionRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : this(
+        GetTransactionByIdUseCase(repository),
+        UpdateTransactionUseCase(repository),
+        savedStateHandle,
+    )
 
     private val transactionId: String? = savedStateHandle["transactionId"]
 
@@ -40,7 +52,7 @@ class EditTransactionViewModel @Inject constructor(
         if (id.isBlank()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingInitial = true, errorMessage = null) }
-            repository.getTransactionById(id).fold(
+            getTransactionByIdUseCase.get(id).fold(
                 onSuccess = { tx ->
                     val majorAmount = tx.amountInCents.toMajorUnitsString()
                     _uiState.update {
@@ -54,7 +66,7 @@ class EditTransactionViewModel @Inject constructor(
                             initialCategory = tx.category,
                             description = tx.description,
                             initialDescription = tx.description,
-                            errorMessage = null
+                            errorMessage = null,
                         )
                     }
                 },
@@ -62,10 +74,10 @@ class EditTransactionViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoadingInitial = false,
-                            errorMessage = error.localizedMessage ?: "Failed to load transaction"
+                            errorMessage = error.localizedMessage ?: "Failed to load transaction",
                         )
                     }
-                }
+                },
             )
         }
     }
@@ -116,11 +128,11 @@ class EditTransactionViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
-            repository.patchTransaction(
+            updateTransactionUseCase(
                 id = state.transactionId,
                 category = patchedCategory,
                 description = patchedDesc,
-                amountInCents = patchedAmount
+                amountInCents = patchedAmount,
             ).fold(
                 onSuccess = {
                     _uiState.update { it.copy(isSubmitting = false, isSuccess = true) }
@@ -129,10 +141,10 @@ class EditTransactionViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = transactionFailureMessage(error)
+                            errorMessage = transactionFailureMessage(error),
                         )
                     }
-                }
+                },
             )
         }
     }

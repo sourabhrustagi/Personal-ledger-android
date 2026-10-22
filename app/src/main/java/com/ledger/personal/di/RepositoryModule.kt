@@ -5,9 +5,6 @@ import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.remote.api.KtorHomeBoard
 import com.ledger.personal.data.remote.api.KtorPaymentsBackend
 import com.ledger.personal.data.remote.api.KtorPromotionsBackend
-import com.ledger.personal.data.local.MockTickerSocket
-import com.ledger.personal.data.local.KtorTickerSocket
-import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.data.repository.MockTransactionRepository
 import com.ledger.personal.data.repository.TransactionsRepository
 import com.ledger.personal.domain.repository.TransactionRemote
@@ -66,20 +63,6 @@ object RepositoryModule {
         mockRepository: MockTransactionRepository,
         transactionsRepository: TransactionsRepository,
     ): TransactionRemote = if (BuildConfig.FLAVOR == "mock") mockRepository else transactionsRepository
-
-    /** Supplies ticker. */
-    @Provides
-    @Singleton
-    fun provideTicker(@AuthenticatedClient client: HttpClient): TickerSocket = if (BuildConfig.FLAVOR == "mock") {
-        val mock = MockTickerSocket()
-        TickerSocket {
-            mock.prices().onEach {
-                if (MockSwitches.dropLive.value) throw IOException("Live connection dropped (mock)")
-            }
-        }
-    } else {
-        KtorTickerSocket(client, BuildConfig.TICKER_URL)
-    }
 
     /** Supplies conflict inbox. */
     @Provides

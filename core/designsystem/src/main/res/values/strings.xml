@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & Navigation Titles -->
+    <string name="app_name">Personal Ledger</string>
+    <string name="title_home">Personal Ledger</string>
+    <string name="title_passbook">Passbook</string>
+    <string name="title_transactions">Transactions</string>
+    <string name="title_offers">Offers</string>
+    <string name="title_pay">Pay</string>
+    <string name="title_scan">Scan</string>
+    <string name="title_wallet">Send money</string>
+    <string name="title_new_transaction">New Transaction</string>
+    <string name="title_edit_transaction">Edit Transaction</string>
+    <string name="title_transaction_details">Transaction Details</string>
+
+    <!-- Action Buttons -->
+    <string name="action_continue">Continue</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_send_money">Send money</string>
+    <string name="action_contacts">Contacts</string>
+    <string name="action_scan_qr">Scan any UPI QR code</string>
+    <string name="action_open_camera">Open camera &amp; scan</string>
+    <string name="action_back_to_list">Back to List</string>
+    <string name="action_add_transaction">Add Transaction</string>
+    <string name="action_update_transaction">Update Transaction</string>
+    <string name="action_saving_changes">Saving Changes…</string>
+
+    <!-- Form Field Labels & Placeholders -->
+    <string name="label_amount">Amount</string>
+    <string name="label_category">Category</string>
+    <string name="label_description">Description</string>
+    <string name="label_recipient">Mobile number or UPI ID</string>
+    <string name="label_recipient_placeholder">e.g. 9876543210 or name@upi</string>
+    <string name="label_saved_contacts">Saved contacts</string>
+    <string name="label_enter_amount">Enter amount</string>
+    <string name="label_note_optional">Note (optional)</string>
+    <string name="label_select_from_contacts">Select from local contacts</string>
+    <string name="label_quick_select_category">Quick Select Category:</string>
+
+    <!-- Empty & Loading States -->
+    <string name="empty_transactions_title">Add your first transaction</string>
+    <string name="empty_transactions_subtitle">Transactions you record show up here.</string>
+    <string name="empty_transactions_default_title">No transactions yet</string>
+    <string name="empty_transactions_default_subtitle">Your financial journey begins with your first record.</string>
+    <string name="empty_transaction_not_found">The requested transaction could not be located.</string>
+    <string name="empty_promotions">No promotions right now.</string>
+    <string name="empty_tab_content">Nothing in this tab.</string>
+    <string name="no_matching_transactions">No transactions found</string>
+    <string name="loading_transactions">Loading your transactions…</string>
+    <string name="loading_transaction_details">Fetching transaction details…</string>
+    <string name="loading_transaction_data">Loading transaction data…</string>
+
+    <!-- Section Titles -->
+    <string name="section_offers">Offers &amp; promotions</string>
+    <string name="section_scan_and_pay">Scan and pay</string>
+    <string name="section_send_to_anyone">Send to anyone</string>
+    <string name="section_saved_contacts">Saved contacts</string>
+    <string name="section_recent_transactions">Recent transactions</string>
+</resources>

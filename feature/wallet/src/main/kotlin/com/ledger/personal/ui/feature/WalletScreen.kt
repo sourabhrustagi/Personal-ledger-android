@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -128,8 +129,8 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
         OutlinedTextField(
             value = state.recipient,
             onValueChange = viewModel::onRecipient,
-            label = { Text("Mobile number or UPI ID") },
-            placeholder = { Text("e.g. 9876543210 or name@upi") },
+            label = { Text(AppStrings.LABEL_RECIPIENT) },
+            placeholder = { Text(AppStrings.LABEL_RECIPIENT_PLACEHOLDER) },
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
             trailingIcon = {
@@ -151,10 +152,10 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
         ) {
             Icon(Icons.Outlined.Contacts, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Select from local contacts")
+            Text(AppStrings.LABEL_SELECT_FROM_CONTACTS)
         }
         Text(
-            "Saved contacts",
+            AppStrings.SECTION_SAVED_CONTACTS,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -171,7 +172,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
             }
         }
     }
-    SectionCard(title = "Amount") {
+    SectionCard(title = AppStrings.LABEL_AMOUNT) {
         AmountField(
             text = amountText,
             onTextChange = {
@@ -195,7 +196,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
         OutlinedTextField(
             value = state.note,
             onValueChange = viewModel::onNote,
-            label = { Text("Note (optional)") },
+            label = { Text(AppStrings.LABEL_NOTE_OPTIONAL) },
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -203,7 +204,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
     }
     state.errorMessage?.takeIf { state.status != TransferStatus.INSUFFICIENT }?.let { StatusBanner(it, BannerTone.ERROR) }
     PrimaryButton(
-        text = if (state.amountMinor > 0) "Continue · ${formatMoney(state.amountMinor)}" else "Continue",
+        text = if (state.amountMinor > 0) "${AppStrings.ACTION_CONTINUE} · ${formatMoney(state.amountMinor)}" else AppStrings.ACTION_CONTINUE,
         onClick = viewModel::review,
         enabled = !offline && state.recipient.isNotBlank() && state.amountMinor > 0,
     )

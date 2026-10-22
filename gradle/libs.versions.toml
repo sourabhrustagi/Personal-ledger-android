@@ -15,7 +15,6 @@ paging = "3.3.6"
 camerax = "1.4.2"
 mlkitBarcode = "17.3.0"
 biometric = "1.1.0"
-ktor = "3.3.3"
 retrofit = "2.11.0"
 okhttp = "5.4.0"
 kotlinxSerialization = "1.9.0"
@@ -82,13 +81,7 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 mlkit-barcode = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkitBarcode" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 
-# Networking (Ktor + OkHttp engine)
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
-ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
-ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
-ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+# Networking (Retrofit + OkHttp engine)
 okhttp-bom = { module = "com.squareup.okhttp3:okhttp-bom", version.ref = "okhttp" }
 okhttp-core = { module = "com.squareup.okhttp3:okhttp" }
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor" }

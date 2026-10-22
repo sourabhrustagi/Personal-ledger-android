@@ -16,6 +16,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.usecase.GetPagedTransactionsUseCase
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
@@ -26,7 +27,7 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun LedgerHistoryScreen(
     onBack: (() -> Unit)? = null,
-    title: String = "Passbook",
+    title: String = AppStrings.TITLE_PASSBOOK,
     onOpenDetail: ((String) -> Unit)? = null,
     viewModel: LedgerHistoryViewModel = hiltViewModel(),
 ) {
@@ -35,7 +36,7 @@ fun LedgerHistoryScreen(
         val loading = pages.loadState.refresh is LoadState.Loading
         LoadingOrEmpty(loading && pages.itemCount == 0, isEmpty = false, errorMessage = null, label = "transactions")
         if (pages.itemCount == 0 && !loading) {
-            EmptyState(Icons.AutoMirrored.Outlined.ReceiptLong, "Add your first transaction", "Transactions you record show up here.")
+            EmptyState(Icons.AutoMirrored.Outlined.ReceiptLong, AppStrings.EMPTY_TRANSACTIONS_TITLE, AppStrings.EMPTY_TRANSACTIONS_SUBTITLE)
         }
         SectionCard(Modifier.weight(1f, fill = false)) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {

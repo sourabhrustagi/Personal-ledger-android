@@ -15,8 +15,8 @@ import com.ledger.personal.domain.release.AppRelease
 import com.ledger.personal.domain.release.softUpdateDue
 import com.ledger.personal.domain.release.updateRequired
 import com.ledger.personal.domain.session.OtpResponse
-import com.ledger.personal.domain.session.OtpService
 import com.ledger.personal.domain.session.Session
+import com.ledger.personal.domain.usecase.SendOtpUseCase
 import com.ledger.personal.ui.app.auth.promptWithCrypto
 import com.ledger.personal.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +46,14 @@ data class SessionState(
     val signInMessage: String? = null,
 )
 
+/** OTP request and verification state. */
+data class OtpUiState(
+    val isSending: Boolean = false,
+    val isOtpSent: Boolean = false,
+    val sentMessage: String = "OTP sent",
+    val errorMessage: String? = null,
+)
+
 const val MAX_MPIN_ATTEMPTS = 3
 const val LOCKOUT_MS = 30_000L
 const val MOCK_MPIN = MockValues.MPIN
@@ -65,7 +73,7 @@ class AppViewModel @Inject constructor(
     categorySync: CategorySync,
     release: AppRelease,
     private val signIn: Session,
-    private val otpService: OtpService,
+    private val sendOtpUseCase: SendOtpUseCase,
 ) : ViewModel() {
     val prefs: StateFlow<AppPrefs?> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -119,6 +127,9 @@ class AppViewModel @Inject constructor(
         if (code > 0) viewModelScope.launch { store.ignoreUpdate(code) }
     }
 
+    private val mutableOtpState = MutableStateFlow(OtpUiState())
+    val otpState: StateFlow<OtpUiState> = mutableOtpState.asStateFlow()
+
     /** Finishes onboarding with mobile number. */
     fun completeOnboarding(phone: String) {
         viewModelScope.launch {
@@ -127,8 +138,21 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    /** Submits valid phone number to the server to send an OTP code. */
-    suspend fun sendOtp(phone: String): Result<OtpResponse> = otpService.sendOtp(phone)
+    /** Submits valid phone number through repository to send an OTP code, managing [otpState]. */
+    fun sendOtp(phone: String) {
+        viewModelScope.launch {
+            mutableOtpState.update { it.copy(isSending = true, errorMessage = null) }
+            val result = sendOtpUseCase(phone)
+            mutableOtpState.update {
+                it.copy(
+                    isSending = false,
+                    isOtpSent = result.isSuccess,
+                    sentMessage = result.getOrNull()?.message?.ifBlank { "OTP sent" } ?: "OTP sent",
+                    errorMessage = result.exceptionOrNull()?.message,
+                )
+            }
+        }
+    }
 
     /** Verifies OTP to unlock / sign in. [onResult] runs on the main thread after a server session is opened. */
     fun verifyOtp(code: String, onResult: (Boolean) -> Unit) {

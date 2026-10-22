@@ -20,7 +20,7 @@ class AuthInterceptorTest {
     }
 
     @Test
-    fun preservesHeadersAddedByKtor() {
+    fun preservesExistingHeaders() {
         val interceptor = AuthInterceptor()
         val request = intercept(
             interceptor,

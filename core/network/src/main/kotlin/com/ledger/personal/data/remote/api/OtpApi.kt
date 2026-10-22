@@ -1,19 +1,16 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.ApiEndpoints
-import com.ledger.personal.di.StaticClient
+import com.ledger.personal.data.remote.safeApiCall
+import com.ledger.personal.di.IoDispatcher
+import com.ledger.personal.domain.session.OtpRepository
 import com.ledger.personal.domain.session.OtpResponse
-import com.ledger.personal.domain.session.OtpService
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.Serializable
+import retrofit2.http.Body
+import retrofit2.http.POST
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
 data class OtpRequestDto(val phone: String)
@@ -32,20 +29,31 @@ data class OtpResponseDto(
 }
 
 const val MOCK_OTP_SENT_MESSAGE = "OTP sent"
-
 private const val PHONE_LENGTH = 10
 
-/** Ktor-backed service for requesting phone OTP verification codes. */
-@Singleton
-class KtorOtpService @Inject constructor(
-    @param:StaticClient private val client: HttpClient,
-) : OtpService {
-    override suspend fun sendOtp(phone: String): Result<OtpResponse> = runCatching {
-        require(phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) { "Invalid 10-digit phone number" }
-        val response = client.post(ApiEndpoints.OTP) {
-            contentType(ContentType.Application.Json)
-            setBody(OtpRequestDto(phone))
-        }.body<OtpResponseDto>()
-        response.toDomain()
-    }.onFailure { if (it is CancellationException) throw it }
+/** Retrofit API contract for phone OTP verification codes. */
+interface OtpRetrofitApi {
+    @POST(ApiEndpoints.OTP)
+    suspend fun sendOtp(@Body request: OtpRequestDto): OtpResponseDto
 }
+
+/**
+ * Retrofit-backed repository for requesting phone OTP verification codes.
+ * Simplified using safeApiCall to automatically ensure main-safety and exception propagation.
+ */
+@Singleton
+class RetrofitOtpRepository @Inject constructor(
+    private val api: OtpRetrofitApi,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+) : OtpRepository {
+    override suspend fun sendOtp(phone: String): Result<OtpResponse> = safeApiCall(ioDispatcher) {
+        require(phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) { "Invalid 10-digit phone number" }
+        api.sendOtp(OtpRequestDto(phone)).toDomain()
+    }
+}
+
+/** Backward-compatible typealias for [RetrofitOtpRepository]. */
+typealias RetrofitOtpService = RetrofitOtpRepository
+
+/** Backward-compatible typealias for [RetrofitOtpRepository]. */
+typealias KtorOtpService = RetrofitOtpRepository

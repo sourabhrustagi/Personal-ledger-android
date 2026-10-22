@@ -9,7 +9,7 @@
 | Module | Kind | Owns |
 |--------|------|------|
 | `:core:model` | Kotlin JVM | Domain types, repository interfaces, business rules |
-| `:core:network` | Android library | Ktor APIs, DTOs |
+| `:core:network` | Android library | Retrofit APIs, DTOs |
 | `:core:database` | Android library | Room, sync, DataStore |
 | `:core:designsystem` | Android library | Theme, Inter, `LedgerOneText` and the other shared components |
 | `:core:mock` | Kotlin JVM | Demo catalog and mock backends |
@@ -32,7 +32,7 @@
   → :core:model
 ```
 
-`:core:model` stays a JVM module. Keep Android, Compose, Room, and Ktor out of it.
+`:core:model` stays a JVM module. Keep Android, Compose, Room, and Retrofit out of it.
 
 ## 1. Make a core module
 

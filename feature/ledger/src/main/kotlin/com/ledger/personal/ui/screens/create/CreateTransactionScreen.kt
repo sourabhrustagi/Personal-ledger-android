@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows the create transaction screen. */
@@ -67,7 +68,7 @@ fun CreateTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Transaction", fontWeight = FontWeight.Bold) },
+                title = { Text(AppStrings.TITLE_NEW_TRANSACTION, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(

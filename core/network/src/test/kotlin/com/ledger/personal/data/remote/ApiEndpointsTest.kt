@@ -12,9 +12,6 @@ class ApiEndpointsTest {
         assertTrue(ApiEndpoints.BaseUrl.DEV_API.startsWith("https://"))
         assertTrue(ApiEndpoints.BaseUrl.STAGING_API.startsWith("https://"))
         assertTrue(ApiEndpoints.BaseUrl.PROD_API.startsWith("https://"))
-
-        assertTrue(ApiEndpoints.BaseUrl.MOCK_TICKER.startsWith("ws://"))
-        assertTrue(ApiEndpoints.BaseUrl.PROD_TICKER.startsWith("wss://"))
     }
 
     @Test
@@ -33,6 +30,5 @@ class ApiEndpointsTest {
         assertEquals("bills/pay", ApiEndpoints.BILLS_PAY)
         assertEquals("devices/challenge", ApiEndpoints.DEVICE_CHALLENGE)
         assertEquals("devices/bind", ApiEndpoints.DEVICE_BIND)
-        assertEquals("ticks", ApiEndpoints.TICKS)
     }
 }

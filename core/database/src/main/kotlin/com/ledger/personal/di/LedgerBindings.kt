@@ -30,4 +30,9 @@ abstract class LedgerBindings {
     @Binds
     @Singleton
     abstract fun bindUserSettings(settings: DataStoreUserSettings): UserSettings
+
+    /** Binds promotion repository. */
+    @Binds
+    @Singleton
+    abstract fun bindPromotionRepository(repository: com.ledger.personal.data.repository.OfflinePromotionRepository): com.ledger.personal.domain.board.PromotionRepository
 }

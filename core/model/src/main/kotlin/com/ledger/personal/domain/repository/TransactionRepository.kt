@@ -38,5 +38,7 @@ interface TransactionRepository : TransactionRemote {
     fun observeTransaction(id: String): Flow<Transaction?>
     /** Pages. */
     fun pages(): Flow<PagingData<Transaction>>
+    /** Refreshes transactions from remote into local storage. */
+    suspend fun refresh(): Result<Unit> = Result.success(Unit)
 }
 

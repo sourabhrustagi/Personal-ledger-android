@@ -9,20 +9,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
-import com.ledger.personal.data.local.TransactionDao
-import com.ledger.personal.data.local.TransactionEntity
-import com.ledger.personal.data.local.toEntity
-import com.ledger.personal.domain.model.Transaction
-import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import kotlinx.coroutines.flow.flowOf
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.LoadState
-import com.ledger.personal.data.local.toDomain
+import androidx.paging.PagingData
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.ledger.personal.domain.model.Transaction
+import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.domain.usecase.GetPagedTransactionsUseCase
+import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /** Shows the passbook / ledger history screen. */
 @Composable
@@ -42,7 +40,7 @@ fun LedgerHistoryScreen(
         SectionCard(Modifier.weight(1f, fill = false)) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(pages.itemCount) { index ->
-                    val row = pages[index]?.toDomain() ?: return@items
+                    val row = pages[index] ?: return@items
                     ListRow(
                         icon = categoryIcon(row.category),
                         title = row.description.ifBlank { row.category },
@@ -61,24 +59,25 @@ fun LedgerHistoryScreen(
 @PreviewLightDark
 @Composable
 private fun LedgerHistoryPreview() {
-    PersonalLedgerTheme { LedgerHistoryScreen(onBack = {}, viewModel = LedgerHistoryViewModel(PreviewDao)) }
+    PersonalLedgerTheme {
+        LedgerHistoryScreen(
+            onBack = {},
+            viewModel = LedgerHistoryViewModel(GetPagedTransactionsUseCase(PreviewTransactionsRepo)),
+        )
+    }
 }
 
-private val previewRow = Transaction("tx-1", 120_00L, "INR", "Scan & Pay", "Chai Point · QR Pay", 1_760_200_000_000L)
-    .toEntity(syncState = "SYNCED", updatedAtEpochMs = 1_760_200_000_000L)
+private val previewTransaction = Transaction("tx-1", 120_00L, "INR", "Scan & Pay", "Chai Point · QR Pay", 1_760_200_000_000L)
 
-private object PreviewDao : TransactionDao {
-    override fun observeAll() = flowOf(listOf(previewRow))
-    override fun pagingSource(): PagingSource<Int, TransactionEntity> = object : PagingSource<Int, TransactionEntity>() {
-        override fun getRefreshKey(state: PagingState<Int, TransactionEntity>): Int? = null
-        override suspend fun load(params: LoadParams<Int>): PagingSource.LoadResult<Int, TransactionEntity> =
-            PagingSource.LoadResult.Page(listOf(previewRow), prevKey = null, nextKey = null)
-    }
-    override fun observeById(id: String) = flowOf(previewRow.takeIf { it.id == id })
-    override suspend fun find(id: String) = previewRow.takeIf { it.id == id }
-    override suspend fun upsert(entity: TransactionEntity) = Unit
-    override suspend fun allVisible() = listOf(previewRow)
-    override suspend fun pending() = emptyList<TransactionEntity>()
-    override suspend fun delete(id: String) = Unit
-    override suspend fun page(limit: Int, offset: Int) = if (offset == 0) listOf(previewRow) else emptyList()
+private object PreviewTransactionsRepo : TransactionRepository {
+    override fun observeTransactions() = flowOf(listOf(previewTransaction))
+    override fun observeTransaction(id: String) = flowOf(previewTransaction.takeIf { it.id == id })
+    override fun pages(): Flow<PagingData<Transaction>> = flowOf(PagingData.from(listOf(previewTransaction)))
+    override suspend fun getTransactions(page: Int, pageSize: Int) = Result.success(listOf(previewTransaction))
+    override suspend fun getTransactionById(id: String) = Result.success(previewTransaction)
+    override suspend fun createTransaction(amountInCents: Long, currency: String, category: String, description: String) =
+        Result.success(previewTransaction)
+    override suspend fun patchTransaction(id: String, category: String?, description: String?, amountInCents: Long?) =
+        Result.success(previewTransaction)
+    override suspend fun deleteTransaction(id: String) = Result.success(Unit)
 }

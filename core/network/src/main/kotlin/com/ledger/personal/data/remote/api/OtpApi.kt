@@ -54,6 +54,3 @@ class RetrofitOtpRepository @Inject constructor(
 
 /** Backward-compatible typealias for [RetrofitOtpRepository]. */
 typealias RetrofitOtpService = RetrofitOtpRepository
-
-/** Backward-compatible typealias for [RetrofitOtpRepository]. */
-typealias KtorOtpService = RetrofitOtpRepository

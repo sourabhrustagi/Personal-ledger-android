@@ -41,6 +41,13 @@ data class PatchTransactionRequestDto(
     @SerialName("amount_in_cents") val amountInCents: Long? = null
 )
 
+/** Network payload for delete transaction response. */
+@Serializable
+data class DeleteTransactionResponseDto(
+    @SerialName("success") val success: Boolean = true,
+    @SerialName("id") val id: String? = null
+)
+
 /**
  * Mapper extension function translating network DTO to pure domain model.
  * Never expose network DTOs to UI or ViewModels.
@@ -52,6 +59,13 @@ fun TransactionDto.toDomain(): Transaction {
         currency = currency,
         category = category,
         description = description,
-        timestampEpochMs = timestampEpochMs
+        timestampEpochMs = timestampEpochMs,
     )
 }
+
+/** Converts network DTO to domain model following Android Architecture Samples convention. */
+fun TransactionDto.asExternalModel(): Transaction = toDomain()
+
+/** Converts list of network DTOs to domain models following Android Architecture Samples convention. */
+fun List<TransactionDto>.asExternalModel(): List<Transaction> = map(TransactionDto::asExternalModel)
+

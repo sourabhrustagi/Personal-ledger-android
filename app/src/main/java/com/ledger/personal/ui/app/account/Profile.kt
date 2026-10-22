@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.ledger.personal.ui.app.account
 
 import androidx.compose.foundation.layout.Arrangement
@@ -30,11 +32,17 @@ import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.navigation.Screen
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
-/** Shows the accounts and profile screen. */
+/** UI state for the accounts/profile screen. */
+data class ProfileUiState(
+    val name: String = "",
+    val phone: String = "",
+    val showMockControls: Boolean = false,
+)
+
+/** Shows the accounts and profile screen with ProfileUiState. */
 @Composable
 fun ProfileScreen(
-    prefs: AppPrefs,
-    showMockControls: Boolean,
+    uiState: ProfileUiState,
     onBack: (() -> Unit)? = null,
     onOpen: (Screen) -> Unit,
     onLock: () -> Unit,
@@ -48,15 +56,15 @@ fun ProfileScreen(
                 IconBadge(Icons.Outlined.Person, size = 56)
                 Column(Modifier.weight(1f)) {
                     Text(
-                        prefs.name.ifBlank { "LedgerOne member" },
+                        uiState.name.ifBlank { "LedgerOne member" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text("+91 ${prefs.phone.ifBlank { "—" }}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("+91 ${uiState.phone.ifBlank { "—" }}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        if (showMockControls) {
+        if (uiState.showMockControls) {
             SectionCard(title = "Account") {
                 ListRow(Icons.Outlined.Settings, "Settings", subtitle = "Theme, privacy, language", onClick = open(Screen.Settings))
                 ListRow(Icons.Outlined.BugReport, "Mock controls", subtitle = "Debug builds only", onClick = open(Screen.MockControls))
@@ -94,6 +102,29 @@ fun ProfileScreen(
             dismissButton = { TextButton(onClick = { confirmLogOut = false }) { Text("Cancel") } },
         )
     }
+}
+
+/** Shows the accounts and profile screen. */
+@Composable
+fun ProfileScreen(
+    prefs: AppPrefs,
+    showMockControls: Boolean,
+    onBack: (() -> Unit)? = null,
+    onOpen: (Screen) -> Unit,
+    onLock: () -> Unit,
+    onLogOut: () -> Unit,
+) {
+    ProfileScreen(
+        uiState = ProfileUiState(
+            name = prefs.name,
+            phone = prefs.phone,
+            showMockControls = showMockControls,
+        ),
+        onBack = onBack,
+        onOpen = onOpen,
+        onLock = onLock,
+        onLogOut = onLogOut,
+    )
 }
 
 @PreviewLightDark

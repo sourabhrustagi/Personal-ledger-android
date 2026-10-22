@@ -2,25 +2,28 @@ package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.ApiEndpoints
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
+import com.ledger.personal.data.remote.dto.DeleteTransactionResponseDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
 import com.ledger.personal.data.remote.dto.TransactionListResponseDto
-import com.ledger.personal.di.AuthenticatedClient
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.appendPathSegments
-import java.util.UUID
+import com.ledger.personal.di.IoDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Transaction HTTP contract. */
-interface TransactionApi {
+/**
+ * Remote data source contract for transactions, following Google Android Architecture Samples
+ * and Modern Android Architecture standards.
+ */
+interface TransactionNetworkDataSource {
     /** Returns transactions. */
     suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto
 
@@ -34,46 +37,78 @@ interface TransactionApi {
     suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto
 
     /** Deletes transaction. */
-    suspend fun deleteTransaction(id: String)
+    suspend fun deleteTransaction(id: String): DeleteTransactionResponseDto
 }
 
-/** Ktor implementation of the transaction API. */
-@Singleton
-class KtorTransactionApi @Inject constructor(
-    @param:AuthenticatedClient private val client: HttpClient,
-) : TransactionApi {
+/**
+ * Backward-compatible alias for [TransactionNetworkDataSource].
+ */
+typealias TransactionApi = TransactionNetworkDataSource
+
+/**
+ * Retrofit REST API interface for transactions.
+ */
+interface TransactionRetrofitApi {
     /** Returns transactions. */
-    override suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto =
-        client.get(ApiEndpoints.TRANSACTIONS) {
-            url {
-                parameters.append("page", page.toString())
-                parameters.append("pageSize", pageSize.toString())
-            }
-        }.body()
+    @GET(ApiEndpoints.TRANSACTIONS)
+    suspend fun getTransactions(
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+    ): TransactionListResponseDto
 
     /** Returns transaction by id. */
-    override suspend fun getTransactionById(id: String): TransactionDto =
-        client.get { url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) } }.body()
+    @GET("${ApiEndpoints.TRANSACTIONS}/{id}")
+    suspend fun getTransactionById(@Path("id") id: String): TransactionDto
 
-    /**
-     * Creates transaction. The key is fixed for this call, so the retry plugin resends the same one.
-     * ponytail: a WorkManager re-run sends a new key; pass the local row id once the server accepts it.
-     */
-    override suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto =
-        client.post(ApiEndpoints.TRANSACTIONS) {
-            header("Idempotency-Key", UUID.randomUUID().toString())
-            setBody(request)
-        }.body()
+    /** Creates transaction. */
+    @POST(ApiEndpoints.TRANSACTIONS)
+    suspend fun createTransaction(
+        @Body request: CreateTransactionRequestDto,
+    ): TransactionDto
 
     /** Patch transaction. */
-    override suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto =
-        client.patch {
-            url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) }
-            setBody(request)
-        }.body()
+    @PATCH("${ApiEndpoints.TRANSACTIONS}/{id}")
+    suspend fun patchTransaction(
+        @Path("id") id: String,
+        @Body request: PatchTransactionRequestDto,
+    ): TransactionDto
 
     /** Deletes transaction. */
-    override suspend fun deleteTransaction(id: String) {
-        client.delete { url { appendPathSegments(ApiEndpoints.TRANSACTIONS, id) } }
-    }
+    @DELETE("${ApiEndpoints.TRANSACTIONS}/{id}")
+    suspend fun deleteTransaction(@Path("id") id: String): DeleteTransactionResponseDto
+}
+
+/**
+ * Retrofit-backed [TransactionNetworkDataSource] ensuring main-safety on [ioDispatcher].
+ */
+@Singleton
+class RetrofitTransactionNetworkDataSource @Inject constructor(
+    private val networkApi: TransactionRetrofitApi,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+) : TransactionNetworkDataSource {
+
+    override suspend fun getTransactions(page: Int, pageSize: Int): TransactionListResponseDto =
+        withContext(ioDispatcher) {
+            networkApi.getTransactions(page = page, pageSize = pageSize)
+        }
+
+    override suspend fun getTransactionById(id: String): TransactionDto =
+        withContext(ioDispatcher) {
+            networkApi.getTransactionById(id = id)
+        }
+
+    override suspend fun createTransaction(request: CreateTransactionRequestDto): TransactionDto =
+        withContext(ioDispatcher) {
+            networkApi.createTransaction(request = request)
+        }
+
+    override suspend fun patchTransaction(id: String, request: PatchTransactionRequestDto): TransactionDto =
+        withContext(ioDispatcher) {
+            networkApi.patchTransaction(id = id, request = request)
+        }
+
+    override suspend fun deleteTransaction(id: String): DeleteTransactionResponseDto =
+        withContext(ioDispatcher) {
+            networkApi.deleteTransaction(id = id)
+        }
 }

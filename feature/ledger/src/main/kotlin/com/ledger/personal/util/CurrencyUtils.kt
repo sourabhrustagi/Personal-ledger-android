@@ -1,5 +1,6 @@
 package com.ledger.personal.util
 
+import com.ledger.personal.core.LedgerConstants
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Currency
@@ -10,7 +11,7 @@ import java.util.Locale
  * Converts integer minor units (cents) to a localized currency string.
  * Example: 1250L -> "$12.50"
  */
-fun Long.toFormattedCurrency(currencyCode: String = "USD"): String {
+fun Long.toFormattedCurrency(currencyCode: String = LedgerConstants.DEFAULT_CURRENCY): String {
     val format = NumberFormat.getCurrencyInstance(Locale.US)
     runCatching {
         format.currency = Currency.getInstance(currencyCode)

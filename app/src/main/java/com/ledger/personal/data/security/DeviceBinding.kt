@@ -3,12 +3,9 @@ package com.ledger.personal.data.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import com.ledger.personal.data.remote.ApiEndpoints
-import com.ledger.personal.di.AuthenticatedClient
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
+import retrofit2.http.Body
+import retrofit2.http.POST
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -71,22 +68,35 @@ data class BindRequestDto(val publicKey: String, val challenge: String, val sign
 @Serializable
 data class BindResponseDto(val deviceId: String)
 
-/** Ktor-backed device binding server. */
+/** Retrofit API contract for device binding. */
+interface DeviceBindingRetrofitApi {
+    @POST(ApiEndpoints.DEVICE_CHALLENGE)
+    suspend fun challenge(): ChallengeDto
+
+    @POST(ApiEndpoints.DEVICE_BIND)
+    suspend fun bind(@Body request: BindRequestDto): BindResponseDto
+}
+
+/** Retrofit-backed device binding server. */
 @Singleton
-class KtorBindingServer @Inject constructor(
-    @param:AuthenticatedClient private val client: HttpClient,
+class RetrofitBindingServer @Inject constructor(
+    private val api: DeviceBindingRetrofitApi,
 ) : BindingServer {
     /** Challenge. */
     override suspend fun challenge(): ByteArray =
-        Base64.getDecoder().decode(client.post(ApiEndpoints.DEVICE_CHALLENGE).body<ChallengeDto>().challenge)
+        Base64.getDecoder().decode(api.challenge().challenge)
 
     /** Register. */
     override suspend fun register(publicKey: ByteArray, challenge: ByteArray, signature: ByteArray): Result<String> = runCatching {
         val encoder = Base64.getEncoder()
         val body = BindRequestDto(encoder.encodeToString(publicKey), encoder.encodeToString(challenge), encoder.encodeToString(signature))
-        client.post(ApiEndpoints.DEVICE_BIND) { setBody(body) }.body<BindResponseDto>().deviceId
+        api.bind(body).deviceId
     }.onFailure { if (it is CancellationException) throw it }
 }
+
+/** Backward-compatible typealias for [RetrofitBindingServer]. */
+typealias KtorBindingServer = RetrofitBindingServer
+
 
 /** Hardware-backed EC key that can only sign after a strong biometric check, and dies if biometrics are re-enrolled. */
 @Singleton

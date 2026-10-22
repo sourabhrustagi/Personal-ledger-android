@@ -22,7 +22,7 @@ class MockHomeBoard @Inject constructor() : HomeBoard {
                     HomeTab("home", "Home"),
                     HomeTab("pay", "Pay"),
                     HomeTab("passbook", "Passbook"),
-                    HomeTab("accounts", "Accounts"),
+                    HomeTab("offers", "Offers"),
                 ),
                 sections = listOf(
                     HomeSection.Balance,

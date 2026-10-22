@@ -6,7 +6,7 @@ The version catalog at `gradle/libs.versions.toml` is the single source of depen
 
 ### Kotlin
 
-Kotlin is the primary language because Android tooling, Compose, coroutines and Ktor are Kotlin-first. It gives the project null safety, sealed types, extension functions and concise immutable models.
+Kotlin is the primary language because Android tooling, Compose, coroutines and Retrofit are Kotlin-first. It gives the project null safety, sealed types, extension functions and concise immutable models.
 
 **Instead of Java:** Java remains interoperable, but it needs more boilerplate for the same state and asynchronous flows. Kotlin is the supported first-class language for modern Android.
 
@@ -14,33 +14,29 @@ Kotlin is the primary language because Android tooling, Compose, coroutines and 
 
 Coroutines run database, network and cryptographic work without blocking the main thread. `Flow` carries Room rows, preferences, sync state and UI state as cancellable streams.
 
-**Instead of RxJava:** coroutines are integrated into Kotlin, Android lifecycle APIs, Room, WorkManager and Ktor. RxJava is still capable, but would add a second asynchronous type system and a larger API surface.
+**Instead of RxJava:** coroutines are integrated into Kotlin, Android lifecycle APIs, Room, WorkManager and Retrofit. RxJava is still capable, but would add a second asynchronous type system and a larger API surface.
 
 ### kotlinx.serialization
 
-The same compile-time serializers encode and decode Ktor request and response DTOs and type-safe navigation routes. It avoids reflection and keeps release builds friendly to R8.
+The same compile-time serializers encode and decode Retrofit request and response DTOs and type-safe navigation routes. It avoids reflection and keeps release builds friendly to R8.
 
-**Instead of Gson:** Gson is reflection-based and less strict about nullability. **Instead of Moshi:** Moshi is a strong Android option, but kotlinx.serialization is native to Kotlin and is already required by navigation and Ktor.
+**Instead of Gson:** Gson is reflection-based and less strict about nullability. **Instead of Moshi:** Moshi is a strong Android option, but kotlinx.serialization is native to Kotlin and is already required by navigation and Retrofit.
 
 ## Networking
 
-### Ktor Client
+### Retrofit
 
-Ktor owns REST calls, static configuration calls, device binding and the market WebSocket. The project uses typed request bodies, `ContentNegotiation`, kotlinx.serialization, structured cancellation and one client configuration per trust boundary:
+Retrofit owns type-safe REST calls, static configuration calls, device binding, and team endpoints. The project uses typed request bodies, `asConverterFactory`, kotlinx.serialization, structured coroutines, and clean interface declarations:
 
-- the authenticated client may attach the session and supports WebSockets;
+- the authenticated client attaches session tokens via `AuthInterceptor`;
 - the public static client sends no session token and uses a disk cache;
-- both clients share timeouts, certificate pinning, redacted diagnostics and flavor-specific base URLs.
+- both clients share timeouts, certificate pinning, redacted diagnostics, and flavor-specific base URLs.
 
-**Instead of Retrofit:** Retrofit is excellent when an annotation-only REST interface is the whole networking requirement. LedgerOne also needs WebSockets, separate public and authenticated clients, custom static caching and Kotlin-native request pipelines. Ktor handles those in one coroutine-based client instead of combining Retrofit for REST with a separate WebSocket abstraction. The trade-off is that Ktor request code is more explicit than Retrofit annotations.
-
-Ktor `3.3.3` is used because it is the latest stable patch compatible with this project's Kotlin 2.2 toolchain. Newer Ktor lines require a newer Kotlin compiler and should be adopted together with that compiler, not independently.
+**Instead of manual HTTP calls:** Retrofit generates type-safe REST clients at build time with declarative annotations, eliminating boilerplate request encoding and response mapping.
 
 ### OkHttp engine
 
-Ktor runs on the OkHttp engine on Android. OkHttp provides mature connection pooling, TLS, certificate pinning, HTTP caching and reliable Android networking. Its BOM keeps the core and logging artifacts on one version. Version 5.4.0 is the newest release this project can use: 5.5.0 requires compile SDK 37, and Android Gradle Plugin 9.0.1 supports compile SDK 36.
-
-**Instead of Ktor CIO:** CIO is useful for multiplatform consistency. OkHttp is preferred for this Android-only app because certificate pinning, Chucker integration, persistent HTTP cache behavior and Android TLS support are already proven here. Ktor remains the public networking API, so changing the engine later does not affect repositories.
+Retrofit runs on OkHttp on Android. OkHttp provides mature connection pooling, TLS, certificate pinning, HTTP caching, and reliable Android networking. Its BOM keeps the core and logging artifacts on one version. Version 5.4.0 is used.
 
 ### Chucker
 
@@ -104,7 +100,7 @@ ViewModels own screen state across configuration changes, and lifecycle-aware co
 
 ### Hilt
 
-Hilt creates repositories, databases, workers, Ktor clients and ViewModels with compile-time generated graphs. Qualifiers distinguish authenticated and public clients.
+Hilt creates repositories, databases, workers, Retrofit APIs and ViewModels with compile-time generated graphs. Qualifiers distinguish authenticated and public clients.
 
 **Instead of manual service locators:** Hilt validates missing bindings at build time and scopes process-level resources correctly. **Instead of Koin:** Koin is concise and useful, but runtime graph failures are less desirable for a modular financial app than Hilt's compile-time validation.
 
@@ -146,7 +142,7 @@ LeakCanary automatically detects retained activities, fragments and Compose host
 
 ### JUnit 4, AndroidX Test, Espresso and Compose UI Test
 
-JUnit runs local business-rule tests. AndroidX Test supplies instrumented runners, Espresso covers Android interactions, and Compose UI Test understands semantics rather than screen coordinates. Ktor's `MockEngine` checks HTTP paths and serialization without a server.
+JUnit runs local business-rule tests. AndroidX Test supplies instrumented runners, Espresso covers Android interactions, and Compose UI Test understands semantics rather than screen coordinates. MockWebServer and OkHttp mock interceptors check HTTP paths and serialization without a live server.
 
 ### Detekt and ktlint
 

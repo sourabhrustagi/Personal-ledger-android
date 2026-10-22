@@ -1,10 +1,10 @@
 package com.ledger.personal.data.repository
 
-import com.ledger.personal.data.remote.api.TransactionApi
+import com.ledger.personal.data.remote.api.TransactionNetworkDataSource
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
-import com.ledger.personal.data.remote.dto.toDomain
+import com.ledger.personal.data.remote.dto.asExternalModel
 import com.ledger.personal.data.remote.safeApiCall
 import com.ledger.personal.di.IoDispatcher
 import com.ledger.personal.domain.model.Transaction
@@ -20,21 +20,22 @@ import javax.inject.Singleton
 /** Reads and writes transactions through remote network endpoints. */
 @Singleton
 class TransactionsRepository @Inject constructor(
-    private val apiService: TransactionApi,
-    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    private val networkDataSource: TransactionNetworkDataSource,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : TransactionRemote {
 
     /** Returns transactions. */
     override suspend fun getTransactions(page: Int, pageSize: Int): Result<List<Transaction>> =
         safeApiCall(ioDispatcher) {
-            apiService.getTransactions(page = page, pageSize = pageSize).items.map(TransactionDto::toDomain)
+            networkDataSource.getTransactions(page = page, pageSize = pageSize).items.asExternalModel()
         }
 
     /** Returns transaction by id. */
     override suspend fun getTransactionById(id: String): Result<Transaction> =
         safeApiCall(ioDispatcher) {
-            apiService.getTransactionById(id = id).toDomain()
+            networkDataSource.getTransactionById(id = id).asExternalModel()
         }
+
 
     /** Creates transaction. */
     override suspend fun createTransaction(
@@ -49,7 +50,7 @@ class TransactionsRepository @Inject constructor(
             category = category,
             description = description
         )
-        call { apiService.createTransaction(request) }
+        call { networkDataSource.createTransaction(request) }
     }
 
     /** Patch transaction. */
@@ -57,25 +58,29 @@ class TransactionsRepository @Inject constructor(
         id: String,
         category: String?,
         description: String?,
-        amountInCents: Long?
+        amountInCents: Long?,
     ): Result<Transaction> = safeApiCall(ioDispatcher) {
         val request = PatchTransactionRequestDto(
             category = category,
             description = description,
-            amountInCents = amountInCents
+            amountInCents = amountInCents,
         )
-        call { apiService.patchTransaction(id = id, request = request) }
+        call { networkDataSource.patchTransaction(id = id, request = request) }
     }
 
     /** Deletes transaction. */
     override suspend fun deleteTransaction(id: String): Result<Unit> =
         safeApiCall(ioDispatcher) {
-            apiService.deleteTransaction(id = id)
+            val response = networkDataSource.deleteTransaction(id = id)
+            require(response.success) { "Failed to delete transaction" }
+            Unit
         }
 
     /** Call. */
     private suspend inline fun call(block: suspend () -> TransactionDto): Transaction = try {
-        block().toDomain()
+        block().asExternalModel()
+    } catch (error: retrofit2.HttpException) {
+        throw conflictOrNull(error.code(), error.response()?.errorBody()?.string()) ?: error
     } catch (error: ClientRequestException) {
         throw conflictOrNull(error.response.status.value, error.response.bodyAsText()) ?: error
     }
@@ -89,7 +94,7 @@ fun conflictOrNull(code: Int, body: String?): VersionConflict? {
     val dto = runCatching {
         conflictJson.decodeFromString(TransactionDto.serializer(), body)
     }.getOrNull() ?: return null
-    return runCatching { VersionConflict(dto.toDomain()) }.getOrNull()
+    return runCatching { VersionConflict(dto.asExternalModel()) }.getOrNull()
 }
 
 /** Backward-compatible typealias for [TransactionsRepository]. */

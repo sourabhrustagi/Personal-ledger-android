@@ -6,6 +6,7 @@ import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.domain.board.PromoOffer
@@ -23,9 +24,9 @@ fun PromotionsHub(
 ) {
     val shelves = uiState.shelves
     val selected = uiState.selected
-    FeatureScaffold(AppStrings.TITLE_OFFERS, onBack = null) {
+    FeatureScaffold(stringResource(AppStrings.TITLE_OFFERS), onBack = null) {
         if (shelves.isEmpty()) {
-            Text(AppStrings.EMPTY_PROMOTIONS)
+            Text(stringResource(AppStrings.EMPTY_PROMOTIONS))
         } else {
             val index = shelves.indexOfFirst { it.id == selected }.coerceAtLeast(0)
             PrimaryScrollableTabRow(selectedTabIndex = index, edgePadding = 16.dp) {
@@ -35,7 +36,7 @@ fun PromotionsHub(
             }
             val offers = shelves[index].offers
             if (offers.isEmpty()) {
-                Text(AppStrings.EMPTY_TAB_CONTENT)
+                Text(stringResource(AppStrings.EMPTY_TAB_CONTENT))
             } else {
                 offers.forEach { offer ->
                     ListRow(Icons.Outlined.LocalOffer, offer.pitch, subtitle = offer.until.ifBlank { null })

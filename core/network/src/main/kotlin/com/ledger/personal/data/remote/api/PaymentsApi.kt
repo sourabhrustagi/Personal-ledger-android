@@ -37,6 +37,3 @@ class RetrofitPaymentsBackend @Inject constructor(
         api.getPayShortcuts().payees.mapNotNull { it.toShortcut() }
     }.onFailure { if (it is CancellationException) throw it }
 }
-
-/** Backward-compatible typealias for [RetrofitPaymentsBackend]. */
-typealias KtorPaymentsBackend = RetrofitPaymentsBackend

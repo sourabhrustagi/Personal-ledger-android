@@ -66,6 +66,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [3. Domain Financial Colors: `LedgerTheme.colors`](#3-domain-financial-colors-ledgerthemecolors)
   - [4. Theme Modes & Dynamic Switching (`ThemeMode`)](#4-theme-modes--dynamic-switching-thememode)
   - [5. Design System Components (`:core:designsystem`)](#5-design-system-components-coredesignsystem)
+  - [6. Multilingual Architecture: English & Hindi Support (`:core:designsystem`)](#6-multilingual-architecture-english--hindi-support)
 - [Business Logic & Domain Invariants](#business-logic)
   - [Financial Calculations & Accounting Invariants](#financial-calculations--accounting-invariants)
   - [Payments, UPI & Fraud Prevention](#payments-upi--fraud-prevention)
@@ -1352,6 +1353,106 @@ To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Sing
 3. **Stateless Presentation & Event Hoisting:**
    Components are strictly stateless presentation elements. They receive immutable state values via parameters and bubble user intents up via callback lambdas (`onClick`, `onValueChange`).
 
+---
+
+### <a id="6-multilingual-architecture-english--hindi-support"></a>6. Multilingual Architecture: English & Hindi Support (`:core:designsystem`)
+
+LedgerOne features full, out-of-the-box **multilingual localization** supporting **English (`en`)** and **Hindi (`hi`)**. The application is architected to allow users to experience all financial screens, transaction histories, wallet transfers, QR scanners, and promotional hubs seamlessly in either language.
+
+```mermaid
+graph TD
+    A[Composable UI Screens] -->|stringResource AppStrings.*| B[AppStrings.kt Registry]
+    B -->|@StringRes R.string.*| C[Android Resource System]
+    C -->|Default Locale 'en'| D[core/designsystem/.../values/strings.xml]
+    C -->|Hindi Locale 'hi'| E[core/designsystem/.../values-hi/strings.xml]
+    F[Android 13+ System Settings] -->|Per-App Language Selection| G[locales_config.xml en, hi]
+    G -->|Configures Context Locale| C
+```
+
+#### A. Supported Languages & Resource Structure
+
+All user-facing strings are strictly centralized in Android resource XML catalogs:
+
+| Language | Locale Code | Resource File Path | Description |
+|---|---|---|---|
+| **English** | `en` (default) | `core/designsystem/src/main/res/values/strings.xml` | Primary base catalog containing all titles, form labels, actions, and empty/loading states. |
+| **Hindi** | `hi` | `core/designsystem/src/main/res/values-hi/strings.xml` | Complete Hindi localization catalog mapped 1-to-1 with every English resource key. |
+| **App Name (EN)** | `en` | `app/src/main/res/values/strings.xml` | Launcher and OS-level title: `Personal Ledger`. |
+| **App Name (HI)** | `hi` | `app/src/main/res/values-hi/strings.xml` | Launcher and OS-level title in Devanagari script: `पर्सनल लेजर`. |
+
+#### B. Type-Safe String Registry (`AppStrings.kt`)
+
+Rather than scattering raw resource integer IDs or hardcoding string literals throughout UI screens, all localized string IDs are registered in `com.ledger.personal.ui.theme.AppStrings`:
+
+```kotlin
+// In :core:designsystem (AppStrings.kt)
+object AppStrings {
+    // App & Navigation Titles
+    @StringRes val TITLE_HOME: Int = R.string.title_home
+    @StringRes val TITLE_PASSBOOK: Int = R.string.title_passbook
+    @StringRes val TITLE_WALLET: Int = R.string.title_wallet
+
+    // Action Buttons
+    @StringRes val ACTION_CONTINUE: Int = R.string.action_continue
+    @StringRes val ACTION_SAVE: Int = R.string.action_save
+    @StringRes val ACTION_EDIT_DETAILS: Int = R.string.action_edit_details
+
+    // Form Field Labels & Placeholders
+    @StringRes val LABEL_AMOUNT: Int = R.string.label_amount
+    @StringRes val LABEL_RECIPIENT: Int = R.string.label_recipient
+    @StringRes val LABEL_YOU_ARE_SENDING: Int = R.string.label_you_are_sending
+
+    // Empty & Loading States
+    @StringRes val EMPTY_TRANSACTIONS_DEFAULT_TITLE: Int = R.string.empty_transactions_default_title
+    @StringRes val LOADING_TRANSACTIONS: Int = R.string.loading_transactions
+
+    // Technical Constants (Non-Translatable)
+    const val CURRENCY_INR = "INR"
+    const val CURRENCY_USD = "USD"
+    const val CURRENCY_SYMBOL_RUPEE = "₹"
+}
+```
+
+UI Composables resolve these dynamically based on the active device or per-app configuration using Jetpack Compose's `stringResource(...)`:
+
+```kotlin
+// Example in Composable screens
+Text(stringResource(AppStrings.LABEL_AMOUNT))
+PrimaryButton(
+    text = stringResource(AppStrings.ACTION_CONTINUE),
+    onClick = viewModel::review
+)
+```
+
+#### C. Android 13+ Per-App Language Preferences (`locales_config.xml`)
+
+LedgerOne configures Android 13+ (API level 33+) **Per-App Language Preferences**, allowing users to customize the app's language independently of their overall system device language:
+
+1. **Locales Declaration (`app/src/main/res/xml/locales_config.xml`):**
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+       <locale android:name="en" />
+       <locale android:name="hi" />
+   </locale-config>
+   ```
+2. **Manifest Integration (`app/src/main/AndroidManifest.xml`):**
+   ```xml
+   <application
+       android:localeConfig="@xml/locales_config"
+       android:supportsRtl="true"
+       ... >
+   ```
+3. **Optimized Resource Packaging (`app/build.gradle.kts`):**
+   ```kotlin
+   defaultConfig {
+       // Package ONLY English and Hindi; strip unused locales from third-party libraries
+       resourceConfigurations += listOf("en", "hi")
+   }
+   ```
+
+---
+
 ## <a id="business-logic"></a>Business logic
 
 The application's domain rules are concentrated in pure Kotlin within `core/model`, ensuring they can be tested independently of the Android runtime and UI frameworks.
@@ -1452,6 +1553,7 @@ All contributors and automated agents must adhere to the following architectural
 ### 3. Design System & Theming Rules
 
 - **Strict Design System Tokens:** Feature code uses theme colours (`MaterialTheme.colorScheme`, `LedgerTheme.colors`). Raw `Color(0x…)` values belong in `core/designsystem` only.
+- **Multilingual String Externalization:** All user-facing UI copy (screen titles, button labels, form hints, and state messages) must be defined in `strings.xml` with complete Hindi translations in `values-hi/strings.xml`, registered in `AppStrings`, and accessed in Compose via `stringResource(AppStrings.*)`. Never hardcode user-facing strings in UI screens. Non-translatable protocol tokens (currency codes, headers) remain constant in `LedgerConstants` or `BankingHeaders`.
 
 ---
 

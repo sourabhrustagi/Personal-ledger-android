@@ -41,6 +41,7 @@ import com.ledger.personal.ui.feature.PaymentsOfflineNotice
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.navigation.Screen
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows pay hub. */
@@ -85,20 +86,20 @@ fun PayHub(
         }
     }
 
-    FeatureScaffold("Pay", onBack = null) {
+    FeatureScaffold(AppStrings.TITLE_PAY, onBack = null) {
         if (flags.offline) PaymentsOfflineNotice()
         val online = !flags.offline
 
-        SectionCard(title = "Scan and pay") {
+        SectionCard(title = AppStrings.SECTION_SCAN_AND_PAY) {
             ListRow(
                 icon = Icons.Outlined.QrCodeScanner,
-                title = "Scan any UPI QR code",
+                title = AppStrings.ACTION_SCAN_QR,
                 subtitle = "Opens camera to scan QR and make payment",
                 iconTint = if (online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 onClick = { if (online) onOpen(Screen.Scan) },
             )
             PrimaryButton(
-                text = "Open camera & scan",
+                text = AppStrings.ACTION_OPEN_CAMERA,
                 icon = Icons.Outlined.QrCodeScanner,
                 enabled = online,
                 onClick = { onOpen(Screen.Scan) },
@@ -106,7 +107,7 @@ fun PayHub(
             )
         }
 
-        SectionCard(title = "Send to anyone") {
+        SectionCard(title = AppStrings.SECTION_SEND_TO_ANYONE) {
             Text(
                 "Enter mobile number or UPI ID, or select from local contacts",
                 style = MaterialTheme.typography.bodyMedium,
@@ -115,8 +116,8 @@ fun PayHub(
             OutlinedTextField(
                 value = recipientInput,
                 onValueChange = { recipientInput = it },
-                label = { Text("Mobile number or UPI ID") },
-                placeholder = { Text("e.g. 9876543210 or name@upi") },
+                label = { Text(AppStrings.LABEL_RECIPIENT) },
+                placeholder = { Text(AppStrings.LABEL_RECIPIENT_PLACEHOLDER) },
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp),
                 trailingIcon = {
@@ -142,10 +143,10 @@ fun PayHub(
                 ) {
                     Icon(Icons.Outlined.Contacts, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Contacts")
+                    Text(AppStrings.ACTION_CONTACTS)
                 }
                 PrimaryButton(
-                    text = "Continue",
+                    text = AppStrings.ACTION_CONTINUE,
                     enabled = online && recipientInput.isNotBlank(),
                     onClick = { onOpen(Screen.PayTo(recipientInput.trim(), 0L)) },
                     modifier = Modifier.weight(1f),
@@ -155,7 +156,7 @@ fun PayHub(
             HorizontalDivider()
 
             Text(
-                "Saved contacts",
+                AppStrings.LABEL_SAVED_CONTACTS,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

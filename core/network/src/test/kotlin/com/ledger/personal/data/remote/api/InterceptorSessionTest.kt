@@ -1,15 +1,7 @@
 package com.ledger.personal.data.remote.api
 
 import com.ledger.personal.data.remote.interceptor.AuthInterceptor
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.http.HttpHeaders
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
@@ -25,41 +17,29 @@ class InterceptorSessionTest {
     @Test
     fun mockBeginSetsALocalTokenAndEndClearsIt() = runBlocking {
         val auth = AuthInterceptor()
-        val client = HttpClient(
-            MockEngine {
-                respond(
-                    """{"token":"$MOCK_SESSION_TOKEN"}""",
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                )
-            },
-        ) {
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        val sessionApi = object : SessionRetrofitApi {
+            override suspend fun begin(): SessionDto = SessionDto(MOCK_SESSION_TOKEN)
         }
-        val session = InterceptorSession(auth, client)
-        assertTrue(session.begin().isSuccess)
+        val session = InterceptorSession(auth, sessionApi)
+        val result = session.begin()
+        assertTrue(result.isSuccess)
+        assertEquals(MOCK_SESSION_TOKEN, result.getOrNull()?.token)
         assertEquals("Bearer $MOCK_SESSION_TOKEN", bearer(auth))
         session.end()
         assertNull(bearer(auth))
-        client.close()
     }
 
     @Test
     fun liveBeginStoresTheServerToken() = runBlocking {
         val auth = AuthInterceptor()
-        val client = HttpClient(
-            MockEngine {
-                respond(
-                    """{"token":"live-token"}""",
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                )
-            },
-        ) {
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        val sessionApi = object : SessionRetrofitApi {
+            override suspend fun begin(): SessionDto = SessionDto("live-token")
         }
-        val session = InterceptorSession(auth, client)
-        assertTrue(session.begin().isSuccess)
+        val session = InterceptorSession(auth, sessionApi)
+        val result = session.begin()
+        assertTrue(result.isSuccess)
+        assertEquals("live-token", result.getOrNull()?.token)
         assertEquals("Bearer live-token", bearer(auth))
-        client.close()
     }
 
     private fun bearer(auth: AuthInterceptor): String? {

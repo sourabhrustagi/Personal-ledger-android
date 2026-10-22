@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -22,7 +21,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.util.Consumer
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -38,32 +37,17 @@ import androidx.navigation.toRoute
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
-import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.app.AppViewModel
 import com.ledger.personal.ui.app.DemoViewModel
 import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
-import com.ledger.personal.ui.app.account.ProfileScreen
-import com.ledger.personal.ui.app.account.SettingsScreen
 import com.ledger.personal.ui.app.hubs.PayHub
 import com.ledger.personal.ui.app.hubs.PromotionsHub
 import com.ledger.personal.ui.app.hubs.PromotionsViewModel
 import com.ledger.personal.ui.app.scan.ScanScreen
-import com.ledger.personal.ui.app.tools.ConflictScreen
-import com.ledger.personal.ui.app.tools.DisputeScreen
-import com.ledger.personal.ui.app.tools.DisputesScreen
-import com.ledger.personal.ui.app.tools.MockControlsScreen
-import com.ledger.personal.ui.app.tools.ToolsViewModel
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.OutlinedButton
-import com.ledger.personal.ui.feature.BankingScreen
-import com.ledger.personal.ui.feature.CardsScreen
-import com.ledger.personal.ui.feature.DepositsScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
-import com.ledger.personal.ui.feature.LoansScreen
-import com.ledger.personal.ui.feature.TickerScreen
 import com.ledger.personal.ui.feature.WalletScreen
 import com.ledger.personal.ui.screens.create.CreateTransactionScreen
 import com.ledger.personal.ui.screens.create.CreateTransactionViewModel
@@ -75,7 +59,6 @@ import com.ledger.personal.ui.screens.home.HomeScreen
 import com.ledger.personal.ui.screens.home.HomeViewModel
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListViewModel
-import androidx.core.util.Consumer
 
 /** Shows ledger nav host. */
 @Composable
@@ -92,14 +75,12 @@ fun LedgerNavHost(
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
     val flags = HubFlags(offline, empty, session.revealBalances || !prefs.hideBalances, appViewModel::toggleReveal)
-    val tools: ToolsViewModel = hiltViewModel()
     val home: HomeViewModel = hiltViewModel()
     val homeState by home.uiState.collectAsStateWithLifecycle()
     fun routeFor(id: String): Screen? = when (id) {
         "home" -> Screen.Home
         "pay" -> Screen.PayHub
         "passbook" -> Screen.Passbook
-        "accounts" -> Screen.Profile
         "offers" -> Screen.Promotions()
         else -> null
     }
@@ -107,7 +88,6 @@ fun LedgerNavHost(
         "home" -> Icons.Outlined.Home
         "pay" -> Icons.Outlined.QrCodeScanner
         "passbook" -> Icons.AutoMirrored.Outlined.ReceiptLong
-        "accounts" -> Icons.Outlined.AccountCircle
         "offers" -> Icons.Outlined.LocalOffer
         else -> null
     }
@@ -146,11 +126,10 @@ fun LedgerNavHost(
             startDestination = Screen.Home,
             modifier = Modifier.padding(inner).consumeWindowInsets(inner),
         ) {
-            tabRoutes(navController, prefs, flags, tools, home)
+            tabRoutes(navController, prefs, flags, home)
             ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
             productRoutes(navController, offline)
-            accountRoutes(navController, prefs, appViewModel)
-            toolRoutes(navController, tools)
+            payRoutes(navController)
         }
     }
 }
@@ -167,25 +146,20 @@ private fun NavGraphBuilder.tabRoutes(
     nav: NavHostController,
     prefs: AppPrefs,
     flags: HubFlags,
-    tools: ToolsViewModel,
     home: HomeViewModel,
 ) {
     composable<Screen.Home> {
-        val conflicts by tools.inbox.conflicts.collectAsStateWithLifecycle()
         HomeScreen(
             name = prefs.name,
             balanceMinor = if (flags.empty) 0L else MockCatalog.bankAccounts.first().balanceMinor,
             revealBalance = flags.reveal,
             offline = flags.offline,
             onToggleReveal = flags.onToggleReveal,
-            onProfile = { nav.navigate(Screen.Profile) },
-            conflicts = conflicts.size,
-            onConflicts = { nav.navigate(Screen.Conflicts) },
             viewModel = home,
         )
     }
     composable<Screen.PayHub> {
-        PayHub(flags, { nav.navigate(Screen.Profile) }, nav::navigate)
+        PayHub(flags, nav::navigate)
     }
     composable<Screen.Passbook> {
         LedgerHistoryScreen(
@@ -197,7 +171,7 @@ private fun NavGraphBuilder.tabRoutes(
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
         val offers: PromotionsViewModel = hiltViewModel()
         val uiState by offers.uiState.collectAsStateWithLifecycle()
-        PromotionsHub(uiState, offers::select) { nav.navigate(Screen.Profile) }
+        PromotionsHub(uiState, offers::select)
     }
 }
 
@@ -230,7 +204,6 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
             onNavigateBack = { nav.popBackStack() },
             onNavigateEdit = null,
             onRetry = { viewModel.loadTransaction(route.transactionId) },
-            actions = { tx -> DetailActions(nav, tx) },
         )
     }
     composable<Screen.CreateTransaction> {
@@ -274,42 +247,14 @@ private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boole
             onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
         )
     }
-    composable<Screen.Ticker> { TickerScreen(onBack = back) }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
-    composable<Screen.Banking> { BankingScreen(onBack = back) }
-    composable<Screen.Cards> { CardsScreen(onBack = back) }
-    composable<Screen.Loans> { LoansScreen(onBack = back) }
-    composable<Screen.Deposits> { DepositsScreen(onBack = back) }
 }
 
-/** Account routes. */
-private fun NavGraphBuilder.accountRoutes(nav: NavHostController, prefs: AppPrefs, app: AppViewModel) {
-    val back: () -> Unit = { nav.popBackStack() }
-    composable<Screen.Profile> {
-        ProfileScreen(
-            prefs = prefs,
-            showMockControls = BuildConfig.DEBUG && BuildConfig.FLAVOR == "mock",
-            onBack = null,
-            onOpen = nav::navigate,
-            onLock = app::lock,
-            onLogOut = app::logOut,
-        )
-    }
-    composable<Screen.Settings> { SettingsScreen(prefs, back, { app.setTheme(it) }, { app.setHideBalances(it) }) }
-}
-
-/** Tool routes. */
-private fun NavGraphBuilder.toolRoutes(
+/** Pay & transfer routes. */
+private fun NavGraphBuilder.payRoutes(
     nav: NavHostController,
-    tools: ToolsViewModel,
 ) {
     val back: () -> Unit = { nav.popBackStack() }
-    composable<Screen.Dispute> { entry ->
-        DisputeScreen(entry.toRoute<Screen.Dispute>().transactionId, tools, back) { nav.navigate(Screen.Disputes) }
-    }
-    composable<Screen.Disputes> { DisputesScreen(tools, back) }
-    composable<Screen.Conflicts> { ConflictScreen(tools, back) }
-    composable<Screen.MockControls> { MockControlsScreen(onBack = back, onSimulateConflict = tools::simulateConflict) }
     composable<Screen.Scan> {
         ScanScreen(liveCamera = true, onBack = back) { target ->
             nav.navigate(Screen.PayTo(target.vpa, target.amountMinor)) { popUpTo<Screen.Scan> { inclusive = true } }
@@ -322,11 +267,3 @@ private fun NavGraphBuilder.toolRoutes(
 }
 
 private data class BarItem(val title: String, val route: Screen, val icon: ImageVector)
-
-/** Shows detail actions. */
-@Composable
-private fun DetailActions(nav: NavHostController, tx: Transaction) {
-    OutlinedButton(onClick = { nav.navigate(Screen.Dispute(tx.id)) }, modifier = Modifier.fillMaxWidth()) {
-        Text("Report a problem")
-    }
-}

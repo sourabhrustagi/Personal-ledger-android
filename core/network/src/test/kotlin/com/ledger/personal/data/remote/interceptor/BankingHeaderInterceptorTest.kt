@@ -26,8 +26,15 @@ class BankingHeaderInterceptorTest {
 
         assertEquals(BankingHeaders.APPLICATION_JSON, request.header(BankingHeaders.ACCEPT))
         assertEquals(BankingHeaders.PLATFORM_ANDROID, request.header(BankingHeaders.X_PLATFORM))
+        assertEquals(BankingHeaders.PLATFORM_ANDROID, request.header(BankingHeaders.PLATFORM))
         assertEquals(BankingHeaders.CHANNEL_MOBILE_BANKING, request.header(BankingHeaders.X_CHANNEL))
         assertEquals("1.0.0", request.header(BankingHeaders.X_APP_VERSION))
+
+        // Essential: Device ID
+        val deviceId = request.header(BankingHeaders.X_DEVICE_ID)
+        assertNotNull(deviceId)
+        assertEquals("test-device-id", deviceId)
+        assertEquals("test-device-id", request.header(BankingHeaders.DEVICE_ID))
 
         // Distributed tracing
         val correlationId = request.header(BankingHeaders.X_CORRELATION_ID)
@@ -53,7 +60,7 @@ class BankingHeaderInterceptorTest {
     }
 
     @Test
-    fun injectsIdempotencyKeyOnMutatingPostRequest() {
+    fun injectsIdempotencyKeyAndContentTypeOnMutatingPostRequest() {
         val interceptor = BankingHeaderInterceptor()
         val request = intercept(
             interceptor,
@@ -66,12 +73,15 @@ class BankingHeaderInterceptorTest {
         val idempotencyKey = request.header(BankingHeaders.X_IDEMPOTENCY_KEY)
         assertNotNull(idempotencyKey)
         UUID.fromString(idempotencyKey)
+
+        assertEquals(BankingHeaders.APPLICATION_JSON, request.header(BankingHeaders.CONTENT_TYPE))
     }
 
     @Test
-    fun preservesCallerSuppliedCorrelationIdAndIdempotencyKey() {
+    fun preservesCallerSuppliedCorrelationIdAndDeviceId() {
         val customCorrelation = "corr-test-12345"
         val customIdempotency = "idem-test-67890"
+        val customDeviceId = "secure-hardware-device-777"
 
         val interceptor = BankingHeaderInterceptor()
         val request = intercept(
@@ -80,12 +90,14 @@ class BankingHeaderInterceptorTest {
                 .url("https://api.personal-ledger.com/retail/v1/transfers")
                 .header(BankingHeaders.X_CORRELATION_ID, customCorrelation)
                 .header(BankingHeaders.X_IDEMPOTENCY_KEY, customIdempotency)
+                .header(BankingHeaders.X_DEVICE_ID, customDeviceId)
                 .post("{}".toRequestBody(null))
                 .build(),
         )
 
         assertEquals(customCorrelation, request.header(BankingHeaders.X_CORRELATION_ID))
         assertEquals(customIdempotency, request.header(BankingHeaders.X_IDEMPOTENCY_KEY))
+        assertEquals(customDeviceId, request.header(BankingHeaders.X_DEVICE_ID))
     }
 
     @Test

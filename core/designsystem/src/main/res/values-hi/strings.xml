@@ -28,6 +28,8 @@
     <string name="action_add_transaction">लेन-देन जोड़ें</string>
     <string name="action_update_transaction">लेन-देन अपडेट करें</string>
     <string name="action_saving_changes">परिवर्तन सहेजे जा रहे हैं…</string>
+    <string name="action_edit_details">विवरण संपादित करें</string>
+    <string name="action_send_another">और भेजें</string>
 
     <!-- Form Field Labels & Placeholders -->
     <string name="label_amount">राशि</string>
@@ -40,6 +42,9 @@
     <string name="label_note_optional">टिप्पणी (वैकल्पिक)</string>
     <string name="label_select_from_contacts">स्थानीय संपर्कों में से चुनें</string>
     <string name="label_quick_select_category">त्वरित श्रेणी चुनें:</string>
+    <string name="label_waiting_for_categories">श्रेणियों की प्रतीक्षा है…</string>
+    <string name="label_you_are_sending">आप भेज रहे हैं</string>
+    <string name="label_money_sent">पैसे भेज दिए गए</string>
 
     <!-- Empty & Loading States -->
     <string name="empty_transactions_title">अपना पहला लेन-देन जोड़ें</string>

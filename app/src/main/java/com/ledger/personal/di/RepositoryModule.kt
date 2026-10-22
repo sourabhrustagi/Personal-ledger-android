@@ -2,17 +2,17 @@ package com.ledger.personal.di
 
 import android.content.Context
 import com.ledger.personal.BuildConfig
-import com.ledger.personal.data.remote.api.KtorHomeBoard
-import com.ledger.personal.data.remote.api.KtorPaymentsBackend
-import com.ledger.personal.data.remote.api.KtorPromotionsBackend
+import com.ledger.personal.data.remote.api.RetrofitHomeBoard
+import com.ledger.personal.data.remote.api.RetrofitPaymentsBackend
+import com.ledger.personal.data.remote.api.RetrofitPromotionsBackend
 import com.ledger.personal.data.repository.MockTransactionRepository
 import com.ledger.personal.data.repository.TransactionsRepository
 import com.ledger.personal.domain.repository.TransactionRemote
 import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
 import com.ledger.personal.data.security.DeviceBindingRetrofitApi
-import com.ledger.personal.data.security.KtorBindingServer
 import com.ledger.personal.data.security.LocalBindingServer
+import com.ledger.personal.data.security.RetrofitBindingServer
 import retrofit2.Retrofit
 import com.ledger.personal.domain.demo.DemoConditions
 import com.ledger.personal.domain.board.HomeBoard
@@ -25,8 +25,6 @@ import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.mock.SwitchConditions
 import com.ledger.personal.ui.feature.PaymentRail
-import io.ktor.client.HttpClient
-import kotlinx.coroutines.flow.onEach
 import java.io.File
 import java.io.IOException
 import dagger.Binds
@@ -80,31 +78,29 @@ object RepositoryModule {
     /** Supplies binding server. */
     @Provides
     @Singleton
-    fun provideBindingServer(local: LocalBindingServer, ktor: KtorBindingServer): BindingServer =
-        if (BuildConfig.FLAVOR == "mock") local else ktor
+    fun provideBindingServer(local: LocalBindingServer, remote: RetrofitBindingServer): BindingServer =
+        if (BuildConfig.FLAVOR == "mock") local else remote
 }
 
-/** Picks the mock or live backend for each team. Their response shapes stay inside the Ktor classes. */
+/** Picks the mock or live backend for each team. Their response shapes stay inside the Retrofit classes. */
 @Module
 @InstallIn(SingletonComponent::class)
 object TeamModule {
     /** Supplies home board. */
     @Provides
     @Singleton
-    fun home(mock: MockHomeBoard, live: KtorHomeBoard): HomeBoard = if (BuildConfig.FLAVOR == "mock") mock else live
+    fun home(mock: MockHomeBoard, live: RetrofitHomeBoard): HomeBoard = if (BuildConfig.FLAVOR == "mock") mock else live
 
     /** Supplies payments backend. */
     @Provides
     @Singleton
-    fun payments(mock: MockPaymentsBackend, live: KtorPaymentsBackend): PaymentsBackend =
+    fun payments(mock: MockPaymentsBackend, live: RetrofitPaymentsBackend): PaymentsBackend =
         if (BuildConfig.FLAVOR == "mock") mock else live
-
-
 
     /** Supplies promotions backend. */
     @Provides
     @Singleton
-    fun promotions(mock: MockPromotionsBackend, live: KtorPromotionsBackend): PromotionsBackend =
+    fun promotions(mock: MockPromotionsBackend, live: RetrofitPromotionsBackend): PromotionsBackend =
         if (BuildConfig.FLAVOR == "mock") mock else live
 }
 

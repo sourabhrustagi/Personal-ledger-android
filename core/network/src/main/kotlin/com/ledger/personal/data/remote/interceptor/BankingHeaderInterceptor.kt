@@ -29,10 +29,31 @@ class BankingHeaderInterceptor @Inject constructor(
 ) : Interceptor {
 
     private var explicitVersion: String? = null
+    private var explicitDeviceId: String? = null
 
     /** Secondary constructor for testing environments without an Android Context. */
-    constructor(appVersion: String = "1.0.0") : this(android.content.ContextWrapper(null)) {
+    constructor(appVersion: String = "1.0.0", deviceId: String = "test-device-id") : this(android.content.ContextWrapper(null)) {
         this.explicitVersion = appVersion
+        this.explicitDeviceId = deviceId
+    }
+
+    private val deviceId: String by lazy {
+        explicitDeviceId ?: runCatching {
+            android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                android.provider.Settings.Secure.ANDROID_ID,
+            )?.takeIf { it.isNotBlank() }
+        }.getOrNull() ?: runCatching {
+            val prefs = context.getSharedPreferences("banking_device_prefs", Context.MODE_PRIVATE)
+            val existing = prefs.getString("device_id", null)
+            if (!existing.isNullOrBlank()) {
+                existing
+            } else {
+                val generated = UUID.randomUUID().toString()
+                prefs.edit().putString("device_id", generated).apply()
+                generated
+            }
+        }.getOrDefault("unknown-device")
     }
 
     private val appVersion: String by lazy {
@@ -64,6 +85,9 @@ class BankingHeaderInterceptor @Inject constructor(
         if (original.header(BankingHeaders.ACCEPT) == null) {
             requestBuilder.header(BankingHeaders.ACCEPT, BankingHeaders.APPLICATION_JSON)
         }
+        if (original.body != null && original.header(BankingHeaders.CONTENT_TYPE) == null) {
+            requestBuilder.header(BankingHeaders.CONTENT_TYPE, BankingHeaders.APPLICATION_JSON)
+        }
 
         // Distributed tracing: generate correlation ID if caller didn't provide one
         if (original.header(BankingHeaders.X_CORRELATION_ID) == null) {
@@ -76,8 +100,28 @@ class BankingHeaderInterceptor @Inject constructor(
         // Request timestamp in milliseconds
         requestBuilder.header(BankingHeaders.X_TIMESTAMP, System.currentTimeMillis().toString())
 
-        // Platform & device telemetry
-        requestBuilder.header(BankingHeaders.X_PLATFORM, BankingHeaders.PLATFORM_ANDROID)
+        // Essential: Device Identification (X-Device-Id and Device-Id)
+        val resolvedDeviceId = original.header(BankingHeaders.X_DEVICE_ID)
+            ?: original.header(BankingHeaders.DEVICE_ID)
+            ?: deviceId
+        if (resolvedDeviceId.isNotBlank()) {
+            if (original.header(BankingHeaders.X_DEVICE_ID) == null) {
+                requestBuilder.header(BankingHeaders.X_DEVICE_ID, resolvedDeviceId)
+            }
+            if (original.header(BankingHeaders.DEVICE_ID) == null) {
+                requestBuilder.header(BankingHeaders.DEVICE_ID, resolvedDeviceId)
+            }
+        }
+
+        // Essential: Platform Identification (X-Platform and Platform)
+        if (original.header(BankingHeaders.X_PLATFORM) == null) {
+            requestBuilder.header(BankingHeaders.X_PLATFORM, BankingHeaders.PLATFORM_ANDROID)
+        }
+        if (original.header(BankingHeaders.PLATFORM) == null) {
+            requestBuilder.header(BankingHeaders.PLATFORM, BankingHeaders.PLATFORM_ANDROID)
+        }
+
+        // Device & OS Telemetry
         requestBuilder.header(BankingHeaders.X_OS_VERSION, Build.VERSION.SDK_INT.toString())
         Build.MODEL?.takeIf { it.isNotBlank() }?.let {
             requestBuilder.header(BankingHeaders.X_DEVICE_MODEL, it)
@@ -85,7 +129,11 @@ class BankingHeaderInterceptor @Inject constructor(
         Build.MANUFACTURER?.takeIf { it.isNotBlank() }?.let {
             requestBuilder.header(BankingHeaders.X_DEVICE_MANUFACTURER, it)
         }
-        requestBuilder.header(BankingHeaders.X_DEVICE_LOCALE, Locale.getDefault().toLanguageTag())
+        val localeTag = Locale.getDefault().toLanguageTag()
+        requestBuilder.header(BankingHeaders.X_DEVICE_LOCALE, localeTag)
+        if (original.header(BankingHeaders.ACCEPT_LANGUAGE) == null) {
+            requestBuilder.header(BankingHeaders.ACCEPT_LANGUAGE, localeTag)
+        }
         requestBuilder.header(BankingHeaders.X_CHANNEL, BankingHeaders.CHANNEL_MOBILE_BANKING)
         requestBuilder.header(BankingHeaders.X_APP_VERSION, appVersion)
 

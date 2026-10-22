@@ -1,5 +1,6 @@
 package com.ledger.personal.ui.screens
 
+import com.ledger.personal.core.LedgerConstants
 import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.screens.create.CreateTransactionUiState
 import com.ledger.personal.ui.screens.detail.TransactionDetailUiState
@@ -42,6 +43,6 @@ class UiStateTest {
         assertTrue(state.category.isEmpty())
         assertFalse(state.isSubmitting)
         assertFalse(state.isSuccess)
-        assertTrue(state.currency == "USD")
+        assertTrue(state.currency == LedgerConstants.CURRENCY_USD)
     }
 }

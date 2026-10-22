@@ -17,12 +17,12 @@ data class ApiConfig(
     val isMockFlavor: Boolean get() = mockFlavor
 }
 
-/** Ktor client that sends the current session token. */
+/** Authenticated client that sends the current session token. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class AuthenticatedClient
 
-/** Ktor client for public, cacheable static endpoints. */
+/** Public client for cacheable static endpoints. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class StaticClient

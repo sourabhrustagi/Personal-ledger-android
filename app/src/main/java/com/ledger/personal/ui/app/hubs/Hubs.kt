@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.Person
@@ -49,18 +48,10 @@ import com.ledger.personal.ui.feature.SectionCard
 import com.ledger.personal.ui.navigation.Screen
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
-/** Shows profile action. */
-@Composable
-internal fun ProfileAction(onProfile: () -> Unit) {
-    IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
-}
-
-
 /** Shows pay hub. */
 @Composable
 fun PayHub(
     flags: HubFlags,
-    onProfile: () -> Unit,
     onOpen: (Screen) -> Unit,
 ) {
     val context = LocalContext.current
@@ -99,7 +90,7 @@ fun PayHub(
         }
     }
 
-    FeatureScaffold("Pay", onBack = null, actions = { ProfileAction(onProfile) }) {
+    FeatureScaffold("Pay", onBack = null) {
         if (flags.offline) PaymentsOfflineNotice()
         val online = !flags.offline
 
@@ -191,11 +182,10 @@ fun PayHub(
 fun PromotionsHub(
     uiState: PromotionsUiState,
     onSelect: (String) -> Unit,
-    onProfile: () -> Unit,
 ) {
     val shelves = uiState.shelves
     val selected = uiState.selected
-    FeatureScaffold("Offers", onBack = null, actions = { ProfileAction(onProfile) }) {
+    FeatureScaffold("Offers", onBack = null) {
         if (shelves.isEmpty()) {
             Text("No promotions right now.")
         } else {
@@ -223,9 +213,8 @@ fun PromotionsHub(
     shelves: List<PromoTab>,
     selected: String,
     onSelect: (String) -> Unit,
-    onProfile: () -> Unit,
 ) {
-    PromotionsHub(PromotionsUiState(shelves, selected), onSelect, onProfile)
+    PromotionsHub(PromotionsUiState(shelves, selected), onSelect)
 }
 
 private val previewFlags = HubFlags(offline = false, empty = false, reveal = true, onToggleReveal = {})
@@ -234,7 +223,7 @@ private val previewFlags = HubFlags(offline = false, empty = false, reveal = tru
 @Composable
 private fun PayHubPreview() {
     PersonalLedgerTheme {
-        PayHub(previewFlags, onProfile = {}, onOpen = {})
+        PayHub(previewFlags, onOpen = {})
     }
 }
 
@@ -244,7 +233,6 @@ private fun PayHubOfflinePreview() {
     PersonalLedgerTheme {
         PayHub(
             HubFlags(offline = true, empty = false, reveal = true, onToggleReveal = {}),
-            onProfile = {},
             onOpen = {},
         )
     }
@@ -258,7 +246,6 @@ private fun PromotionsPreview() {
             shelves = listOf(PromoTab("bills", "Bills", listOf(PromoOffer("electricity", "₹25 cashback on electricity", "This week")))),
             selected = "bills",
             onSelect = {},
-            onProfile = {},
         )
     }
 }
@@ -266,5 +253,5 @@ private fun PromotionsPreview() {
 @PreviewLightDark
 @Composable
 private fun PromotionsEmptyPreview() {
-    PersonalLedgerTheme { PromotionsHub(shelves = emptyList(), selected = "", onSelect = {}, onProfile = {}) }
+    PersonalLedgerTheme { PromotionsHub(shelves = emptyList(), selected = "", onSelect = {}) }
 }

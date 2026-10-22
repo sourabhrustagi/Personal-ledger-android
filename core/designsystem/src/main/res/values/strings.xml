@@ -28,6 +28,8 @@
     <string name="action_add_transaction">Add Transaction</string>
     <string name="action_update_transaction">Update Transaction</string>
     <string name="action_saving_changes">Saving Changes…</string>
+    <string name="action_edit_details">Edit details</string>
+    <string name="action_send_another">Send another</string>
 
     <!-- Form Field Labels & Placeholders -->
     <string name="label_amount">Amount</string>
@@ -40,6 +42,9 @@
     <string name="label_note_optional">Note (optional)</string>
     <string name="label_select_from_contacts">Select from local contacts</string>
     <string name="label_quick_select_category">Quick Select Category:</string>
+    <string name="label_waiting_for_categories">Waiting for categories…</string>
+    <string name="label_you_are_sending">You are sending</string>
+    <string name="label_money_sent">Money sent</string>
 
     <!-- Empty & Loading States -->
     <string name="empty_transactions_title">Add your first transaction</string>

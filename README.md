@@ -708,7 +708,7 @@ Users should not lose their input while filling forms if they rotate their scree
   ```kotlin
   var amountText by rememberSaveable { mutableStateOf(initialAmount) }
   ```
-- **Quick recipient input (`Hubs.kt`):**
+- **Quick recipient input (`PayHub.kt`):**
   ```kotlin
   var recipientInput by rememberSaveable { mutableStateOf("") }
   ```

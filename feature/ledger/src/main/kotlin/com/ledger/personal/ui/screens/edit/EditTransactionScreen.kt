@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Shows the edit transaction screen. */
@@ -71,7 +72,7 @@ fun EditTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Transaction", fontWeight = FontWeight.Bold) },
+                title = { Text(AppStrings.TITLE_EDIT_TRANSACTION, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -94,7 +95,7 @@ fun EditTransactionScreen(
         ) {
             when {
                 uiState.isLoadingInitial -> {
-                    LoadingState(message = "Loading transaction data...")
+                    LoadingState(message = AppStrings.LOADING_TRANSACTION_DATA)
                 }
                 uiState.errorMessage != null && uiState.transactionId.isBlank() -> {
                     ErrorState(
@@ -104,9 +105,9 @@ fun EditTransactionScreen(
                 }
                 uiState.isEmpty -> {
                     EmptyState(
-                        title = "Transaction not found",
-                        message = "Could not find the record to edit.",
-                        actionLabel = "Back to List",
+                        title = AppStrings.NO_MATCHING_TRANSACTIONS,
+                        message = AppStrings.EMPTY_TRANSACTION_NOT_FOUND,
+                        actionLabel = AppStrings.ACTION_BACK_TO_LIST,
                         onActionClick = onNavigateBack
                     )
                 }
@@ -147,7 +148,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.amountInput,
                                     onValueChange = onAmountChange,
-                                    label = { Text("Amount") },
+                                    label = { Text(AppStrings.LABEL_AMOUNT) },
                                     prefix = { Text("$ ") },
                                     isError = uiState.amountError != null,
                                     supportingText = {
@@ -163,7 +164,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.category,
                                     onValueChange = onCategoryChange,
-                                    label = { Text("Category") },
+                                    label = { Text(AppStrings.LABEL_CATEGORY) },
                                     isError = uiState.categoryError != null,
                                     supportingText = {
                                         if (uiState.categoryError != null) {
@@ -175,7 +176,7 @@ fun EditTransactionScreen(
                                 )
 
                                 Text(
-                                    text = "Quick Select Category:",
+                                    text = AppStrings.LABEL_QUICK_SELECT_CATEGORY,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -199,7 +200,7 @@ fun EditTransactionScreen(
                                 OutlinedTextField(
                                     value = uiState.description,
                                     onValueChange = onDescriptionChange,
-                                    label = { Text("Description") },
+                                    label = { Text(AppStrings.LABEL_DESCRIPTION) },
                                     minLines = 2,
                                     maxLines = 4,
                                     modifier = Modifier.fillMaxWidth()
@@ -223,10 +224,10 @@ fun EditTransactionScreen(
                                         strokeWidth = 2.dp
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
-                                    Text("Saving Changes...")
+                                    Text(AppStrings.ACTION_SAVING_CHANGES)
                                 }
                             } else {
-                                Text("Update Transaction", fontWeight = FontWeight.Bold)
+                                Text(AppStrings.ACTION_UPDATE_TRANSACTION, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

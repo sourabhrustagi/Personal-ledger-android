@@ -16,6 +16,7 @@ class MockResponsesTest {
             MockResponses.OTP,
             MockResponses.TRANSACTIONS_LIST,
             MockResponses.TRANSACTION_DETAIL,
+            MockResponses.DELETE_TRANSACTION,
             MockResponses.STATIC_CATEGORIES,
             MockResponses.STATIC_VERSION,
             MockResponses.STATIC_STATUS,
@@ -42,6 +43,7 @@ class MockResponsesTest {
         assertNotNull(MockResponses.responseFor("/auth/otp"))
         assertNotNull(MockResponses.responseFor("/transactions", "GET"))
         assertNotNull(MockResponses.responseFor("/transactions", "POST"))
+        assertNotNull(MockResponses.responseFor("/transactions/tx-1", "DELETE"))
         assertNotNull(MockResponses.responseFor("/static/categories"))
         assertNotNull(MockResponses.responseFor("/static/version"))
         assertNotNull(MockResponses.responseFor("/static/status"))

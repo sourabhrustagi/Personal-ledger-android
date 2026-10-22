@@ -1,5 +1,6 @@
 package com.ledger.personal.data.remote.interceptor
 
+import com.ledger.personal.data.remote.BankingHeaders
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
@@ -20,7 +21,7 @@ class AuthInterceptor @Inject constructor() : Interceptor {
     /** Intercept. */
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request().newBuilder().apply {
-            authToken?.let { header("Authorization", "Bearer $it") }
+            authToken?.let { header(BankingHeaders.AUTHORIZATION, "${BankingHeaders.BEARER_PREFIX}$it") }
         }.build()
         return chain.proceed(request)
     }

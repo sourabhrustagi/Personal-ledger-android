@@ -74,6 +74,11 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 - [Dependencies](#dependencies)
 - [Tests and Checks](#tests-and-checks)
 - [Contributing & Engineering Guidelines](#contributing)
+  - [1. Architectural & Modularization Rules](#1-architectural--modularization-rules)
+  - [2. Financial Integrity & Currency Constraints](#2-financial-integrity--currency-constraints)
+  - [3. Design System & Theming Rules](#3-design-system--theming-rules)
+  - [4. Kotlin Idioms & Coding Standards](#4-kotlin-idioms--coding-standards)
+  - [5. Kotlin Coroutines & Structured Concurrency](#5-kotlin-coroutines--structured-concurrency)
 
 ---
 
@@ -136,36 +141,55 @@ LedgerOne directly resolves these real-world business challenges through five co
 
 ## <a id="quick-start"></a>Quick start
 
+> [!NOTE]
+> **Prerequisites:**
+> - Android Studio (recent version: Ladybug or newer recommended)
+> - Java Development Kit: **JDK 17**
+> - Target device: Android emulator or physical phone running **Android 8.0 (API 26)** or later.
 
-Requirements: Android Studio (recent), JDK 17, an emulator or phone on Android 8.0 (API 26) or later.
+### Clone and Run
 
 ```bash
+# Clone the repository and navigate into the project root
 git clone <this repo>
 cd "Personal ledger"
+
+# Install and launch the default mockDebug flavor on a connected device/emulator
 ./gradlew :app:installMockDebug
 ```
 
-Or open the folder in Android Studio, pick the `mockDebug` build variant, and press Run.
+Alternatively, open the project root in Android Studio, select the **`mockDebug`** build variant in the *Build Variants* window, and press **Run (Shift + F10)**.
 
-In the mock build:
+> [!TIP]
+> **Mock Build Ready-To-Use Defaults:**
+> In the `mock` build:
+> - **SMS Sign-up & Sign-in Code:** `123456` (`MockValues.OTP`)
+> - **Security MPIN Code:** `1111` (`MockValues.MPIN`)
+> - **Pre-filled Phone Number:** `9876543210` (`MockValues.DEFAULT_PHONE`)
+> - **Demo Profile Name:** `Asha Rao` (`MockValues.DEFAULT_NAME`)
+> - **Built-in Demo Switches:** Built-in demo switches let you simulate slow network, server errors, going offline, and empty data without needing an active backend.
 
-- the sign-up and sign-in code is `123456` (`MockValues.OTP`);
-- Built-in demo switches let you simulate slow network, server errors, going offline, and empty data.
+---
 
 ## <a id="build-flavors"></a>Build flavors
 
 The project defines one flavor dimension, `environment`, with four distinct flavors, combined with `debug` and `release` build types:
 
-| Flavor | Variant | Application id | API Endpoint | Purpose & Data Source |
-|---|---|---|---|---|
-| `mock` | `mockDebug` (default) | `com.ledger.personal.mock.debug` | `http://10.0.2.2:8080/retail/v1/` | Fully in-memory & offline mock backend using seeded catalog; no network connection required |
-| `dev` | `devDebug` / `devRelease` | `com.ledger.personal.dev` (plus `.debug` on debug) | `https://dev-api.personal-ledger.com/retail/v1/` | Development environment for active integration testing against real services |
-| `staging` | `stagingDebug` / `stagingRelease` | `com.ledger.personal.staging` (plus `.debug` on debug) | `https://staging-api.personal-ledger.com/retail/v1/` | Pre-production QA environment for release qualification and staging tests |
-| `prod` | `prodDebug` / `prodRelease` | `com.ledger.personal` (plus `.debug` on debug) | `https://api.personal-ledger.com/retail/v1/` | Live production banking infrastructure |
+| Flavor | Variant | Application ID | API Endpoint | Purpose & Data Source | Run / Install Command |
+|---|---|---|---|---|---|
+| `mock` | `mockDebug` *(default)* | `com.ledger.personal.mock.debug` | `http://10.0.2.2:8080/retail/v1/` | Fully in-memory & offline mock backend using seeded catalog; no network connection required | `./gradlew :app:installMockDebug` |
+| `dev` | `devDebug` / `devRelease` | `com.ledger.personal.dev` (plus `.debug` on debug) | `https://dev-api.personal-ledger.com/retail/v1/` | Development environment for active integration testing against real services | `./gradlew :app:installDevDebug` |
+| `staging` | `stagingDebug` / `stagingRelease` | `com.ledger.personal.staging` (plus `.debug` on debug) | `https://staging-api.personal-ledger.com/retail/v1/` | Pre-production QA environment for release qualification and staging tests | `./gradlew :app:installStagingDebug` |
+| `prod` | `prodDebug` / `prodRelease` | `com.ledger.personal` (plus `.debug` on debug) | `https://api.personal-ledger.com/retail/v1/` | Live production banking infrastructure | `./gradlew :app:installProdRelease` |
 
-All four flavor apps can be installed side by side on the same device or emulator because each has a unique package name. Debug builds enable HTTP inspection (Chucker), Timber debug logging, and attach `.debug` to the application id. Release builds enable R8 shrinking and ProGuard optimization.
+> [!IMPORTANT]
+> **Side-by-Side Coexistence & Security Protections:**
+> - **Side-by-Side Installation:** All four flavor apps can be installed side by side on the same device or emulator because each has a unique package name.
+> - **Debug Diagnostics:** Debug builds enable HTTP inspection (Chucker), Timber debug logging, and attach `.debug` to the application id.
+> - **Release Optimizations:** Release builds enable R8 shrinking, dead code elimination, and ProGuard optimization.
+> - **Certificate Pinning:** Certificate pinning is pre-configured, with `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` to be filled with server SPKI hashes before releasing to `prod`.
 
-Certificate pinning is pre-configured, with `PIN_SHA256` and `PIN_SHA256_BACKUP` in `app/build.gradle.kts` to be filled with server SPKI hashes before releasing to `prod`.
+---
 
 ## <a id="mock-values--demo-credentials"></a><a id="mock-values-demo-credentials"></a>Mock values & demo credentials
 
@@ -175,43 +199,59 @@ All mock values and seed catalogs are centralized in `:core:mock` so they can be
 
 Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockValues.kt):
 
-- **SMS OTP Verification Code (`MockValues.OTP`):** `123456` — used on Onboarding and OTP Login screens.
-- **Universal Demo MPIN (`MockValues.MPIN`):** `1111` — used for MPIN operations in Security centre.
-- **Default User Name (`MockValues.DEFAULT_NAME`):** `Asha Rao` — used for demo profiles and previews.
-- **Default Phone Number (`MockValues.DEFAULT_PHONE`):** `9876543210` — used for onboarding phone input and previews.
-- **Default Session Token (`MockValues.SESSION_TOKEN`):** `mock-session` — used for local authenticated requests.
+| Constant | Value | Description & Application Scope |
+|---|---|---|
+| **`MockValues.OTP`** | `123456` | SMS OTP verification code used on Onboarding and OTP Login screens. |
+| **`MockValues.MPIN`** | `1111` | Universal demo MPIN accepted by the mock build flavor for MPIN operations in Security centre. |
+| **`MockValues.DEFAULT_NAME`** | `Asha Rao` | Default user display name used for demo profiles, previews, and personalized greetings. |
+| **`MockValues.DEFAULT_PHONE`** | `9876543210` | Default mobile phone number used for onboarding phone input and Compose previews. |
+| **`MockValues.SESSION_TOKEN`** | `mock-session` | Default bearer session token for local/mock API authentication. |
 
 ### <a id="central-mock-catalog-mockcatalogkt"></a>Central mock catalog (`MockCatalog.kt`)
 
 Defined in [`core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt`](core/mock/src/main/kotlin/com/ledger/personal/mock/MockCatalog.kt):
 
-- **Bank Accounts:** Savings (`...4821`, balance ₹2,45,678.90), Salary (`...1093`, balance ₹86,420.15), and Fixed Deposit (`...7710`, balance ₹5,00,000.00).
-- **Contacts & Payees:** `Asha Rao` (`asha@okaxis`), `Rahul Mehta` (`rahul.m@okicici`), `Priya Shah` (`priya@oksbi`), `Vikram Iyer` (`vikram@okhdfc`).
-- **Utility Billers:** Electricity BESCOM (`₹500.00`), Airtel Postpaid (`₹799.00`), ACT Broadband (`₹1,179.00`), BWSSB Water (`₹320.00`).
-- **Cards:** Savings Debit (Visa `...4821`), Rewards Credit (RuPay `...9034`).
+- **Bank Accounts:** 
+  - Savings (`...4821`, balance ₹2,45,678.90)
+  - Salary (`...1093`, balance ₹86,420.15)
+  - Fixed Deposit (`...7710`, balance ₹5,00,000.00)
+- **Contacts & Payees:** 
+  - `Asha Rao` (`asha@okaxis`)
+  - `Rahul Mehta` (`rahul.m@okicici`)
+  - `Priya Shah` (`priya@oksbi`)
+  - `Vikram Iyer` (`vikram@okhdfc`)
+- **Utility Billers:** 
+  - Electricity BESCOM (`₹500.00`)
+  - Airtel Postpaid (`₹799.00`)
+  - ACT Broadband (`₹1,179.00`)
+  - BWSSB Water (`₹320.00`)
+- **Cards:** 
+  - Savings Debit (Visa `...4821`)
+  - Rewards Credit (RuPay `...9034`)
 - **Historical Transactions:** 200 seeded transactions across Groceries, Dining, Transport, Salary, Utilities, and Entertainment.
 
 To customize test data, simply update the constants in `MockValues.kt` or records in `MockCatalog.kt`.
 
+---
+
 ## <a id="force-update"></a>Force update
 
-Force update applies only when all of these are true:
+The app supports two tiers of remote version gating: **Force Update** (blocking) and **Soft Update** (optional).
 
-- the launch call to `GET static/version` succeeds;
-- that response includes a minimum `versionCode`;
-- this install's `versionCode` is **strictly less** than that minimum (`current < required`).
+### Update Types Comparison
 
-It does **not** apply when the version call fails or omits a minimum (a downed static API must not lock people out), or when this install is equal to or newer than the published minimum.
+| Update Type | API Trigger | Condition | Screen Behavior | User Action |
+|---|---|---|---|---|
+| **Force Update** (Mandatory) | `GET static/version` succeeds | `installedVersionCode < minimumVersionCode` | Replaces entire shell with **Update required** screen. Onboarding, login, and bottom tabs stay blocked. | **Update now**: Opens the Play Store listing for this application id (the `.debug` suffix is stripped so debug builds still point to the store app). |
+| **Soft Update** (Optional) | `GET static/status` succeeds with `softUpdate: true` | `versionCode` not in user's ignored list, and Force Update does not apply | Displays an **Update available** dialog banner (`AppStatus.softUpdate`). Onboarding, login, and all tabs stay usable. | **Update**: Opens Play Store listing.<br/>**Not now**: Remembers `versionCode` in DataStore so prompt remains hidden until next release. |
 
-When it applies, `LedgerOneApp` shows **Update required** and nothing else: onboarding, login, and the tabs stay blocked. **Update now** opens the Play listing for this application id (the `.debug` suffix is stripped so a debug build still points at the store app).
-
-A soft update applies when `GET static/status` succeeds with `softUpdate: true` and a `versionCode` this install has not skipped, and force update does not apply. `AppStatus.softUpdate` is what shows **Update available**; onboarding, login, and the tabs stay usable. **Not now** remembers that `versionCode`. **Update** opens the same Play listing. A missing or failed status call shows nothing.
+### Technical Rules & Invariants
+- **Fault-Tolerant Availability:** Force update does **not** apply when the version call fails or omits a minimum (a downed static API must not lock people out of their local ledger), or when this install is equal to or newer than the published minimum.
+- **When to Raise Minimum Version:** Raise the published `versionCode` only when a build must be retired — broken crypto, a payment bug, or an unsupported Play services floor. Set `softUpdate` on `GET static/status` for a regular store update the person can skip.
 
 | Light | Dark |
 | --- | --- |
 | <img src="docs/images/force-update-light.png" width="240" alt="Force update, light"> | <img src="docs/images/force-update-dark.png" width="240" alt="Force update, dark"> |
-
-Raise the published `versionCode` only when a build must be retired — broken crypto, a payment bug, or an unsupported Play services floor. Set `softUpdate` on `GET static/status` for a regular store update the person can skip.
 
 ## <a id="whats-in-the-app"></a>What's in the app
 
@@ -316,21 +356,26 @@ flowchart TD
 
 ## <a id="project-layout"></a>Project layout
 
-```
-app/                 App shell: navigation graph (Screen), build flavors, DI wiring, and ui/app (auth, hubs, scan)
-core/model/          Plain Kotlin: domain types (Transaction, Money), repository interfaces, business rules (Rules.kt)
-core/network/        Ktor API, DTOs, auth interceptor, certificate pinning, device binding
-core/database/       Room database, migrations, offline-first repository, sync worker, DataStore settings
-core/designsystem/   Theme, colours, money formatting, shared Compose components (FeatureScaffold, keypad, banners)
-core/ui/             Shared Compose UI effects and window security utilities (SecureWindow)
-core/mock/           Mock backend, seeded demo catalog, mock switches
-core/testing/        Shared test samples and fixtures
-feature/<name>/      One module per feature: ledger, wallet
-docs/                Architecture document and decision records
-```
+The application is structured into a modular multi-tier hierarchy to enforce separation of concerns, build scalability, and strict feature isolation:
 
-Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
-See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
+| Module / Path | Layer | Responsibility & Capabilities | Key Technologies & Files |
+|---|---|---|---|
+| **`app/`** | App Shell | Top-level application shell, navigation graph (`Screen`), build flavors, DI wiring, and application-level flows (`ui/app`: auth, hubs, scan) | `LedgerOneApp.kt`, `LedgerNavHost.kt`, `RepositoryModule.kt` |
+| **`core/model/`** | Domain (Pure Kotlin) | Domain models (`Transaction`, `Money`), abstract repository interfaces, Use Cases, and core business rules (`Rules.kt`) | `Transaction.kt`, `Rules.kt`, `SendOtpUseCase.kt` |
+| **`core/network/`** | Data (Remote) | Ktor/Retrofit REST API, serialization DTOs, auth interceptor, TLS certificate pinning, and device binding | `TransactionsApi.kt`, `SafeApiCall.kt`, `DeviceBinding.kt` |
+| **`core/database/`** | Data (Local) | Room database, schema migrations, offline-first repository, WorkManager sync worker, and DataStore preferences | `LedgerDatabase.kt`, `TransactionDao.kt`, `TransactionSyncWorker.kt` |
+| **`core/designsystem/`** | Design System | Theme, semantic financial colors, typography roles, money formatting, and shared Compose components (`FeatureScaffold`, keypad, banners) | `Theme.kt`, `Color.kt`, `FeatureScaffold.kt`, `Money.kt` |
+| **`core/ui/`** | UI Utilities | Shared Compose UI effects, lifecycle helpers, and window security utilities (`SecureWindow` for screenshot blocking) | `SecureWindow.kt` |
+| **`core/mock/`** | Mock & Demo | Mock backend, seeded demo catalog (`MockCatalog`), mock credentials (`MockValues`), and testing levers (`MockSwitches`) | `MockValues.kt`, `MockCatalog.kt`, `MockSwitches.kt` |
+| **`core/testing/`** | Test Fixtures | Shared test samples, test dispatchers, and scripted mock coordinators | `Samples.kt` |
+| **`feature/<name>/`** | Feature Modules | Distinct product features (one module per feature: `:feature:ledger`, `:feature:wallet`) | `HomeScreen.kt`, `WalletScreen.kt` |
+| **`docs/`** | Documentation | Architectural Decision Records (MADRs), architecture documentation, and module integration guidelines | `docs/ARCHITECTURE.md`, `docs/MODULES.md` |
+
+> [!IMPORTANT]
+> **Strict Feature Isolation Rule:**
+> Feature modules never depend on each other; `ModuleBoundaryTest` fails the build if one does. 
+> - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
+> - See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 
 ## <a id="architecture--how-the-app-works"></a><a id="architecture-how-the-app-works"></a>Architecture & How the app works
 
@@ -477,23 +522,41 @@ sequenceDiagram
 ---
 
 ### <a id="1-offline-first-local-source-of-truth"></a>1. Offline-first local source of truth
-- Every user write (transaction creation, draft changes, bill payments) is immediately persisted to the local **Room** database with a synchronization status: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE`.
-- Screens never read directly from network endpoints. Jetpack Compose screens observe read-only `StateFlow` streams exposed by ViewModels, which in turn collect cold `Flow` emissions directly from Room DAOs. This guarantees instantaneous UI updates and seamless offline functionality.
+
+- **Immediate Local Persistence:** Every user write (transaction creation, draft changes, bill payments) is immediately persisted to the local **Room** database with an atomic synchronization status:
+  - `SYNCED`: Clean state in sync with server.
+  - `PENDING_CREATE`: Created offline, awaiting remote POST.
+  - `PENDING_UPDATE`: Modified offline, awaiting remote PATCH.
+  - `PENDING_DELETE`: Deleted offline, awaiting remote DELETE.
+- **Reactive UI Flow:** Screens never read directly from network endpoints. Jetpack Compose screens observe read-only `StateFlow` streams exposed by ViewModels, which in turn collect cold `Flow` emissions directly from Room DAOs. This guarantees instantaneous UI updates with zero perceived network lag and seamless offline functionality.
+
+---
 
 ### <a id="2-resilient-background-synchronization--conflict-resolution"></a><a id="2-resilient-background-synchronization-conflict-resolution"></a>2. Resilient background synchronization & conflict resolution
-- **WorkManager** schedules `TransactionSyncWorker` with network constraints (`NetworkType.CONNECTED`).
-- Pending local mutations are pushed with exponential backoff (`withRetry`). Network calls use unique, client-generated idempotency keys (`TransferBook`) to prevent duplicate transactions during retries.
-- Remote changes are pulled and merged into Room without overwriting local un-synced edits. When a server responds with `409 Conflict`, the competing states are diverted into `ConflictInbox` for side-by-side user resolution.
+
+- **WorkManager Scheduling:** **WorkManager** schedules `TransactionSyncWorker` with network constraints (`NetworkType.CONNECTED`) to guarantee background delivery even across app restarts and device reboots.
+- **Exponential Backoff & Idempotency:** Pending local mutations are pushed with exponential backoff (`withRetry`). Network calls use unique, client-generated idempotency keys (`TransferBook`) to prevent duplicate transactions during retries.
+- **Three-Way Merge & Conflict Resolution:** Remote changes are pulled and merged into Room without overwriting local un-synced edits. When a server responds with `409 Conflict`, the competing states are diverted into `ConflictInbox` for side-by-side user resolution.
+
+---
 
 ### <a id="3-build-flavor-dependency-injection"></a>3. Build flavor dependency injection
-- Dagger Hilt dynamically binds repositories based on the build flavor:
-  - `mockDebug`: uses in-memory `MockTransactionRepository` seeded with accounts, contacts, and transactions, alongside `MockSwitches` to simulate network latency, offline mode, and server errors.
-  - `dev`, `staging`, and `prod`: inject `TransactionsRepository` connecting to remote HTTPS endpoints with TLS certificate pinning and hardware-backed device binding.
+
+Dagger Hilt dynamically binds repositories and network clients based on the active build flavor:
+
+| Build Flavor | Repository Implementation | Network Client / Data Source | Security & Inspection Levers |
+|---|---|---|---|
+| **`mockDebug`** | `MockTransactionRepository` | In-memory seeded catalog (accounts, contacts, transactions) | `MockSwitches` for latency, errors, and offline simulation |
+| **`dev`** / **`staging`** / **`prod`** | `TransactionsRepository` | Remote HTTPS endpoints via Retrofit / Ktor | TLS certificate pinning, hardware-backed ECDSA device binding |
+
+---
 
 ### <a id="4-multi-layer-banking-security"></a>4. Multi-layer banking security
-- **MPIN & Keystore:** MPIN keys are stretched with PBKDF2 (600,000 iterations) and sealed using Android Keystore keys.
+
+- **MPIN & Keystore Protection:** MPIN keys are stretched with PBKDF2 (600,000 iterations) and sealed using Android Keystore keys.
 - **Biometric Device Binding:** Devices register hardware-backed ECDSA P-256 keys in the Keystore, signing cryptographic server challenge nonces (`SHA256withECDSA`) upon biometric verification.
 - **Window Protection (`SecureWindow`):** Sensitive screens dynamically block screenshot capture and recent-app previews using Android's `FLAG_SECURE`.
+- **Inactivity Session Lock:** Background timer automatically locks the authenticated session after 30 seconds of inactivity to protect against unauthorized physical access.
 
 ## <a id="view-models"></a>View models
 
@@ -1366,20 +1429,111 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 
 CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull request into `main`. It runs static analysis, the app mock unit tests, the core module unit tests, and assembles the `mockDebug` APK. A failing test fails the job.
 
-## <a id="contributing"></a>Contributing
+## <a id="contributing"></a>Contributing & Engineering Guidelines
 
-- Put a new screen in its feature module. If two features need the same code, move it to a `core` module; don't add a dependency between features.
-- Store money as a `Long` in minor units (paise or cents), never as a `Double`. Display it with `formatMoney`.
-- Feature code uses theme colours (`MaterialTheme.colorScheme`, `LedgerTheme.colors`). Raw `Color(0x…)` values belong in `core/designsystem` only.
-- Every new screen should have a mock path, so the `mock` flavor keeps running without a backend.
-- Shortcuts that are deliberately minimal are marked with a `ponytail:` comment explaining what a full version needs.
-- Follow [Kotlin exception classes](https://kotlinlang.org/docs/exceptions.html#exception-classes): `require`/`requireNotNull` for bad arguments, `check`/`error` for illegal state, and `getOrNull` / `firstOrNull` / `toLongOrNull` instead of `IndexOutOfBoundsException`, `NoSuchElementException`, or `NumberFormatException`. Custom types extend `Exception` with a message and an optional cause. Catch the most specific type first; rethrow `CancellationException`; do not catch `Error`.
-- Follow [Kotlin functions](https://kotlinlang.org/docs/functions.html#tail-recursive-functions): default and named arguments instead of overloads, a data class instead of `Pair` when the values mean different things, and a single-expression body when the function is one expression. Mark a self-call `tailrec` only when it is the last operation (not inside `try`/`catch`/`finally`, not on an `open` member) so the compiler turns it into a loop.
-- Follow [Kotlin lambdas](https://kotlinlang.org/docs/lambdas.html): trailing lambda outside the `()`, `it` for a single used parameter, `_` when unused, and a callable reference (`TransactionEntity::toDomain`) instead of `{ x -> toDomain(x) }`. Keep `Unit` in a function type. Use an anonymous function only when you need a local `return` or an explicit return type.
-- Follow [Kotlin inline functions](https://kotlinlang.org/docs/inline-functions.html): mark a small higher-order function `inline` so the lambda is copied into the call site. Use `reified` when the body needs the type (`is`/`as`, `navDeepLink<T>`). Mark a lambda `noinline` if it is stored or passed on, `crossinline` if it is called from a nested object or function. Do not inline a large function. A public inline body may only use public or `@PublishedApi` declarations.
-- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): a `data class` for a named record (`Leg`), an `object` when there is no instance state (`SteadyConditions`). Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`). Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`). Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `ThemeMode`). Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
-- Follow [functional interfaces](https://kotlinlang.org/docs/fun-interfaces.html): `fun interface` plus a SAM lambda (`AppRelease { }`, `CategoryCatalog { }`, `HomeBoard { }`, `AssistantBackend { }`) when there is one abstract member. Use a function type when the API only needs a function; keep a plain interface when there are several members.
-- Follow [properties](https://kotlinlang.org/docs/properties.html) for argument-free reads (`TransferBook.size`), `private set` for a value the type mutates (`ChargeQueue.charges`), `const` for compile-time primitives, and `lateinit` only for injection or test setup. Follow [delegated properties](https://kotlinlang.org/docs/delegated-properties.html): `by lazy` for a one-time init (`DeviceKeys.store`); do not write a custom delegate the stdlib already covers.
-- Follow [null safety](https://kotlinlang.org/docs/null-safety.html): `?.` / `?:` / `orEmpty()` / `as?` instead of `!!` or `as`. Use `requireNotNull` when null is a programming error. Do not invent a nullable type you immediately assert.
-- Follow [Kotlin scope functions](https://kotlinlang.org/docs/scope-functions.html#context-object-this-or-it): `apply` (`this`, returns the object) to configure members; `also` (`it`, returns the object) for a side effect that takes the object as an argument; `let` (`it`, returns the lambda) for a non-null value or a local name; `run` (`this`, returns the lambda) to use members and compute a result, or non-extension `run` where an expression is required; `with` to group calls. Prefer `takeIf` / `takeUnless` over an `if` that only filters one value. Do not nest scope functions.
-- Follow the [Kotlin coroutines guide](https://kotlinlang.org/docs/coroutines-guide.html): structured concurrency (`viewModelScope`, `coroutineScope`) — no `GlobalScope`. Independent suspend work runs concurrently with `async`/`await` ([composing](https://kotlinlang.org/docs/composing-suspending-functions.html)); sequential when the next call needs the previous result. Rethrow `CancellationException` ([cancellation](https://kotlinlang.org/docs/coroutines-cancellation.html), [exceptions](https://kotlinlang.org/docs/exception-handling.html)). Switch threads with `withContext` (`Dispatchers.IO` / `Default`) ([dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html)). Streams are [Flow](https://kotlinlang.org/docs/coroutines-flow.html) with [operators](https://kotlinlang.org/docs/coroutines-flow-operators.html) (`catch`, `sample`, `stateIn`); `delay` is the cancellation check in a loop. Shared mutable writes use `Mutex.withLock` ([shared state](https://kotlinlang.org/docs/shared-mutable-state-and-concurrency.html)). Do not add a [Channel](https://kotlinlang.org/docs/channels.html) ([channels and coroutines](https://kotlinlang.org/docs/coroutines-and-channels.html)) or experimental [select](https://kotlinlang.org/docs/select-expression.html) unless you need fan-in/fan-out or the first of several deferreds.
+All contributors and automated agents must adhere to the following architectural standards, Kotlin idioms, and financial engineering rules:
+
+---
+
+### 1. Architectural & Modularization Rules
+
+- **Feature Module Isolation:** Put a new screen in its feature module (`:feature:*`). If two features need the same code, move it to a `core/` module; **never** add a dependency between features. `ModuleBoundaryTest` verifies this and fails the build on any cross-feature dependency.
+- **Mock Paths for All Screens:** Every new screen should have a mock path, so the `mock` build flavor keeps running without a backend.
+- **Explicit Shortcuts Documentation:** Shortcuts that are deliberately minimal are marked with a `ponytail:` comment explaining what a full version needs.
+
+---
+
+### 2. Financial Integrity & Currency Constraints
+
+- **Minor-Unit Long Amounts:** Store money as a 64-bit integer (`Long`) in minor units (paise or cents), **never as a `Double` or `Float`**. Display and format it using `formatMoney`.
+
+---
+
+### 3. Design System & Theming Rules
+
+- **Strict Design System Tokens:** Feature code uses theme colours (`MaterialTheme.colorScheme`, `LedgerTheme.colors`). Raw `Color(0x…)` values belong in `core/designsystem` only.
+
+---
+
+### 4. Kotlin Idioms & Coding Standards
+
+#### A. Exception Handling & Validation
+- Follow [Kotlin exception classes](https://kotlinlang.org/docs/exceptions.html#exception-classes): 
+  - Use `require` / `requireNotNull` for bad arguments.
+  - Use `check` / `error` for illegal state.
+  - Use `getOrNull` / `firstOrNull` / `toLongOrNull` instead of catching `IndexOutOfBoundsException`, `NoSuchElementException`, or `NumberFormatException`.
+  - Custom types extend `Exception` with a message and an optional cause.
+  - Catch the most specific type first; **always rethrow `CancellationException`**; do not catch `Error`.
+
+#### B. Functions & Tail Recursion
+- Follow [Kotlin functions](https://kotlinlang.org/docs/functions.html#tail-recursive-functions): 
+  - Use default and named arguments instead of method overloads.
+  - Use a data class instead of `Pair` when the values mean different things.
+  - Use a single-expression body (`fun calculate() = ...`) when the function is one expression.
+  - Mark a self-call `tailrec` only when it is the last operation (not inside `try`/`catch`/`finally`, not on an `open` member) so the compiler turns it into a loop.
+
+#### C. Lambdas & Callable References
+- Follow [Kotlin lambdas](https://kotlinlang.org/docs/lambdas.html): 
+  - Trailing lambda placed outside the parentheses `()`.
+  - Use `it` for a single used parameter; `_` when unused.
+  - Use a callable reference (`TransactionEntity::toDomain`) instead of redundant lambda wraps (`{ x -> toDomain(x) }`).
+  - Keep `Unit` in a function type.
+  - Use an anonymous function only when you need a local `return` or an explicit return type.
+
+#### D. Inline Functions & Generics
+- Follow [Kotlin inline functions](https://kotlinlang.org/docs/inline-functions.html): 
+  - Mark a small higher-order function `inline` so the lambda is copied into the call site.
+  - Use `reified` when the body needs the type (`is`/`as`, `navDeepLink<T>`).
+  - Mark a lambda `noinline` if it is stored or passed on, `crossinline` if it is called from a nested object or function.
+  - Do not inline a large function.
+  - A public inline body may only use public or `@PublishedApi` declarations.
+
+#### E. Class Modeling & Hierarchies
+- Follow [Kotlin classes](https://kotlinlang.org/docs/classes.html): 
+  - Use a `data class` for a named record (`Leg`).
+  - Use an `object` when there is no instance state (`SteadyConditions`).
+  - Follow [extensions](https://kotlinlang.org/docs/extensions.html) on the type they extend (`BannerTone.toneColor()`).
+  - Follow [sealed classes](https://kotlinlang.org/docs/sealed-classes.html) with an exhaustive `when` (`FieldMerge`).
+  - Follow [enum classes](https://kotlinlang.org/docs/enum-classes.html) for a closed set of constants (`BannerTone`, `ThemeMode`).
+  - Follow [inline classes](https://kotlinlang.org/docs/inline-classes.html) only as `@JvmInline value class` wrapping one primitive or `String` when the type itself is the API — do not wrap money; keep a `Long` in minor units.
+- Follow [functional interfaces](https://kotlinlang.org/docs/fun-interfaces.html): 
+  - Use `fun interface` plus a SAM lambda (`AppRelease { }`, `CategoryCatalog { }`, `HomeBoard { }`, `AssistantBackend { }`) when there is one abstract member.
+  - Use a function type when the API only needs a function; keep a plain interface when there are several members.
+
+#### F. Properties & Delegated Initialization
+- Follow [properties](https://kotlinlang.org/docs/properties.html): 
+  - Use `val` for argument-free reads (`TransferBook.size`).
+  - Use `private set` for a value the type mutates (`ChargeQueue.charges`).
+  - Use `const` for compile-time primitives.
+  - Use `lateinit` only for injection or test setup.
+  - Follow [delegated properties](https://kotlinlang.org/docs/delegated-properties.html): `by lazy` for a one-time init (`DeviceKeys.store`); do not write a custom delegate the stdlib already covers.
+
+#### G. Null Safety
+- Follow [null safety](https://kotlinlang.org/docs/null-safety.html): 
+  - Prefer safe calls and operators: `?.`, `?:`, `orEmpty()`, and `as?` instead of force-casts `!!` or `as`.
+  - Use `requireNotNull` when null is a programming error.
+  - Do not invent a nullable type you immediately assert.
+
+#### H. Scope Functions
+- Follow [Kotlin scope functions](https://kotlinlang.org/docs/scope-functions.html#context-object-this-or-it): 
+  - `apply` (`this`, returns the object) to configure members.
+  - `also` (`it`, returns the object) for a side effect that takes the object as an argument.
+  - `let` (`it`, returns the lambda) for a non-null value or a local name.
+  - `run` (`this`, returns the lambda) to use members and compute a result, or non-extension `run` where an expression is required.
+  - `with` to group calls.
+  - Prefer `takeIf` / `takeUnless` over an `if` that only filters one value.
+  - Do not nest scope functions.
+
+---
+
+### 5. Kotlin Coroutines & Structured Concurrency
+
+Follow the official [Kotlin coroutines guide](https://kotlinlang.org/docs/coroutines-guide.html):
+
+- **Structured Concurrency:** Launch coroutines within well-defined lifecycle scopes (`viewModelScope`, `coroutineScope`) — **never use `GlobalScope`**.
+- **Composing Suspend Functions:** Independent suspend work runs concurrently with `async`/`await` ([composing](https://kotlinlang.org/docs/composing-suspending-functions.html)); sequential when the next call needs the previous result.
+- **Cancellation & Exception Propagation:** Rethrow `CancellationException` ([cancellation](https://kotlinlang.org/docs/coroutines-cancellation.html), [exceptions](https://kotlinlang.org/docs/exception-handling.html)). Never swallow cancellation exceptions in try-catch or `runCatching`.
+- **Thread & Context Switching:** Switch threads with `withContext` (`Dispatchers.IO` / `Dispatchers.Default`) ([dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html)). Repository and DAO suspend calls must be main-safe.
+- **Reactive Streams:** Expose streams via [Flow](https://kotlinlang.org/docs/coroutines-flow.html) with [operators](https://kotlinlang.org/docs/coroutines-flow-operators.html) (`catch`, `sample`, `stateIn`); `delay` serves as the cancellation check in a repetitive loop.
+- **Shared State & Concurrency:** Shared mutable writes across coroutines must use `Mutex.withLock` ([shared state](https://kotlinlang.org/docs/shared-mutable-state-and-concurrency.html)).
+- **Channels vs Flows:** Do not add a [Channel](https://kotlinlang.org/docs/channels.html) ([channels and coroutines](https://kotlinlang.org/docs/coroutines-and-channels.html)) or experimental [select](https://kotlinlang.org/docs/select-expression.html) unless you need fan-in/fan-out pipelines or single-consumer one-off event buffers.

@@ -26,6 +26,8 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import com.ledger.personal.domain.usecase.DeleteTransactionUseCase
+import com.ledger.personal.domain.usecase.GetTransactionsUseCase
 
 const val INCOME_CATEGORY = "Salary"
 
@@ -68,11 +70,25 @@ private val PreviewPromotionsBackend = PromotionsBackend { Result.success(emptyL
 /** State and actions for the home screen. */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: TransactionRepository,
+    private val getTransactionsUseCase: GetTransactionsUseCase,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val sync: SyncCoordinator,
     board: HomeBoard,
     promotionsBackend: PromotionsBackend = PreviewPromotionsBackend,
 ) : ViewModel() {
+
+    constructor(
+        repository: TransactionRepository,
+        sync: SyncCoordinator,
+        board: HomeBoard,
+        promotionsBackend: PromotionsBackend = PreviewPromotionsBackend,
+    ) : this(
+        GetTransactionsUseCase(repository),
+        DeleteTransactionUseCase(repository),
+        sync,
+        board,
+        promotionsBackend,
+    )
     private val query = MutableStateFlow("")
     private val category = MutableStateFlow<String?>(null)
     private val pending = MutableStateFlow<Transaction?>(null)
@@ -115,7 +131,7 @@ class HomeViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
-        combine(repository.observeTransactions(), query, category, pending, sync.observe()) { all, q, cat, held, phase ->
+        combine(getTransactionsUseCase(), query, category, pending, sync.observe()) { all, q, cat, held, phase ->
             LedgerSlice(all, q, cat, held, phase)
         },
         boardSlice,
@@ -163,7 +179,7 @@ class HomeViewModel @Inject constructor(
     /** Delete. */
     fun delete(tx: Transaction) {
         deleteJob?.cancel()
-        pending.value?.let { previous -> viewModelScope.launch { repository.deleteTransaction(previous.id) } }
+        pending.value?.let { previous -> viewModelScope.launch { deleteTransactionUseCase(previous.id) } }
         pending.value = tx
         deleteJob = viewModelScope.launch {
             delay(UNDO_WINDOW_MS)
@@ -182,7 +198,7 @@ class HomeViewModel @Inject constructor(
         val tx = pending.value ?: return
         deleteJob?.cancel()
         viewModelScope.launch {
-            repository.deleteTransaction(tx.id)
+            deleteTransactionUseCase(tx.id)
             pending.value = null
         }
     }

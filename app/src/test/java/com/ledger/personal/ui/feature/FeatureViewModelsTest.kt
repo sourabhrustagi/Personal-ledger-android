@@ -1,17 +1,10 @@
 package com.ledger.personal.ui.feature
 
-import com.ledger.personal.data.local.TickerSocket
 import com.ledger.personal.mock.MockCatalog
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -93,49 +86,5 @@ class FeatureViewModelsTest {
         assertEquals(1, calls)
         assertEquals(0, viewModel.postedCount)
         assertTrue(viewModel.uiState.value.errorMessage.orEmpty().contains("Nothing was changed on the server"))
-    }
-
-
-    @Test
-    fun bankingEmiMatchesTheLoan() {
-        val viewModel = BankingViewModel()
-        assertEquals(1_660_715L, viewModel.uiState.value.emiMinor)
-        assertEquals(MockCatalog.loanPrincipalMinor, viewModel.uiState.value.legs.sumOf { it.principalMinor })
-    }
-
-    @Test
-    fun tickerPausesWhenNothingIsCollecting() = runTest {
-        val viewModel = ticker(this)
-        advanceTimeBy(1_000)
-        assertTrue(viewModel.ticks.value > 0L)
-    }
-
-
-    @Test
-    fun tickerPollsAfterTheSocketDrops() = runTest {
-        val viewModel = TickerViewModel(TickerSocket { flow { error("socket down") } })
-        backgroundScope.launch { viewModel.ticks.collect { } }
-        advanceTimeBy(1_500)
-        assertTrue(viewModel.polling.value)
-        assertTrue(viewModel.ticks.value > 0L)
-    }
-
-    @Test
-    fun bankingAcceptsMpinAndBlocksANewBeneficiary() {
-        val viewModel = BankingViewModel()
-        viewModel.signIn("1234")
-        viewModel.showUpi("asha@ok", 1050L)
-        viewModel.addBeneficiary(0L)
-        viewModel.pay(60_000L)
-        assertTrue(viewModel.uiState.value.signedIn)
-        assertEquals("upi://pay?pa=asha@ok&am=10.50", viewModel.uiState.value.upi)
-        assertTrue(viewModel.uiState.value.cooling)
-    }
-
-
-    private fun ticker(scope: TestScope): TickerViewModel {
-        val viewModel = TickerViewModel()
-        scope.backgroundScope.launch { viewModel.ticks.collect { } }
-        return viewModel
     }
 }

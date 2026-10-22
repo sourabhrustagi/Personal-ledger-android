@@ -188,7 +188,6 @@ dependencies {
     // Networking: Retrofit with the OkHttp engine
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.kotlinx.serialization)
-    implementation(libs.ktor.client.core)
 
     // Kotlinx Serialization & Coroutines
     implementation(libs.kotlinx.serialization.json)

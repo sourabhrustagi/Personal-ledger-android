@@ -12,8 +12,6 @@ flowchart TD
     subgraph features [Feature modules]
         ledger[":feature:ledger"]
         wallet[":feature:wallet"]
-        banking[":feature:banking"]
-        ticker[":feature:ticker"]
     end
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
@@ -34,7 +32,7 @@ flowchart TD
     mock --> model
 ```
 
-- **`:app`** is the only module that knows about everything. It owns the `Application` class, the navigation graph, and the switch between mock and live data. Shell screens live under `ui/app/` in one folder per job: `auth/`, `update/`, `hubs/`, `account/`, `scan/`, and `tools/`. The root of `ui/app/` is only the process: which shell to show, session flags, and whether the phone is online.
+- **`:app`** is the only module that knows about everything. It owns the `Application` class, the navigation graph, and the switch between mock and live data. Shell screens live under `ui/app/` in folders per job: `auth/`, `update/`, `hubs/`, and `scan/`. The root of `ui/app/` is only the process: which shell to show, session flags, and whether the phone is online.
 - **Feature modules** each own one area of the product: its screens and view models. A feature may use core modules but **never another feature**.
 - **Core modules** hold shared code. `:core:model` is plain Kotlin with no Android dependency, so the business rules in it are fast to unit test.
 
@@ -43,16 +41,14 @@ flowchart TD
 | Module | Owns |
 |--------|------|
 | `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, and idempotency) |
-| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, Ktor WebSocket ticker, `TransactionsRepository` |
+| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, `TransactionsRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared visual components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`) |
 | `:core:ui` | Shared Compose UI effects and window security utilities (`SecureWindow`) |
-| `:core:mock` | `MockTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty, live-drop) |
+| `:core:mock` | `MockTransactionRepository` (25 seeded INR transactions), `MockCatalog` (accounts, contacts, cards, products), `MockSwitches` (slow, failures, offline, empty) |
 | `:core:testing` | Sample objects shared by tests |
 | `:feature:ledger` | Home, transaction list, detail, create and edit |
 | `:feature:wallet` | Send money, UPI request |
-| `:feature:banking` | Accounts, cards, loans, deposits |
-| `:feature:ticker` | Live market prices over a WebSocket, falling back to polling |
 
 ## How data flows
 
@@ -97,7 +93,6 @@ The app has one flavor dimension, `environment`: `mock` (default), `dev`, `stagi
 | Interface | `mock` | `dev`, `staging`, and `prod` |
 |-----------|--------|------------------------------|
 | `TransactionRemote` | `MockTransactionRepository` | `TransactionsRepository` |
-| `TickerSocket` | Mock price stream (can be told to drop) | Ktor WebSocket |
 | `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `KtorBindingServer` (`devices/challenge`, `devices/bind`) |
 
 Room, sync, view models, and screens are the same code in every flavor. Mock exercises the real offline and sync path; only the server is mock. Each flavor has its own application id, launcher name, version-name suffix, and app-link host, so the four apps install side by side.
@@ -113,7 +108,7 @@ Room, sync, view models, and screens are the same code in every flavor. Mock exe
 
 - **MPIN and biometrics.** The MPIN is stretched with PBKDF2 (600,000 iterations) and the verifier is sealed with an Android Keystore key, so a copied preferences file cannot be guessed offline. A verifier saved by an older build is upgraded the next time it unlocks. Three wrong attempts lock the keypad for 30 seconds. Biometric unlock is optional.
 - **Device binding.** From the Security centre, the phone creates an EC key in the Android Keystore that requires biometric authentication and is invalidated if biometrics change. The server sends a one-time challenge, the phone signs it after a fingerprint check (`SHA256withECDSA`), and the server verifies the signature before issuing a device ID. "Sign out everywhere" deletes the key.
-- **Sensitive screens** (login, onboarding, send money, banking products, security) call `SecureWindow()`, which blocks screenshots and the recent-apps preview.
+- **Sensitive screens** (login, onboarding, send money, security) call `SecureWindow()`, which blocks screenshots and the recent-apps preview.
 - **Balances are hidden** until you tap to reveal them.
 - **Network.** Dev, staging, and prod use HTTPS. Debug builds also allow the emulator host and localhost. `CertificatePins` adds pinning once real pins are configured.
 

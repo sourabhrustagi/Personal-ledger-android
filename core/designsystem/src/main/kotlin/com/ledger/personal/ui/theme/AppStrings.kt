@@ -1,74 +1,75 @@
 package com.ledger.personal.ui.theme
 
+import androidx.annotation.StringRes
+import com.ledger.personal.designsystem.R
+
 /**
- * Centralized constant strings for UI components, screen titles, button labels, and common copy.
+ * Centralized registry of UI string resource IDs supporting multilingual localization via strings.xml.
  */
 object AppStrings {
     // App Titles
-    const val APP_NAME: String = "Personal Ledger"
-    const val TITLE_HOME: String = "Personal Ledger"
-    const val TITLE_PASSBOOK: String = "Passbook"
-    const val TITLE_TRANSACTIONS: String = "Transactions"
-    const val TITLE_OFFERS: String = "Offers"
-    const val TITLE_PAY: String = "Pay"
-    const val TITLE_SCAN: String = "Scan"
-    const val TITLE_WALLET: String = "Send money"
-    const val TITLE_NEW_TRANSACTION: String = "New Transaction"
-    const val TITLE_EDIT_TRANSACTION: String = "Edit Transaction"
-    const val TITLE_TRANSACTION_DETAILS: String = "Transaction Details"
+    @StringRes val APP_NAME: Int = R.string.app_name
+    @StringRes val TITLE_HOME: Int = R.string.title_home
+    @StringRes val TITLE_PASSBOOK: Int = R.string.title_passbook
+    @StringRes val TITLE_TRANSACTIONS: Int = R.string.title_transactions
+    @StringRes val TITLE_OFFERS: Int = R.string.title_offers
+    @StringRes val TITLE_PAY: Int = R.string.title_pay
+    @StringRes val TITLE_SCAN: Int = R.string.title_scan
+    @StringRes val TITLE_WALLET: Int = R.string.title_wallet
+    @StringRes val TITLE_NEW_TRANSACTION: Int = R.string.title_new_transaction
+    @StringRes val TITLE_EDIT_TRANSACTION: Int = R.string.title_edit_transaction
+    @StringRes val TITLE_TRANSACTION_DETAILS: Int = R.string.title_transaction_details
 
     // Action Buttons
-    const val ACTION_CONTINUE: String = "Continue"
-    const val ACTION_SAVE: String = "Save"
-    const val ACTION_CANCEL: String = "Cancel"
-    const val ACTION_DELETE: String = "Delete"
-    const val ACTION_RETRY: String = "Retry"
-    const val ACTION_REFRESH: String = "Refresh"
-    const val ACTION_SEND_MONEY: String = "Send money"
-    const val ACTION_CONTACTS: String = "Contacts"
-    const val ACTION_SCAN_QR: String = "Scan any UPI QR code"
-    const val ACTION_OPEN_CAMERA: String = "Open camera & scan"
-    const val ACTION_BACK_TO_LIST: String = "Back to List"
-    const val ACTION_ADD_TRANSACTION: String = "Add Transaction"
-    const val ACTION_UPDATE_TRANSACTION: String = "Update Transaction"
-    const val ACTION_SAVING_CHANGES: String = "Saving Changes..."
+    @StringRes val ACTION_CONTINUE: Int = R.string.action_continue
+    @StringRes val ACTION_SAVE: Int = R.string.action_save
+    @StringRes val ACTION_CANCEL: Int = R.string.action_cancel
+    @StringRes val ACTION_DELETE: Int = R.string.action_delete
+    @StringRes val ACTION_RETRY: Int = R.string.action_retry
+    @StringRes val ACTION_REFRESH: Int = R.string.action_refresh
+    @StringRes val ACTION_SEND_MONEY: Int = R.string.action_send_money
+    @StringRes val ACTION_CONTACTS: Int = R.string.action_contacts
+    @StringRes val ACTION_SCAN_QR: Int = R.string.action_scan_qr
+    @StringRes val ACTION_OPEN_CAMERA: Int = R.string.action_open_camera
+    @StringRes val ACTION_BACK_TO_LIST: Int = R.string.action_back_to_list
+    @StringRes val ACTION_ADD_TRANSACTION: Int = R.string.action_add_transaction
+    @StringRes val ACTION_UPDATE_TRANSACTION: Int = R.string.action_update_transaction
+    @StringRes val ACTION_SAVING_CHANGES: Int = R.string.action_saving_changes
 
     // Form Field Labels & Placeholders
-    const val LABEL_AMOUNT: String = "Amount"
-    const val LABEL_CATEGORY: String = "Category"
-    const val LABEL_DESCRIPTION: String = "Description"
-    const val LABEL_RECIPIENT: String = "Mobile number or UPI ID"
-    const val LABEL_RECIPIENT_PLACEHOLDER: String = "e.g. 9876543210 or name@upi"
-    const val LABEL_SAVED_CONTACTS: String = "Saved contacts"
-    const val LABEL_ENTER_AMOUNT: String = "Enter amount"
-    const val LABEL_NOTE_OPTIONAL: String = "Note (optional)"
-    const val LABEL_SELECT_FROM_CONTACTS: String = "Select from local contacts"
-    const val LABEL_QUICK_SELECT_CATEGORY: String = "Quick Select Category:"
+    @StringRes val LABEL_AMOUNT: Int = R.string.label_amount
+    @StringRes val LABEL_CATEGORY: Int = R.string.label_category
+    @StringRes val LABEL_DESCRIPTION: Int = R.string.label_description
+    @StringRes val LABEL_RECIPIENT: Int = R.string.label_recipient
+    @StringRes val LABEL_RECIPIENT_PLACEHOLDER: Int = R.string.label_recipient_placeholder
+    @StringRes val LABEL_SAVED_CONTACTS: Int = R.string.label_saved_contacts
+    @StringRes val LABEL_ENTER_AMOUNT: Int = R.string.label_enter_amount
+    @StringRes val LABEL_NOTE_OPTIONAL: Int = R.string.label_note_optional
+    @StringRes val LABEL_SELECT_FROM_CONTACTS: Int = R.string.label_select_from_contacts
+    @StringRes val LABEL_QUICK_SELECT_CATEGORY: Int = R.string.label_quick_select_category
 
     // Empty & Loading States
-    const val EMPTY_TRANSACTIONS_TITLE: String = "Add your first transaction"
-    const val EMPTY_TRANSACTIONS_SUBTITLE: String = "Transactions you record show up here."
-    const val EMPTY_TRANSACTIONS_DEFAULT_TITLE: String = "No transactions yet"
-    const val EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE: String = "Your financial journey begins with your first record."
-    const val EMPTY_TRANSACTION_NOT_FOUND: String = "The requested transaction could not be located."
-    const val EMPTY_PROMOTIONS: String = "No promotions right now."
-    const val EMPTY_TAB_CONTENT: String = "Nothing in this tab."
-    const val NO_MATCHING_TRANSACTIONS: String = "No transactions found"
-
-    const val LOADING_TRANSACTIONS: String = "Loading your transactions..."
-    const val LOADING_TRANSACTION_DETAILS: String = "Fetching transaction details..."
-    const val LOADING_TRANSACTION_DATA: String = "Loading transaction data..."
+    @StringRes val EMPTY_TRANSACTIONS_TITLE: Int = R.string.empty_transactions_title
+    @StringRes val EMPTY_TRANSACTIONS_SUBTITLE: Int = R.string.empty_transactions_subtitle
+    @StringRes val EMPTY_TRANSACTIONS_DEFAULT_TITLE: Int = R.string.empty_transactions_default_title
+    @StringRes val EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE: Int = R.string.empty_transactions_default_subtitle
+    @StringRes val EMPTY_TRANSACTION_NOT_FOUND: Int = R.string.empty_transaction_not_found
+    @StringRes val EMPTY_PROMOTIONS: Int = R.string.empty_promotions
+    @StringRes val EMPTY_TAB_CONTENT: Int = R.string.empty_tab_content
+    @StringRes val NO_MATCHING_TRANSACTIONS: Int = R.string.no_matching_transactions
+    @StringRes val LOADING_TRANSACTIONS: Int = R.string.loading_transactions
+    @StringRes val LOADING_TRANSACTION_DETAILS: Int = R.string.loading_transaction_details
+    @StringRes val LOADING_TRANSACTION_DATA: Int = R.string.loading_transaction_data
 
     // Section Titles
-    const val SECTION_OFFERS: String = "Offers & promotions"
-    const val SECTION_SCAN_AND_PAY: String = "Scan and pay"
-    const val SECTION_SEND_TO_ANYONE: String = "Send to anyone"
-    const val SECTION_SAVED_CONTACTS: String = "Saved contacts"
-    const val SECTION_RECENT_TRANSACTIONS: String = "Recent transactions"
+    @StringRes val SECTION_OFFERS: Int = R.string.section_offers
+    @StringRes val SECTION_SCAN_AND_PAY: Int = R.string.section_scan_and_pay
+    @StringRes val SECTION_SEND_TO_ANYONE: Int = R.string.section_send_to_anyone
+    @StringRes val SECTION_SAVED_CONTACTS: Int = R.string.section_saved_contacts
+    @StringRes val SECTION_RECENT_TRANSACTIONS: Int = R.string.section_recent_transactions
 
-    // Currencies
+    // Non-translatable technical currency tokens
     const val CURRENCY_INR: String = "INR"
     const val CURRENCY_USD: String = "USD"
     const val CURRENCY_SYMBOL_RUPEE: String = "₹"
 }
-

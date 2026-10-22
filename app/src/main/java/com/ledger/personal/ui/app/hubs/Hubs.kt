@@ -188,7 +188,13 @@ fun PayHub(
 
 /** Shows the promotions stored on the device. */
 @Composable
-fun PromotionsHub(shelves: List<PromoTab>, selected: String, onSelect: (String) -> Unit, onProfile: () -> Unit) {
+fun PromotionsHub(
+    uiState: PromotionsUiState,
+    onSelect: (String) -> Unit,
+    onProfile: () -> Unit,
+) {
+    val shelves = uiState.shelves
+    val selected = uiState.selected
     FeatureScaffold("Offers", onBack = null, actions = { ProfileAction(onProfile) }) {
         if (shelves.isEmpty()) {
             Text("No promotions right now.")
@@ -209,6 +215,17 @@ fun PromotionsHub(shelves: List<PromoTab>, selected: String, onSelect: (String) 
             }
         }
     }
+}
+
+/** Shows the promotions stored on the device. */
+@Composable
+fun PromotionsHub(
+    shelves: List<PromoTab>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    onProfile: () -> Unit,
+) {
+    PromotionsHub(PromotionsUiState(shelves, selected), onSelect, onProfile)
 }
 
 private val previewFlags = HubFlags(offline = false, empty = false, reveal = true, onToggleReveal = {})

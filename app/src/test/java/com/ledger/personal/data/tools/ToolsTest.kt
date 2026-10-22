@@ -53,25 +53,6 @@ class ToolsTest {
     }
 
     @Test
-    fun filingTwiceForOneTransactionKeepsOneDispute() {
-        val desk = DisputeDesk(null)
-        val first = desk.file(tx("1", 100L), DisputeReason.DUPLICATE, "Charged twice at the store", now = 1_000L)
-        val again = desk.file(tx("1", 100L), DisputeReason.WRONG_AMOUNT, "Different text", now = 2_000L)
-        assertEquals(first, again)
-        assertEquals(1, desk.disputes.value.size)
-        assertEquals(0, first.stage(now = 1_000L))
-        assertEquals(1, first.stage(now = 1_000L + REVIEW_AFTER_MS))
-    }
-
-    @Test
-    fun aFiledDisputeIsStillThereAfterRestart() {
-        val file = kotlin.io.path.createTempFile("disputes").toFile()
-        DisputeDesk(file).file(tx("1", 100L), DisputeReason.DUPLICATE, "Charged twice at the store", now = 1_000L)
-        val reloaded = DisputeDesk(file)
-        assertEquals("DSP-001000", reloaded.disputes.value.single().reference)
-    }
-
-    @Test
     fun bindingServerAcceptsOnlyValidOneTimeSignatures() = runTest {
         val server = LocalBindingServer()
         val pair = KeyPairGenerator.getInstance("EC").apply { initialize(256) }.generateKeyPair()

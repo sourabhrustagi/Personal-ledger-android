@@ -1,110 +1,12 @@
 package com.ledger.personal.data.tools
 
-import android.content.Context
 import com.ledger.personal.core.FieldMerge
 import com.ledger.personal.core.mergeField
 import com.ledger.personal.domain.model.Transaction
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
 import java.net.URLDecoder
-import java.net.URLEncoder
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
-import java.util.Base64
-import javax.inject.Inject
-import javax.inject.Singleton
-
-/** Allowed values of dispute reason. */
-enum class DisputeReason(val label: String) {
-    UNAUTHORISED("I didn't make this payment"),
-    WRONG_AMOUNT("I was charged the wrong amount"),
-    NOT_RECEIVED("I didn't receive the goods or service"),
-    DUPLICATE("I was charged twice"),
-}
-
-/** Dispute. */
-data class Dispute(
-    val reference: String,
-    val transactionId: String,
-    val title: String,
-    val amountMinor: Long,
-    val currency: String,
-    val reason: DisputeReason,
-    val details: String,
-    val filedAtEpochMs: Long,
-)
-
-const val REVIEW_AFTER_MS = 60_000L
-
-/** Stage. */
-fun Dispute.stage(now: Long): Int = if (now - filedAtEpochMs >= REVIEW_AFTER_MS) 1 else 0
-
-/** Disputes filed on this phone, kept on disk until a disputes endpoint exists. A null file is memory only. */
-@Singleton
-class DisputeDesk internal constructor(private val file: File?) {
-    @Inject constructor(@ApplicationContext context: Context) : this(File(context.filesDir, "disputes.txt"))
-
-    private val rows = MutableStateFlow(read())
-    val disputes: StateFlow<List<Dispute>> = rows.asStateFlow()
-
-    /** File. */
-    fun file(tx: Transaction, reason: DisputeReason, details: String, now: Long = System.currentTimeMillis()): Dispute =
-        rows.value.firstOrNull { it.transactionId == tx.id } ?: run {
-            val dispute = Dispute(
-                reference = "DSP-${(now % 1_000_000).toString().padStart(6, '0')}",
-                transactionId = tx.id,
-                title = tx.description,
-                amountMinor = tx.amountInCents,
-                currency = tx.currency,
-                reason = reason,
-                details = details.trim(),
-                filedAtEpochMs = now,
-            )
-            val next = rows.value + dispute
-            rows.value = next
-            write(next)
-            dispute
-        }
-
-    /** Read. */
-    private fun read(): List<Dispute> = file?.takeIf { it.isFile }?.readLines()?.mapNotNull { line ->
-        runCatching { decodeDispute(line) }.getOrNull()
-    }.orEmpty()
-
-    /** Write. */
-    private fun write(next: List<Dispute>) {
-        val target = file ?: return
-        target.writeText(next.joinToString("\n") { it.encode() })
-    }
-}
-
-/** Encode. */
-private fun Dispute.encode(): String = Base64.getEncoder().encodeToString(
-    listOf(reference, transactionId, title, amountMinor.toString(), currency, reason.name, details, filedAtEpochMs.toString())
-        .joinToString("\u001F") { URLEncoder.encode(it, "UTF-8") }
-        .toByteArray(),
-)
-
-/** Decode dispute. */
-private fun decodeDispute(line: String): Dispute {
-    val parts = String(Base64.getDecoder().decode(line)).split("\u001F").map { URLDecoder.decode(it, "UTF-8") }
-    return Dispute(
-        requireNotNull(parts.getOrNull(0)) { "missing reference" },
-        requireNotNull(parts.getOrNull(1)) { "missing transaction id" },
-        requireNotNull(parts.getOrNull(2)) { "missing title" },
-        requireNotNull(parts.getOrNull(3)?.toLongOrNull()) { "amount is not a number" },
-        requireNotNull(parts.getOrNull(4)) { "missing currency" },
-        requireNotNull(parts.getOrNull(5)?.let { name -> DisputeReason.entries.firstOrNull { it.name == name } }) {
-            "unknown reason"
-        },
-        requireNotNull(parts.getOrNull(6)) { "missing details" },
-        requireNotNull(parts.getOrNull(7)?.toLongOrNull()) { "filed-at is not a number" },
-    )
-}
 
 /** Field diff. */
 data class FieldDiff(val field: String, val mine: String, val theirs: String)

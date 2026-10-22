@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.ledger.personal.ui.app.scan
 
 import android.Manifest
@@ -32,6 +34,14 @@ import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
+/** UI state for the scan screen. */
+data class ScanUiState(
+    val liveCamera: Boolean = false,
+    val cameraGranted: Boolean = false,
+    val invalid: Boolean = false,
+    val manual: String = "",
+)
+
 /** Shows the scan screen. */
 @Composable
 fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) -> Unit) {
@@ -48,11 +58,14 @@ fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) ->
         target?.let(onTarget)
     }
     LaunchedEffect(liveCamera) { if (liveCamera && !granted) launcher.launch(Manifest.permission.CAMERA) }
-    ScanForm(
+    val uiState = ScanUiState(
         liveCamera = liveCamera,
         cameraGranted = granted,
         invalid = invalid,
         manual = manual,
+    )
+    ScanForm(
+        uiState = uiState,
         onManual = { manual = it },
         onAccept = accept,
         onAllowCamera = { launcher.launch(Manifest.permission.CAMERA) },
@@ -60,39 +73,45 @@ fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) ->
     )
 }
 
-/** Scan layout. [cameraGranted] is separate so each branch can be previewed. */
+/** Scan layout. [uiState] drives rendering of each branch. */
 @Composable
 private fun ScanForm(
-    liveCamera: Boolean,
-    cameraGranted: Boolean,
-    invalid: Boolean,
-    manual: String,
+    uiState: ScanUiState,
     onManual: (String) -> Unit,
     onAccept: (String) -> Unit,
     onAllowCamera: () -> Unit,
     onBack: () -> Unit,
 ) {
     FeatureScaffold("Scan to pay", onBack, subtitle = "Any UPI QR code") {
-        if (liveCamera && cameraGranted) {
+        if (uiState.liveCamera && uiState.cameraGranted) {
             CameraScanner(onCode = onAccept)
         } else {
             IconBadge(Icons.Outlined.QrCodeScanner, size = 120)
             Text(
-                if (liveCamera) "Allow camera access to scan QR codes." else "The demo build has no camera feed. Use the sample QR below.",
+                if (uiState.liveCamera) {
+                    "Allow camera access to scan QR codes."
+                } else {
+                    "The demo build has no camera feed. Use the sample QR below."
+                },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (liveCamera) OutlinedButton(onClick = onAllowCamera) { Text("Allow camera") }
+            if (uiState.liveCamera) OutlinedButton(onClick = onAllowCamera) { Text("Allow camera") }
         }
-        if (invalid) StatusBanner("That isn't a UPI payment code. Ask the payee for their UPI QR.", BannerTone.ERROR)
+        if (uiState.invalid) StatusBanner("That isn't a UPI payment code. Ask the payee for their UPI QR.", BannerTone.ERROR)
         OutlinedTextField(
-            manual,
+            uiState.manual,
             onManual,
             label = { Text("Or paste a UPI link") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        PrimaryButton("Continue", onClick = { onAccept(manual) }, enabled = manual.isNotBlank(), modifier = Modifier.fillMaxWidth())
-        if (!liveCamera) {
+        PrimaryButton(
+            "Continue",
+            onClick = { onAccept(uiState.manual) },
+            enabled = uiState.manual.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (!uiState.liveCamera) {
             val sample = upiPayload("chai.point@okicici", 12_000) + "&pn=Chai%20Point"
             OutlinedButton(onClick = { onAccept(sample) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Use sample QR (Chai Point, ₹120)")
@@ -104,22 +123,31 @@ private fun ScanForm(
 @PreviewLightDark
 @Composable
 private fun ScanDemoPreview() {
-    PersonalLedgerTheme { ScanPreviewContent(liveCamera = false, cameraGranted = false, invalid = false) }
+    PersonalLedgerTheme { ScanPreviewContent(ScanUiState(liveCamera = false, cameraGranted = false, invalid = false)) }
 }
 
 @PreviewLightDark
 @Composable
 private fun ScanPermissionPreview() {
-    PersonalLedgerTheme { ScanPreviewContent(liveCamera = true, cameraGranted = false, invalid = false) }
+    PersonalLedgerTheme { ScanPreviewContent(ScanUiState(liveCamera = true, cameraGranted = false, invalid = false)) }
 }
 
 @PreviewLightDark
 @Composable
 private fun ScanRejectedPreview() {
-    PersonalLedgerTheme { ScanPreviewContent(liveCamera = false, cameraGranted = false, invalid = true, manual = "not-a-upi-link") }
+    PersonalLedgerTheme {
+        ScanPreviewContent(
+            ScanUiState(
+                liveCamera = false,
+                cameraGranted = false,
+                invalid = true,
+                manual = "not-a-upi-link",
+            ),
+        )
+    }
 }
 
 @Composable
-private fun ScanPreviewContent(liveCamera: Boolean, cameraGranted: Boolean, invalid: Boolean, manual: String = "") {
-    ScanForm(liveCamera, cameraGranted, invalid, manual, onManual = {}, onAccept = {}, onAllowCamera = {}, onBack = {})
+private fun ScanPreviewContent(uiState: ScanUiState) {
+    ScanForm(uiState, onManual = {}, onAccept = {}, onAllowCamera = {}, onBack = {})
 }

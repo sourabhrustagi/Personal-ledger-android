@@ -16,15 +16,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.mock.MockValues
+import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.OtpField
 import com.ledger.personal.ui.feature.PrimaryButton
@@ -32,7 +31,6 @@ import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.TextLink
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private const val RESEND_SECONDS = 30
 private const val OTP_LENGTH = 6
@@ -41,17 +39,17 @@ private const val OTP_LENGTH = 6
 @Composable
 fun OtpStep(
     phone: String,
-    sentMessage: String = "OTP sent",
+    uiState: OtpUiState = OtpUiState(),
     onEdit: () -> Unit,
-    onResend: (suspend () -> Result<OtpResponse>)? = null,
+    onResend: (() -> Unit)? = null,
     onVerified: () -> Unit,
 ) {
+    val sentMessage = uiState.sentMessage
+    val errorMessage = uiState.errorMessage
+    val isResending = uiState.isSending
     var code by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf(false) }
     var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
-    var feedbackMessage by rememberSaveable { mutableStateOf<String?>(sentMessage) }
-    var isResending by rememberSaveable { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(seconds) {
         if (seconds > 0) {
@@ -67,31 +65,16 @@ fun OtpStep(
         error = false
     })
     if (error) StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
-    feedbackMessage?.let { msg ->
-        StatusBanner(msg, BannerTone.INFO)
-    }
+    errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
+    StatusBanner(sentMessage, BannerTone.INFO)
     StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
     if (seconds > 0) {
         Text("Resend code in 0:${seconds.toString().padStart(2, '0')}", color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
         TextLink(if (isResending) "Resending..." else "Resend code", {
             if (!isResending) {
-                if (onResend != null) {
-                    isResending = true
-                    scope.launch {
-                        val result = onResend()
-                        isResending = false
-                        result.fold(
-                            onSuccess = { res ->
-                                feedbackMessage = res.message.ifBlank { "OTP sent" }
-                                seconds = RESEND_SECONDS
-                            },
-                            onFailure = {
-                                feedbackMessage = it.message ?: "Failed to resend OTP"
-                            },
-                        )
-                    }
-                }
+                seconds = RESEND_SECONDS
+                onResend?.invoke()
             }
         })
     }

@@ -155,7 +155,7 @@ private fun PromotionsHorizontalSection(
     onOfferClick: (PromoOffer) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Offers & promotions", style = MaterialTheme.typography.titleSmall)
+        Text(com.ledger.personal.ui.theme.AppStrings.SECTION_OFFERS, style = MaterialTheme.typography.titleSmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(promotions, key = { it.id }) { offer ->
                 androidx.compose.material3.Surface(

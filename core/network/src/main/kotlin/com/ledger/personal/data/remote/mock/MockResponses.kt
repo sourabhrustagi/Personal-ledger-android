@@ -70,6 +70,14 @@ object MockResponses {
         }
     """.trimIndent()
 
+    /** Transaction deletion response JSON. */
+    val DELETE_TRANSACTION: String = """
+        {
+          "success": true,
+          "id": "tx-mock-1"
+        }
+    """.trimIndent()
+
     /** Reference categories list response JSON. */
     val STATIC_CATEGORIES: String = """
         {
@@ -214,7 +222,9 @@ object MockResponses {
             cleanPath.endsWith(ApiEndpoints.TRANSACTIONS) -> {
                 if (method == "GET") TRANSACTIONS_LIST else TRANSACTION_DETAIL
             }
-            cleanPath.contains(ApiEndpoints.TRANSACTIONS) -> TRANSACTION_DETAIL
+            cleanPath.contains(ApiEndpoints.TRANSACTIONS) -> {
+                if (method == "DELETE") DELETE_TRANSACTION else TRANSACTION_DETAIL
+            }
             cleanPath.endsWith(ApiEndpoints.STATIC_CATEGORIES) -> STATIC_CATEGORIES
             cleanPath.endsWith(ApiEndpoints.STATIC_VERSION) -> STATIC_VERSION
             cleanPath.endsWith(ApiEndpoints.STATIC_STATUS) -> STATIC_STATUS

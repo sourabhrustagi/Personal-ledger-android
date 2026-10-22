@@ -23,6 +23,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        resourceConfigurations += listOf("en", "hi")
         buildConfigField("String", "PIN_SHA256", "\"\"")
         buildConfigField("String", "PIN_SHA256_BACKUP", "\"\"")
     }

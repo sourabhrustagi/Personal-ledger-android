@@ -16,7 +16,7 @@ flowchart TD
     subgraph core [Core modules]
         model[":core:model<br/>domain types + rules"]
         db[":core:database<br/>Room + sync"]
-        net[":core:network<br/>Ktor"]
+        net[":core:network<br/>Retrofit"]
         ds[":core:designsystem<br/>theme + components"]
         mock[":core:mock<br/>mock backend"]
     end
@@ -41,7 +41,7 @@ flowchart TD
 | Module | Owns |
 |--------|------|
 | `:core:model` | `Transaction`, `Money`, repository interfaces (`TransactionRepository`, `TransactionRemote`), `UserSettings`, `SyncCoordinator`, and business rules in `Rules.kt` (bill splitting, EMI, UPI payloads, and idempotency) |
-| `:core:network` | Ktor clients and APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, `TransactionsRepository` |
+| `:core:network` | Retrofit APIs, DTOs and domain mapping, `AuthInterceptor`, certificate pinning, static-response caching, `TransactionsRepository` |
 | `:core:database` | `LedgerDatabase` (Room, with exported schemas and migrations), DAOs, `OfflineTransactionRepository`, `TransactionSyncWorker`, `WorkManagerSyncCoordinator`, DataStore-backed settings |
 | `:core:designsystem` | `LedgerOneTheme`, colours, `formatMoney` (Indian digit grouping), and shared visual components (amount text, masked balances, PIN keypad, OTP field, banners, skeleton loaders, timelines, `FeatureScaffold`) |
 | `:core:ui` | Shared Compose UI effects and window security utilities (`SecureWindow`) |
@@ -61,7 +61,7 @@ sequenceDiagram
     participant Repo as OfflineTransactionRepository
     participant Room as Room database
     participant Work as TransactionSyncWorker
-    participant Remote as TransactionRemote (mock or Ktor)
+    participant Remote as TransactionRemote (mock or Retrofit)
 
     UI->>VM: user saves a transaction
     VM->>Repo: createTransaction(...)
@@ -93,7 +93,7 @@ The app has one flavor dimension, `environment`: `mock` (default), `dev`, `stagi
 | Interface | `mock` | `dev`, `staging`, and `prod` |
 |-----------|--------|------------------------------|
 | `TransactionRemote` | `MockTransactionRepository` | `TransactionsRepository` |
-| `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `KtorBindingServer` (`devices/challenge`, `devices/bind`) |
+| `BindingServer` | `LocalBindingServer` (verifies signatures on the phone) | `RetrofitBindingServer` (`devices/challenge`, `devices/bind`) |
 
 Room, sync, view models, and screens are the same code in every flavor. Mock exercises the real offline and sync path; only the server is mock. Each flavor has its own application id, launcher name, version-name suffix, and app-link host, so the four apps install side by side.
 

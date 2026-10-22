@@ -112,7 +112,7 @@ Put types and interfaces in `:core:model` first when more than one module will s
 mkdir -p feature/cards/src/main/kotlin/com/ledger/personal/ui/feature
 ```
 
-`feature/cards/build.gradle.kts` (copy `:feature:banking`, then add Hilt only if the screen has a `@HiltViewModel`):
+`feature/cards/build.gradle.kts` (copy `:feature:wallet`, then add Hilt only if the screen has a `@HiltViewModel`):
 
 ```kotlin
 plugins {

@@ -2,6 +2,7 @@ package com.ledger.personal.data.repository
 
 import com.ledger.personal.data.remote.api.TransactionApi
 import com.ledger.personal.data.remote.dto.CreateTransactionRequestDto
+import com.ledger.personal.data.remote.dto.DeleteTransactionResponseDto
 import com.ledger.personal.data.remote.dto.PatchTransactionRequestDto
 import com.ledger.personal.data.remote.dto.TransactionDto
 import com.ledger.personal.data.remote.dto.TransactionListResponseDto
@@ -100,6 +101,7 @@ class TransactionsRepositoryTest {
         var byIdError: Throwable? = null
         var createResponse = sampleDto()
         var patchResponse = sampleDto()
+        var deleteResponse = DeleteTransactionResponseDto(success = true)
         var deleteError: Throwable? = null
 
         var lastPage: Int? = null
@@ -134,9 +136,10 @@ class TransactionsRepositoryTest {
             return patchResponse
         }
 
-        override suspend fun deleteTransaction(id: String) {
+        override suspend fun deleteTransaction(id: String): DeleteTransactionResponseDto {
             lastDeleteId = id
             deleteError?.let { throw it }
+            return deleteResponse
         }
     }
 }

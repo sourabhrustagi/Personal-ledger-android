@@ -47,6 +47,3 @@ class RetrofitPromotionsBackend @Inject constructor(
         api.getCampaignShelves().shelves.mapNotNull { it.toTab() }
     }.onFailure { if (it is CancellationException) throw it }
 }
-
-/** Backward-compatible typealias for [RetrofitPromotionsBackend]. */
-typealias KtorPromotionsBackend = RetrofitPromotionsBackend

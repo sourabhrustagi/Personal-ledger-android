@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.ledger.personal.ui.app.update
 
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +31,12 @@ import com.ledger.personal.ui.feature.IconBadge
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 
+/** UI state for the force update screen. */
+data class ForceUpdateUiState(val versionName: String = "")
+
 /** Blocks the app until this version is updated from the store. */
 @Composable
-fun ForceUpdateScreen(versionName: String) {
+fun ForceUpdateScreen(uiState: ForceUpdateUiState) {
     val context = LocalContext.current
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -43,7 +48,7 @@ fun ForceUpdateScreen(versionName: String) {
             IconBadge(Icons.Outlined.SystemUpdate, size = 72)
             Text("Update required", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Version $versionName is no longer supported. Update LedgerOne to keep your account secure and keep paying.",
+                "Version ${uiState.versionName} is no longer supported. Update LedgerOne to keep your account secure and keep paying.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
@@ -55,6 +60,12 @@ fun ForceUpdateScreen(versionName: String) {
             )
         }
     }
+}
+
+/** Blocks the app until this version is updated from the store. */
+@Composable
+fun ForceUpdateScreen(versionName: String) {
+    ForceUpdateScreen(ForceUpdateUiState(versionName))
 }
 
 /** A newer build the person can install now or keep using this one. */

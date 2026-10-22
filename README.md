@@ -32,15 +32,16 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [4. Multi-Layer Banking Security](#4-multi-layer-banking-security)
 - [ViewModels](#view-models)
 - [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
-  - [1. `remember` vs `rememberSaveable`](#1-remember-vs-remembersaveable)
-  - [2. Real-World Uses of `rememberSaveable`](#2-real-world-uses-of-remembersaveable-in-ledgerone)
-  - [3. Screen & Business State: `ViewModel` + `StateFlow`](#3-screen--business-state-viewmodel--stateflow)
-  - [4. Architectural Patterns Used Across the Project](#4-architectural-patterns-used-across-the-project)
+  - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
+  - [2. `remember` vs `rememberSaveable`](#2-remember-vs-remembersaveable)
+  - [3. Real-World Uses of `rememberSaveable`](#3-real-world-uses-of-remembersaveable-in-ledgerone)
+  - [4. Screen & Business State: `ViewModel` + `StateFlow`](#4-screen--business-state-viewmodel--stateflow)
+  - [5. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
     - [State Hoisting (Unidirectional Data Flow)](#a-state-hoisting-unidirectional-data-flow)
     - [`collectAsStateWithLifecycle()` vs `collectAsState()`](#b-collectasstatewithlifecycle-vs-collectasstate)
     - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
-  - [5. Application State Mechanism Comparison Matrix](#5-application-state-mechanism-comparison-matrix)
+  - [6. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -414,7 +415,80 @@ flowchart TD
 
 ---
 
-### <a id="1-remember-vs-remembersaveable"></a>1. `remember` vs `rememberSaveable`
+### <a id="1-understanding-mutablestateof-compose-snapshot-state"></a>1. Understanding `mutableStateOf`: Compose Snapshot State Engine
+
+In Jetpack Compose, the user interface is a direct reactive projection of state: $\text{UI} = f(\text{State})$. Standard Kotlin variables (`var count = 0`) are invisible to the Compose runtime; changing their value does not trigger UI recomposition.
+
+`mutableStateOf(value)` is the foundational primitive that creates an observable **`MutableState<T>`** instance integrated into Compose's **Snapshot State System**.
+
+#### A. How `mutableStateOf` Triggers Recomposition
+When a `@Composable` function executes, Compose automatically tracks every `State` property read within that composable's scope:
+1. **Read Tracking:** When a composable accesses `state.value`, the Snapshot runtime logs the current composable as an active subscriber.
+2. **Write Notification:** When `state.value = newValue` is modified, the Snapshot system marks the state as invalid.
+3. **Smart Recomposition:** Compose automatically schedules a recomposition **only** for the specific composables that read that property, skipping all unaffected sibling and parent UI components.
+
+```kotlin
+// Core Compose runtime state interfaces
+interface State<out T> {
+    val value: T
+}
+
+interface MutableState<T> : State<T> {
+    override var value: T
+}
+```
+
+#### B. Syntax: Direct Assignment (`=`) vs Property Delegation (`by`)
+In Kotlin, you can consume `mutableStateOf` in two distinct styles:
+
+| Style | Syntax | Read Access | Write Access | Use Case in LedgerOne |
+|---|---|---|---|---|
+| **Property Delegation (`by`)** | `var input by rememberSaveable { mutableStateOf("") }` | `input` | `input = "new"` | **Standard pattern** across forms and screens. Eliminates boilerplate `.value` calls. |
+| **Direct Assignment (`=`)** | `val input = rememberSaveable { mutableStateOf("") }` | `input.value` | `input.value = "new"` | Useful when passing the `MutableState` handle itself down to state holders or helper classes. |
+
+> **Note:** The `by` delegate syntax requires importing the runtime extension operators:
+> ```kotlin
+> import androidx.compose.runtime.getValue
+> import androidx.compose.runtime.setValue
+> ```
+
+#### C. Why `mutableStateOf` Must Be Paired with `remember` or `rememberSaveable`
+Calling `mutableStateOf(initialValue)` by itself creates a new snapshot state object. However, composables execute repeatedly during recomposition.
+- **Without `remember`:**
+  ```kotlin
+  // ANTIPATTERN: A brand-new state object is instantiated on EVERY recomposition!
+  var text by mutableStateOf("") // Every recomposition wipes the user's typing and resets to ""
+  ```
+- **With `remember`:**
+  ```kotlin
+  // Stored in the composition slot table; survives recompositions
+  var text by remember { mutableStateOf("") }
+  ```
+- **With `rememberSaveable`:**
+  ```kotlin
+  // Preserved in Android's SavedStateRegistry; survives rotation and process death
+  var text by rememberSaveable { mutableStateOf("") }
+  ```
+
+#### D. Primitive Specializations (Zero Auto-Boxing Overhead)
+To eliminate Garbage Collection churn and heap allocations caused by Java primitive autoboxing (`Integer`, `Long`, `Float`, `Boolean`), Compose provides dedicated primitive state creators:
+
+| Function | Return Type | Underlying Primitive | LedgerOne Production Example |
+|---|---|---|---|
+| **`mutableIntStateOf(0)`** | `MutableIntState` | `Int` (unboxed) | SMS OTP countdown timer (`seconds` in `Login.kt`), selected tab index |
+| **`mutableLongStateOf(0L)`** | `MutableLongState` | `Long` (unboxed) | Financial minor unit calculations (paise), timestamp offsets |
+| **`mutableFloatStateOf(0f)`** | `MutableFloatState` | `Float` (unboxed) | Swipe dismiss offsets, transition progress ratios |
+| **`mutableBooleanStateOf(false)`** | `MutableBooleanState` | `Boolean` (unboxed) | Dialog visibility toggles, balance reveal flags |
+
+#### E. Mutation Policies (`SnapshotMutationPolicy`)
+`mutableStateOf` accepts an optional `SnapshotMutationPolicy` controlling whether writing a value is considered a real change:
+- **`structuralEqualityPolicy()` (Default):** Compares old and new values using `.equals()` (`==`). If `state.value = "abc"` is assigned `"abc"`, no recomposition is scheduled.
+- **`referentialEqualityPolicy()`:** Compares values using object identity reference (`===`).
+- **`neverEqualPolicy()`:** Treats every single write as a mutation, forcing recomposition even if values match.
+
+---
+
+### <a id="2-remember-vs-remembersaveable"></a>2. `remember` vs `rememberSaveable`
 
 | Mechanism | Survives Recomposition? | Survives Device Rotation? | Survives Process Death? | Where Data Is Stored |
 |---|---|---|---|---|
@@ -434,7 +508,7 @@ In Compose, `remember { mutableStateOf(initialValue) }` keeps state alive across
 
 ---
 
-### <a id="2-real-world-uses-of-remembersaveable-in-ledgerone"></a>2. Real-World Uses of `rememberSaveable` in LedgerOne
+### <a id="3-real-world-uses-of-remembersaveable-in-ledgerone"></a>3. Real-World Uses of `rememberSaveable` in LedgerOne
 
 #### A. Transient Form Inputs & Typing Buffers
 Users should not lose their input while filling forms if they rotate their screen before pressing submit.
@@ -516,7 +590,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 
 ---
 
-### <a id="3-screen--business-state-viewmodel--stateflow"></a><a id="3-screen-business-state-viewmodel-stateflow"></a>3. Screen & Business State: `ViewModel` + `StateFlow`
+### <a id="4-screen--business-state-viewmodel--stateflow"></a><a id="4-screen-business-state-viewmodel-stateflow"></a>4. Screen & Business State: `ViewModel` + `StateFlow`
 
 While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
 - **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
@@ -525,7 +599,7 @@ While `rememberSaveable` handles screen-level UI state, domain logic and async d
 
 ---
 
-### <a id="4-architectural-patterns-used-across-the-project"></a>4. Architectural Patterns Used Across the Project
+### <a id="5-architectural-patterns-used-across-the-project"></a>5. Architectural Patterns Used Across the Project
 
 #### <a id="a-state-hoisting-unidirectional-data-flow"></a>A. State Hoisting (Unidirectional Data Flow)
 In Compose screens, stateful containers are separated from stateless presentation components:
@@ -599,7 +673,7 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
 
 ##### Key Examples from LedgerOne Codebase:
 
-1. **`Arrangement.SpaceBetween` for Key-Value Rows (`BankProducts.kt`, `TransactionListScreen.kt`):**
+1. **`Arrangement.SpaceBetween` for Key-Value Rows (`DetailRow.kt`, `TransactionListScreen.kt`):**
    ```kotlin
    Row(
        modifier = Modifier.fillMaxWidth(),
@@ -640,7 +714,7 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
 
 ---
 
-### <a id="5-application-state-mechanism-comparison-matrix"></a>5. Application State Mechanism Comparison Matrix
+### <a id="6-application-state-mechanism-comparison-matrix"></a>6. Application State Mechanism Comparison Matrix
 
 | State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
 |---|---|---|---|---|---|---|

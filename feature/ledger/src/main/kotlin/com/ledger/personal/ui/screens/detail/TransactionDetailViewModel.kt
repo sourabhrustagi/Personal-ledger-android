@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.domain.usecase.DeleteTransactionUseCase
+import com.ledger.personal.domain.usecase.GetTransactionByIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,9 +27,19 @@ import kotlin.coroutines.cancellation.CancellationException
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
-    private val repository: TransactionRepository,
+    private val getTransactionByIdUseCase: GetTransactionByIdUseCase,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    constructor(
+        repository: TransactionRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : this(
+        GetTransactionByIdUseCase(repository),
+        DeleteTransactionUseCase(repository),
+        savedStateHandle,
+    )
 
     private val transactionId: String? = savedStateHandle["transactionId"]
     private val reload = MutableStateFlow(0)
@@ -63,7 +75,7 @@ class TransactionDetailViewModel @Inject constructor(
         val id = uiState.value.transaction?.id ?: return
         viewModelScope.launch {
             controls.update { it.copy(deleting = true, errorMessage = null) }
-            repository.deleteTransaction(id).fold(
+            deleteTransactionUseCase(id).fold(
                 onSuccess = {
                     controls.update { it.copy(deleting = false, showDialog = false, deleted = true) }
                 },
@@ -86,7 +98,7 @@ class TransactionDetailViewModel @Inject constructor(
         if (id.isNullOrBlank()) {
             flowOf(TransactionDetailUiState(isLoading = false, errorMessage = "Missing transaction ID"))
         } else {
-            repository.observeTransaction(id)
+            getTransactionByIdUseCase(id)
                 .map { tx -> TransactionDetailUiState(isLoading = false, transaction = tx) }
                 .catch { error ->
                     if (error is CancellationException) throw error

@@ -109,6 +109,24 @@ class MockInterceptorTest {
     }
 
     @Test
+    fun mockFlavorInterceptsDeleteTransactionEndpoint() {
+        val interceptor = MockInterceptor(createConfig(mockFlavor = true))
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val response = client.newCall(
+            Request.Builder()
+                .url("https://api.example/retail/v1/${ApiEndpoints.TRANSACTIONS}/tx-mock-1")
+                .delete()
+                .build(),
+        ).execute()
+
+        assertEquals(200, response.code)
+        val body = response.body?.string().orEmpty()
+        assertTrue(body.contains("success"))
+        response.close()
+    }
+
+    @Test
     fun liveFlavorPassesThroughToChain() {
         var chainProceedCalled = false
         val interceptor = MockInterceptor(createConfig(mockFlavor = false))
@@ -135,6 +153,25 @@ class MockInterceptorTest {
 
         assertTrue(chainProceedCalled)
         assertEquals("live-response", response.body?.string())
+        response.close()
+    }
+
+    @Test
+    fun mockFlavorSleepsDuringInterception() {
+        val interceptor = MockInterceptor(createConfig(mockFlavor = true), delayMs = 100L)
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val startTime = System.currentTimeMillis()
+        val response = client.newCall(
+            Request.Builder()
+                .url("https://api.example/retail/v1/${ApiEndpoints.SESSION}")
+                .post("{}".toRequestBody(null))
+                .build(),
+        ).execute()
+
+        val elapsed = System.currentTimeMillis() - startTime
+        assertTrue("Elapsed should be at least 100ms, was $elapsed ms", elapsed >= 90)
+        assertEquals(200, response.code)
         response.close()
     }
 

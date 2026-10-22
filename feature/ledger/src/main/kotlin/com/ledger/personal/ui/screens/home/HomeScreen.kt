@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,9 +73,6 @@ fun HomeScreen(
     revealBalance: Boolean,
     offline: Boolean,
     onToggleReveal: () -> Unit,
-    onProfile: () -> Unit,
-    conflicts: Int = 0,
-    onConflicts: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -92,7 +88,6 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh) { Icon(Icons.Outlined.Refresh, contentDescription = "Sync now") }
-                    IconButton(onClick = onProfile) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Profile and settings") }
                 },
             )
         },
@@ -103,17 +98,6 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (offline) item { OfflineBanner("a few minutes ago") }
-            if (conflicts > 0) {
-                item {
-                    androidx.compose.material3.Surface(onClick = onConflicts, shape = MaterialTheme.shapes.medium) {
-                        StatusBanner(
-                            "$conflicts transaction${if (conflicts == 1) "" else "s"} changed here and on another device. Tap to choose what to keep.",
-                            BannerTone.WARNING,
-                            title = "Sync conflict",
-                        )
-                    }
-                }
-            }
             if (!state.layoutReady) {
                 item { SkeletonRows() }
             } else {
@@ -248,7 +232,6 @@ private fun HomePreview() {
             revealBalance = true,
             offline = false,
             onToggleReveal = {},
-            onProfile = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }
@@ -265,7 +248,6 @@ private fun HomeOfflinePreview() {
             revealBalance = false,
             offline = true,
             onToggleReveal = {},
-            onProfile = {},
             viewModel = HomeViewModel(PreviewTransactions, IdleSync, PreviewBoard, PreviewPromotions),
         )
     }

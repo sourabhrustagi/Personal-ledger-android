@@ -42,14 +42,21 @@ import kotlinx.coroutines.delay
 private const val RESEND_SECONDS = 30
 private const val OTP_LENGTH = 6
 
+/** State for OTP login screen. */
+data class OtpLoginUiState(
+    val phone: String,
+    val demoOtp: Boolean = false,
+)
+
 /** Shows the OTP login screen for returning users. */
 @Composable
 fun OtpLoginScreen(
-    phone: String,
+    uiState: OtpLoginUiState,
     onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
     onReset: () -> Unit,
-    demoOtp: Boolean = false,
 ) {
+    val phone = uiState.phone
+    val demoOtp = uiState.demoOtp
     var code by rememberSaveable { mutableStateOf("") }
     var wrong by remember { mutableStateOf(false) }
     var checking by remember { mutableStateOf(false) }
@@ -125,6 +132,19 @@ fun OtpLoginScreen(
         )
     }
 }
+
+/** Overload accepting individual parameters delegating to [OtpLoginUiState]. */
+@Composable
+fun OtpLoginScreen(
+    phone: String,
+    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
+    onReset: () -> Unit,
+    demoOtp: Boolean = false,
+) = OtpLoginScreen(
+    uiState = OtpLoginUiState(phone = phone, demoOtp = demoOtp),
+    onVerifyOtp = onVerifyOtp,
+    onReset = onReset,
+)
 
 @PreviewLightDark
 @Composable

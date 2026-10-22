@@ -10,8 +10,6 @@ import com.ledger.personal.di.IoDispatcher
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRemote
 import com.ledger.personal.domain.sync.VersionConflict
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -81,8 +79,6 @@ class TransactionsRepository @Inject constructor(
         block().asExternalModel()
     } catch (error: retrofit2.HttpException) {
         throw conflictOrNull(error.code(), error.response()?.errorBody()?.string()) ?: error
-    } catch (error: ClientRequestException) {
-        throw conflictOrNull(error.response.status.value, error.response.bodyAsText()) ?: error
     }
 }
 
@@ -96,10 +92,3 @@ fun conflictOrNull(code: Int, body: String?): VersionConflict? {
     }.getOrNull() ?: return null
     return runCatching { VersionConflict(dto.asExternalModel()) }.getOrNull()
 }
-
-/** Backward-compatible typealias for [TransactionsRepository]. */
-@Deprecated(
-    message = "Renamed to TransactionsRepository",
-    replaceWith = ReplaceWith("TransactionsRepository")
-)
-typealias KtorTransactionRepository = TransactionsRepository

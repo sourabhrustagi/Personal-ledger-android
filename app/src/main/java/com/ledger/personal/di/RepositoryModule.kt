@@ -13,8 +13,10 @@ import com.ledger.personal.data.repository.TransactionsRepository
 import com.ledger.personal.domain.repository.TransactionRemote
 import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
+import com.ledger.personal.data.security.DeviceBindingRetrofitApi
 import com.ledger.personal.data.security.KtorBindingServer
 import com.ledger.personal.data.security.LocalBindingServer
+import retrofit2.Retrofit
 import com.ledger.personal.domain.demo.DemoConditions
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.PaymentsBackend
@@ -84,6 +86,13 @@ object RepositoryModule {
     @Singleton
     fun provideConflictInbox(@ApplicationContext context: Context): ConflictInbox =
         ConflictInbox(File(context.filesDir, "sync-conflicts.txt"))
+
+    /** Supplies binding server Retrofit API. */
+    @Provides
+    @Singleton
+    fun provideDeviceBindingRetrofitApi(
+        @AuthenticatedClient retrofit: Retrofit,
+    ): DeviceBindingRetrofitApi = retrofit.create(DeviceBindingRetrofitApi::class.java)
 
     /** Supplies binding server. */
     @Provides

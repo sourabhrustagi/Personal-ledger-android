@@ -25,11 +25,6 @@ kotlin {
 
 dependencies {
     implementation(project(":core:model"))
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.websockets)
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
@@ -42,5 +37,4 @@ dependencies {
     debugImplementation(libs.chucker.debug)
     releaseImplementation(libs.chucker.release)
     testImplementation(libs.junit)
-    testImplementation(libs.ktor.client.mock)
 }

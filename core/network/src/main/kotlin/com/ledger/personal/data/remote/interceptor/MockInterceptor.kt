@@ -11,6 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
+private const val DEFAULT_MOCK_DELAY_MS = 2_000L
 
 /**
  * Interceptor for the mock flavor that intercepts HTTP endpoints and simulates
@@ -21,9 +22,23 @@ class MockInterceptor @Inject constructor(
     private val config: ApiConfig,
 ) : Interceptor {
 
+    private var delayMs: Long = DEFAULT_MOCK_DELAY_MS
+
+    constructor(config: ApiConfig, delayMs: Long) : this(config) {
+        this.delayMs = delayMs
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         if (!config.mockFlavor) {
             return chain.proceed(chain.request())
+        }
+
+        if (delayMs > 0) {
+            try {
+                Thread.sleep(delayMs)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
         }
 
         val request = chain.request()

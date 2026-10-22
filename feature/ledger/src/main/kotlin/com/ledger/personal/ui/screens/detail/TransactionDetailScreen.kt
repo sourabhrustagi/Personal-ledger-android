@@ -36,6 +36,7 @@ import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.feature.DetailRow
 import com.ledger.personal.ui.components.LoadingState
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
@@ -55,7 +56,7 @@ fun TransactionDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Transaction Details", fontWeight = FontWeight.SemiBold) },
+                title = { Text(AppStrings.TITLE_TRANSACTION_DETAILS, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -70,7 +71,7 @@ fun TransactionDetailScreen(
                             IconButton(onClick = { editNav(uiState.transaction.id) }) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Transaction"
+                                    contentDescription = AppStrings.TITLE_EDIT_TRANSACTION
                                 )
                             }
                         }
@@ -90,7 +91,7 @@ fun TransactionDetailScreen(
         ) {
             when {
                 uiState.isLoading -> {
-                    LoadingState(message = "Fetching transaction details...")
+                    LoadingState(message = AppStrings.LOADING_TRANSACTION_DETAILS)
                 }
                 uiState.errorMessage != null && uiState.transaction == null -> {
                     ErrorState(
@@ -100,9 +101,9 @@ fun TransactionDetailScreen(
                 }
                 uiState.isEmpty -> {
                     EmptyState(
-                        title = "Transaction not found",
-                        message = "The requested transaction could not be located.",
-                        actionLabel = "Back to List",
+                        title = AppStrings.NO_MATCHING_TRANSACTIONS,
+                        message = AppStrings.EMPTY_TRANSACTION_NOT_FOUND,
+                        actionLabel = AppStrings.ACTION_BACK_TO_LIST,
                         onActionClick = onNavigateBack
                     )
                 }

@@ -35,6 +35,8 @@ object AppStrings {
     @StringRes val ACTION_ADD_TRANSACTION: Int = R.string.action_add_transaction
     @StringRes val ACTION_UPDATE_TRANSACTION: Int = R.string.action_update_transaction
     @StringRes val ACTION_SAVING_CHANGES: Int = R.string.action_saving_changes
+    @StringRes val ACTION_EDIT_DETAILS: Int = R.string.action_edit_details
+    @StringRes val ACTION_SEND_ANOTHER: Int = R.string.action_send_another
 
     // Form Field Labels & Placeholders
     @StringRes val LABEL_AMOUNT: Int = R.string.label_amount
@@ -47,6 +49,9 @@ object AppStrings {
     @StringRes val LABEL_NOTE_OPTIONAL: Int = R.string.label_note_optional
     @StringRes val LABEL_SELECT_FROM_CONTACTS: Int = R.string.label_select_from_contacts
     @StringRes val LABEL_QUICK_SELECT_CATEGORY: Int = R.string.label_quick_select_category
+    @StringRes val LABEL_WAITING_FOR_CATEGORIES: Int = R.string.label_waiting_for_categories
+    @StringRes val LABEL_YOU_ARE_SENDING: Int = R.string.label_you_are_sending
+    @StringRes val LABEL_MONEY_SENT: Int = R.string.label_money_sent
 
     // Empty & Loading States
     @StringRes val EMPTY_TRANSACTIONS_TITLE: Int = R.string.empty_transactions_title

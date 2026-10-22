@@ -142,6 +142,9 @@ class OfflineTransactionRepository @Inject constructor(
      * by the server copy. Revisit this when the server adds a version column — the client clock in
      * updatedAtEpochMs is not a substitute for a server version.
      */
+    /** Refreshes transactions by synchronizing local cache with remote network. */
+    override suspend fun refresh(): Result<Unit> = sync()
+
     suspend fun sync(): Result<Unit> = runCatching {
         pushPending()
         pullRemote()

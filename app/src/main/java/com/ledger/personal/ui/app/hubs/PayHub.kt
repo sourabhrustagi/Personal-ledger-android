@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.app.HubFlags
@@ -86,20 +87,20 @@ fun PayHub(
         }
     }
 
-    FeatureScaffold(AppStrings.TITLE_PAY, onBack = null) {
+    FeatureScaffold(stringResource(AppStrings.TITLE_PAY), onBack = null) {
         if (flags.offline) PaymentsOfflineNotice()
         val online = !flags.offline
 
-        SectionCard(title = AppStrings.SECTION_SCAN_AND_PAY) {
+        SectionCard(title = stringResource(AppStrings.SECTION_SCAN_AND_PAY)) {
             ListRow(
                 icon = Icons.Outlined.QrCodeScanner,
-                title = AppStrings.ACTION_SCAN_QR,
+                title = stringResource(AppStrings.ACTION_SCAN_QR),
                 subtitle = "Opens camera to scan QR and make payment",
                 iconTint = if (online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 onClick = { if (online) onOpen(Screen.Scan) },
             )
             PrimaryButton(
-                text = AppStrings.ACTION_OPEN_CAMERA,
+                text = stringResource(AppStrings.ACTION_OPEN_CAMERA),
                 icon = Icons.Outlined.QrCodeScanner,
                 enabled = online,
                 onClick = { onOpen(Screen.Scan) },
@@ -107,7 +108,7 @@ fun PayHub(
             )
         }
 
-        SectionCard(title = AppStrings.SECTION_SEND_TO_ANYONE) {
+        SectionCard(title = stringResource(AppStrings.SECTION_SEND_TO_ANYONE)) {
             Text(
                 "Enter mobile number or UPI ID, or select from local contacts",
                 style = MaterialTheme.typography.bodyMedium,
@@ -116,8 +117,8 @@ fun PayHub(
             OutlinedTextField(
                 value = recipientInput,
                 onValueChange = { recipientInput = it },
-                label = { Text(AppStrings.LABEL_RECIPIENT) },
-                placeholder = { Text(AppStrings.LABEL_RECIPIENT_PLACEHOLDER) },
+                label = { Text(stringResource(AppStrings.LABEL_RECIPIENT)) },
+                placeholder = { Text(stringResource(AppStrings.LABEL_RECIPIENT_PLACEHOLDER)) },
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp),
                 trailingIcon = {
@@ -143,10 +144,10 @@ fun PayHub(
                 ) {
                     Icon(Icons.Outlined.Contacts, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(AppStrings.ACTION_CONTACTS)
+                    Text(stringResource(AppStrings.ACTION_CONTACTS))
                 }
                 PrimaryButton(
-                    text = AppStrings.ACTION_CONTINUE,
+                    text = stringResource(AppStrings.ACTION_CONTINUE),
                     enabled = online && recipientInput.isNotBlank(),
                     onClick = { onOpen(Screen.PayTo(recipientInput.trim(), 0L)) },
                     modifier = Modifier.weight(1f),
@@ -156,7 +157,7 @@ fun PayHub(
             HorizontalDivider()
 
             Text(
-                AppStrings.LABEL_SAVED_CONTACTS,
+                stringResource(AppStrings.LABEL_SAVED_CONTACTS),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

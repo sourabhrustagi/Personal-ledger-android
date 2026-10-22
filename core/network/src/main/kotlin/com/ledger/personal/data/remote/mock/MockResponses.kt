@@ -116,7 +116,7 @@ object MockResponses {
             {"id": "home", "title": "Home"},
             {"id": "pay", "title": "Pay"},
             {"id": "passbook", "title": "Passbook"},
-            {"id": "accounts", "title": "Accounts"}
+            {"id": "offers", "title": "Offers"}
           ],
           "sections": [
             {

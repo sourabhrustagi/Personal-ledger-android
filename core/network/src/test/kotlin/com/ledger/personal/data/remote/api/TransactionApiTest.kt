@@ -14,7 +14,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class KtorTransactionApiTest {
+class TransactionApiTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Test

@@ -28,6 +28,4 @@ include(
     ":core:mock",
     ":feature:ledger",
     ":feature:wallet",
-    ":feature:ticker",
-    ":feature:banking",
 )

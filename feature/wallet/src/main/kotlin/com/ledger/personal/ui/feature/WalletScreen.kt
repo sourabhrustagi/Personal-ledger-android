@@ -217,7 +217,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
 private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel: WalletViewModel) {
     val contact = MockCatalog.contacts.firstOrNull { it.handle == state.recipient }
     SectionCard {
-        Text("You are sending", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(AppStrings.LABEL_YOU_ARE_SENDING), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(formatMoney(state.amountMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         HorizontalDivider()
         DetailRow("To", contact?.name ?: state.recipient)
@@ -243,7 +243,7 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
         }
     }
     if (state.status != TransferStatus.PENDING) {
-        TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text("Edit details") }
+        TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text(stringResource(AppStrings.ACTION_EDIT_DETAILS)) }
     }
 }
 
@@ -257,7 +257,7 @@ private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, onSendAnot
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         IconBadge(Icons.Outlined.CheckCircle, size = 88)
-        Text("Money sent", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(AppStrings.LABEL_MONEY_SENT), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(formatMoney(state.postedMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text("to ${contact?.name ?: state.recipient}", style = MaterialTheme.typography.bodyLarge)
     }
@@ -268,7 +268,7 @@ private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, onSendAnot
     }
     PrimaryButton("Done", onClick = onDone)
     OutlinedButton(onClick = onSendAnother, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Text("Send another")
+        Text(stringResource(AppStrings.ACTION_SEND_ANOTHER))
     }
 }
 

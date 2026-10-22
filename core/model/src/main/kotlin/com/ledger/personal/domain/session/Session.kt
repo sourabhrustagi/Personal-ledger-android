@@ -6,6 +6,6 @@ interface Session {
     fun end()
 
     /** Asks the server for a new token and stores it. */
-    suspend fun begin(): Result<Unit>
+    suspend fun begin(): Result<SessionResponse>
 }
 

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & Navigation Titles -->
+    <string name="app_name">पर्सनल लेजर</string>
+    <string name="title_home">पर्सनल लेजर</string>
+    <string name="title_passbook">पासबुक</string>
+    <string name="title_transactions">लेन-देन</string>
+    <string name="title_offers">ऑफ़र</string>
+    <string name="title_pay">भुगतान करें</string>
+    <string name="title_scan">स्कैन करें</string>
+    <string name="title_wallet">पैसे भेजें</string>
+    <string name="title_new_transaction">नया लेन-देन</string>
+    <string name="title_edit_transaction">लेन-देन संपादित करें</string>
+    <string name="title_transaction_details">लेन-देन विवरण</string>
+
+    <!-- Action Buttons -->
+    <string name="action_continue">आगे बढ़ें</string>
+    <string name="action_save">सहेजें</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_retry">पुनः प्रयास करें</string>
+    <string name="action_refresh">ताज़ा करें</string>
+    <string name="action_send_money">पैसे भेजें</string>
+    <string name="action_contacts">संपर्क</string>
+    <string name="action_scan_qr">कोई भी यूपीआई क्यूआर कोड स्कैन करें</string>
+    <string name="action_open_camera">कैमरा खोलें और स्कैन करें</string>
+    <string name="action_back_to_list">सूची पर वापस जाएं</string>
+    <string name="action_add_transaction">लेन-देन जोड़ें</string>
+    <string name="action_update_transaction">लेन-देन अपडेट करें</string>
+    <string name="action_saving_changes">परिवर्तन सहेजे जा रहे हैं…</string>
+
+    <!-- Form Field Labels & Placeholders -->
+    <string name="label_amount">राशि</string>
+    <string name="label_category">श्रेणी</string>
+    <string name="label_description">विवरण</string>
+    <string name="label_recipient">मोबाइल नंबर या यूपीआई आईडी</string>
+    <string name="label_recipient_placeholder">उदा. 9876543210 या name@upi</string>
+    <string name="label_saved_contacts">सहेजे गए संपर्क</string>
+    <string name="label_enter_amount">राशि दर्ज करें</string>
+    <string name="label_note_optional">टिप्पणी (वैकल्पिक)</string>
+    <string name="label_select_from_contacts">स्थानीय संपर्कों में से चुनें</string>
+    <string name="label_quick_select_category">त्वरित श्रेणी चुनें:</string>
+
+    <!-- Empty & Loading States -->
+    <string name="empty_transactions_title">अपना पहला लेन-देन जोड़ें</string>
+    <string name="empty_transactions_subtitle">आपके द्वारा दर्ज किए गए लेन-देन यहां दिखाई देंगे।</string>
+    <string name="empty_transactions_default_title">अभी तक कोई लेन-देन नहीं</string>
+    <string name="empty_transactions_default_subtitle">आपकी वित्तीय यात्रा आपके पहले रिकॉर्ड के साथ शुरू होती है।</string>
+    <string name="empty_transaction_not_found">अनुरोधित लेन-देन नहीं मिला।</string>
+    <string name="empty_promotions">फ़िलहाल कोई ऑफ़र नहीं है।</string>
+    <string name="empty_tab_content">इस टैब में कुछ नहीं है।</string>
+    <string name="no_matching_transactions">कोई लेन-देन नहीं मिला</string>
+    <string name="loading_transactions">आपके लेन-देन लोड हो रहे हैं…</string>
+    <string name="loading_transaction_details">लेन-देन का विवरण प्राप्त किया जा रहा है…</string>
+    <string name="loading_transaction_data">लेन-देन डेटा लोड हो रहा है…</string>
+
+    <!-- Section Titles -->
+    <string name="section_offers">ऑफ़र और प्रचार</string>
+    <string name="section_scan_and_pay">स्कैन करें और भुगतान करें</string>
+    <string name="section_send_to_anyone">किसी को भी भेजें</string>
+    <string name="section_saved_contacts">सहेजे गए संपर्क</string>
+    <string name="section_recent_transactions">हाल के लेन-देन</string>
+</resources>

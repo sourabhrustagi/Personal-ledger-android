@@ -2,7 +2,7 @@
 
 LedgerOne is an Android banking and personal-finance app. It tracks your transactions, sends and requests money by UPI, manages cards, loans and deposits, and keeps working offline.
 
-It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Ktor.
+It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Retrofit.
 
 By default the app runs fully offline on built-in demo data, so you can clone it and run it without a backend.
 
@@ -26,6 +26,9 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Profile, Disputes & Developer Tools](#profile-disputes--developer-tools)
 - [Project Layout](#project-layout)
 - [Architecture & How the App Works](#architecture--how-the-app-works)
+  - [Clean Architecture & Layer Separation](#clean-architecture--layer-separation)
+  - [How API Calls & Network Flow Work (Retrofit & SafeApiCall)](#how-api-calls--network-flow-work-retrofit--safeapicall)
+  - [How UI is Updated (Unidirectional Data Flow & StateFlow)](#how-ui-is-updated-unidirectional-data-flow--stateflow)
   - [1. Offline-First Local Source of Truth](#1-offline-first-local-source-of-truth)
   - [2. Resilient Background Synchronization & Conflict Resolution](#2-resilient-background-synchronization--conflict-resolution)
   - [3. Build Flavor Dependency Injection](#3-build-flavor-dependency-injection)
@@ -228,19 +231,147 @@ See [docs/MODULES.md](docs/MODULES.md) to add a `core/` or `feature/` module.
 
 ## <a id="architecture--how-the-app-works"></a><a id="architecture-how-the-app-works"></a>Architecture & How the app works
 
-The application is structured into a modular three-tier architecture (`:app` → `:feature:*` → `:core:*`) that enforces strict feature isolation and an **offline-first** reactive data flow:
+The application is built according to **Clean Architecture** principles and the official **Android Architecture Guidelines** (as showcased in `android/architecture-samples`), enforcing strict layer boundaries, dependency inversion, and an **offline-first** reactive data flow:
 
 ```mermaid
 flowchart TD
-    UI[Compose Screen] -->|UI Events| VM[ViewModel]
-    VM -->|Observe Flow| Repo[OfflineTransactionRepository]
-    Repo -->|Local Read/Write| Room[(Room Database)]
-    Room -.->|Live Updates| VM
-    VM -.->|StateFlow| UI
+    subgraph Presentation ["Presentation Layer (:feature:*, :app)"]
+        UI["Compose UI Screens (Stateless)"]
+        VM["ViewModels (StateFlow<UiState>)"]
+        UI -->|UI Events / User Actions| VM
+        VM -->|collectAsStateWithLifecycle()| UI
+    end
 
-    Worker[TransactionSyncWorker] -->|Sync Schedule| Repo
-    Repo <-->|Push Pending / Pull Remote| Net[Ktor Remote / Mock Repository]
+    subgraph Domain ["Domain Layer (:core:model) - Pure Kotlin"]
+        UC["Use Cases (Single Responsibility)\n(e.g., GetTransactionsUseCase, SendOtpUseCase)"]
+        RepoInt["Repository Interfaces\n(e.g., TransactionRepository, PromotionRepository)"]
+        DomainModels["Domain Entities & Invariants\n(e.g., Transaction, OtpResponse)"]
+        VM -->|Invoke| UC
+        UC -->|Execute Rules & Query| RepoInt
+    end
+
+    subgraph Data ["Data Layer (:core:database, :core:network)"]
+        RepoImpl["Repository Implementations\n(OfflineTransactionRepository, OfflinePromotionRepository)"]
+        Room["Room Database (DAOs & Entities)\n[Local Offline Source of Truth]"]
+        Retrofit["Retrofit 2 Services & SafeApiCall\n[Remote REST Endpoints]"]
+        RepoInt <|.. RepoImpl
+        RepoImpl -->|Local Read/Write| Room
+        RepoImpl -->|safeApiCall & Sync| Retrofit
+        Room -.->|Cold Flow<List<Entity>>| RepoImpl
+    end
 ```
+
+---
+
+### <a id="clean-architecture--layer-separation"></a>Clean Architecture & Layer Separation
+
+1. **Domain Layer (`:core:model`) - Pure Business Rules:**
+   - Free from any Android framework, Room, or Retrofit dependencies.
+   - Contains immutable business models (`Transaction`, `OtpResponse`, `SessionResponse`).
+   - Defines abstract repository interfaces (`TransactionRepository`, `PromotionRepository`).
+   - Houses reusable, single-responsibility **Use Cases** (`operator fun invoke`):
+     - `CreateTransactionUseCase`, `UpdateTransactionUseCase`, `DeleteTransactionUseCase`
+     - `GetTransactionsUseCase`, `GetPagedTransactionsUseCase`, `GetTransactionByIdUseCase`
+     - `RefreshTransactionsUseCase`, `SendOtpUseCase`, `GetPromotionsUseCase`
+2. **Data Layer (`:core:database`, `:core:network`):**
+   - Implements domain repository interfaces and isolates database/network implementation details.
+   - Encapsulates Room DAOs and database entities (`com.ledger.personal.data.local`).
+   - Encapsulates Retrofit REST API services, HTTP interceptors, DTOs, and serialization (`com.ledger.personal.data.remote`).
+3. **Presentation Layer (`:feature:*`, `:app`):**
+   - Feature modules never depend directly on Room DAOs or Retrofit services.
+   - ViewModels interact exclusively with domain Use Cases or Repository interfaces.
+   - ViewModels expose read-only, immutable `StateFlow<UiState>` models representing the UI state.
+   - Composables are declarative and stateless, consuming state using `collectAsStateWithLifecycle()`.
+
+---
+
+### <a id="how-api-calls--network-flow-work-retrofit--safeapicall"></a>How API Calls & Network Flow Work (Retrofit & SafeApiCall)
+
+Network communication follows a robust, safe pattern inspired by `android/architecture-samples`:
+
+1. **Type-Safe Retrofit Services (`:core:network`):**
+   HTTP endpoints are declared using standard Retrofit suspend functions:
+   ```kotlin
+   interface OtpApi {
+       @POST("auth/otp")
+       suspend fun sendOtp(@Body request: OtpRequest): Response<OtpResponseDto>
+   }
+   ```
+2. **Standardized Error Handling with `safeApiCall`:**
+   Raw network executions are wrapped in `safeApiCall { ... }`, which intercepts HTTP error codes, non-2xx bodies, timeouts, and JSON serialization failures, safely catching exceptions and propagating coroutine cancellation:
+   ```kotlin
+   suspend fun <T : Any> safeApiCall(
+       dispatcher: CoroutineDispatcher = Dispatchers.IO,
+       apiCall: suspend () -> Response<T>,
+   ): Result<T> = withContext(dispatcher) {
+       try {
+           val response = apiCall()
+           if (response.isSuccessful) {
+               val body = response.body()
+               if (body != null) Result.success(body)
+               else Result.failure(ApiException(response.code(), "Empty response body"))
+           } else {
+               val message = response.errorBody()?.string()?.ifBlank { response.message() } ?: "HTTP ${response.code()}"
+               Result.failure(ApiException(response.code(), message))
+           }
+       } catch (e: CancellationException) {
+           throw e // Never swallow coroutine cancellation
+       } catch (e: Exception) {
+           Result.failure(e)
+       }
+   }
+   ```
+3. **DTO to Domain Transformation (Anti-Corruption Layer):**
+   DTOs received from the wire are immediately mapped to pure domain models before leaving the network layer (e.g. `TransactionDto.toDomain()`, `OtpResponseDto.toDomain()`).
+
+---
+
+### <a id="how-ui-is-updated-unidirectional-data-flow--stateflow"></a>How UI is Updated (Unidirectional Data Flow & StateFlow)
+
+The UI follows the **Unidirectional Data Flow (UDF)** pattern: **State flows down, events flow up**.
+
+```mermaid
+sequenceDiagram
+    participant UI as Jetpack Compose UI
+    participant VM as ViewModel
+    participant UC as UseCase
+    participant Data as Repository / API
+
+    UI->>VM: User Event (e.g., sendOtp("9876543210"))
+    activate VM
+    VM->>VM: MutableStateFlow.update { it.copy(isSending = true) }
+    VM-->>UI: StateFlow emission (shows loading spinner)
+    VM->>UC: invoke(phone)
+    activate UC
+    UC->>Data: Request OTP API
+    Data-->>UC: Result<OtpResponse>
+    UC-->>VM: Result<OtpResponse>
+    deactivate UC
+    VM->>VM: MutableStateFlow.update { it.copy(isSending = false, isOtpSent = success) }
+    VM-->>UI: StateFlow emission (transitions to OTP screen)
+    deactivate VM
+```
+
+#### Step-by-Step Flow:
+1. **User Action / Intent:** The user interacts with a Compose screen (e.g., clicks "Send OTP" in `PhoneStep.kt`). The screen hoists the event to the ViewModel: `viewModel.sendOtp(phone)`.
+2. **State Transition to Loading:** The ViewModel immediately issues an atomic state update via `MutableStateFlow.update { it.copy(isSending = true, errorMessage = null) }`.
+3. **Domain Business Logic Execution:** The ViewModel executes the Use Case (`sendOtpUseCase(phone)`). The Use Case performs business validation (e.g., verifying 10-digit format) before delegating to the data layer.
+4. **Data Fetching / Persistence:** The repository executes the Retrofit call via `safeApiCall` and returns `Result<OtpResponse>`.
+5. **State Transition to Success / Error:** The ViewModel updates its internal `MutableStateFlow`:
+   ```kotlin
+   val result = sendOtpUseCase(phone)
+   mutableOtpState.update {
+       it.copy(
+           isSending = false,
+           isOtpSent = result.isSuccess,
+           sentMessage = result.getOrNull()?.message?.ifBlank { "OTP sent" } ?: "OTP sent",
+           errorMessage = result.exceptionOrNull()?.message,
+       )
+   }
+   ```
+6. **Lifecycle-Safe UI Recomposition:** The composable observes `viewModel.otpState.collectAsStateWithLifecycle()`. Compose safely recomposes only the elements that depend on the changed fields (`isSending`, `isOtpSent`, `errorMessage`).
+
+---
 
 ### <a id="1-offline-first-local-source-of-truth"></a>1. Offline-first local source of truth
 - Every user write (transaction creation, draft changes, bill payments) is immediately persisted to the local **Room** database with a synchronization status: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE`.
@@ -276,7 +407,7 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and retry |
 | `:feature:ledger` | `CreateTransactionViewModel` | Transaction creation form validation and submission |
 | `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
-| `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `TransactionDao` |
+| `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `GetPagedTransactionsUseCase` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
 | `:feature:ticker` | `TickerViewModel` | Real-time WebSocket currency quote ticker stream |
 | `:feature:banking` | `BankingViewModel` | Bank accounts, card controls, deposits, EMI loan amortization, and cooling period payees |

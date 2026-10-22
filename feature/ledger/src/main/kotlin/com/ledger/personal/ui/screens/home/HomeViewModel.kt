@@ -12,8 +12,6 @@ import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
 import com.ledger.personal.domain.sync.SyncPhase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +24,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
-import com.ledger.personal.domain.usecase.DeleteTransactionUseCase
 import com.ledger.personal.domain.usecase.GetTransactionsUseCase
 
 const val INCOME_CATEGORY = "Salary"
@@ -63,7 +60,6 @@ private val essentialHome = listOf(HomeSection.Balance)
 
 /** Home stays reachable when the dashboard cannot be loaded. */
 private val essentialTabs = listOf(HomeTab("home", "Home"))
-const val UNDO_WINDOW_MS = 4_000L
 
 private val PreviewPromotionsBackend = PromotionsBackend { Result.success(emptyList()) }
 
@@ -71,7 +67,6 @@ private val PreviewPromotionsBackend = PromotionsBackend { Result.success(emptyL
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getTransactionsUseCase: GetTransactionsUseCase,
-    private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val sync: SyncCoordinator,
     board: HomeBoard,
     promotionsBackend: PromotionsBackend = PreviewPromotionsBackend,
@@ -84,7 +79,6 @@ class HomeViewModel @Inject constructor(
         promotionsBackend: PromotionsBackend = PreviewPromotionsBackend,
     ) : this(
         GetTransactionsUseCase(repository),
-        DeleteTransactionUseCase(repository),
         sync,
         board,
         promotionsBackend,
@@ -97,7 +91,6 @@ class HomeViewModel @Inject constructor(
     private val promotions = MutableStateFlow<List<PromoOffer>>(emptyList())
     private val layoutMessage = MutableStateFlow<String?>(null)
     private val layoutReady = MutableStateFlow(false)
-    private var deleteJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -163,45 +156,8 @@ class HomeViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
-    /** Reacts to query. */
-    fun onQuery(text: String) {
-        query.value = text
-    }
-
-    /** Reacts to category. */
-    fun onCategory(name: String?) {
-        category.value = if (category.value == name) null else name
-    }
-
     /** Refresh. */
     fun refresh() = sync.enqueue()
-
-    /** Delete. */
-    fun delete(tx: Transaction) {
-        deleteJob?.cancel()
-        pending.value?.let { previous -> viewModelScope.launch { deleteTransactionUseCase(previous.id) } }
-        pending.value = tx
-        deleteJob = viewModelScope.launch {
-            delay(UNDO_WINDOW_MS)
-            commitDelete()
-        }
-    }
-
-    /** Undo delete. */
-    fun undoDelete() {
-        deleteJob?.cancel()
-        pending.value = null
-    }
-
-    /** Commit delete. */
-    fun commitDelete() {
-        val tx = pending.value ?: return
-        deleteJob?.cancel()
-        viewModelScope.launch {
-            deleteTransactionUseCase(tx.id)
-            pending.value = null
-        }
-    }
 }
 
 /** Ledger fields combined before the dashboard tiles are applied. */

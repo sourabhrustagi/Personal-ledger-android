@@ -1563,6 +1563,27 @@ stateDiagram-v2
   3. *Stage 3 (Client App Release):* A new application update is rolled out promoting Backup to Primary and baking in a newly generated future Backup pin.
 - **Emergency Signed Over-The-Air Pin Rotation (`SignedPinManifest`):** In the event of dual-key compromise or catastrophic CA revocation, the app verifies an ECDSA-signed pin update manifest against an embedded offline Root Public Key, hot-reloading active pins without requiring an emergency store release.
 
+#### Advanced Runtime Application Self-Protection (RASP): Root, Hooking, MitM, Overlays & Anti-Tampering
+Fintech security extends beyond static ProGuard/R8 symbol obfuscation to active runtime integrity verification:
+- **Rooted / Jailbroken OS Detection (`AppSecurityGuard`, `IntegrityEvaluator`):**
+  - *SU Binary Verification:* Probes standard root execution paths (`/system/bin/su`, `/system/xbin/su`, `/sbin/su`, `/vendor/bin/su`, `/data/local/xbin/su`).
+  - *Build Fingerprint & Tag Inspection:* Analyzes `Build.TAGS` for `"test-keys"` to detect unofficial, uncertified, or rooted custom firmware.
+  - *Magisk & Root Manager Shielding:* Identifies Magisk directories and hide mounts (`/sbin/.magisk/`, `/data/adb/magisk`).
+- **Dynamic Instrumentation & Anti-Hooking (Frida / Xposed):**
+  - *Memory Map Scanning:* Inspects `/proc/self/maps` for injected hooking engines (`frida-agent.so`, `libfrida`, `xposed`, `substrate`).
+  - *Frida Socket Probing:* Verifies that default Frida server ports (e.g. port `27042` on localhost) are closed.
+  - *Anti-Debugging & Tracer Checks:* Queries `Debug.isDebuggerConnected()` and inspects `/proc/self/status` for active `TracerPid > 0` to block ptrace-based debugging and memory tampering.
+- **Man-in-the-Middle (MitM) Proxy Attack Mitigation:**
+  - *System-Only Trust Anchors (`network_security_config.xml`):* Rejects user-installed root CA certificates, preventing proxies (Charles, Burp Suite, mitmproxy) from decrypting TLS traffic via user certificate storage.
+  - *Proxy & VPN Interface Auditing:* Inspects system properties (`http.proxyHost`, `http.proxyPort`) and checks `ConnectivityManager` network capabilities for unexpected `TRANSPORT_VPN` tunnels.
+  - *Subject Public Key Info Pinning (`PinRotationManager`):* Enforces multi-pin SPKI validation so modified proxy certificates fail the TLS handshake.
+- **Screen-Recording & Tapjacking / Overlay Malware Defense:**
+  - *Hardware Window Protection (`SecureWindow`):* Dynamically enforces `FLAG_SECURE` on sensitive Compose screens, blocking screenshots, screen mirroring, third-party screen-recorders, and blanking recents thumbnails.
+  - *Touch Obscuration Filtering (`TapjackingProtection`):* Sets `view.filterTouchesWhenObscured = true` across payment and authentication surfaces. Android automatically drops `MotionEvent` instances bearing `FLAG_WINDOW_IS_OBSCURED` or `FLAG_WINDOW_IS_PARTIALLY_OBSCURED`, preventing invisible overlay clickjacking.
+- **Anti-Tampering & Repackaging Defense:**
+  - *Signing Certificate Fingerprint Validation:* Computes the SHA-256 fingerprint of the APK signing certificate via `PackageManager` and verifies it against the authentic developer key, preventing execution of re-signed or pirated APKs.
+  - *Debuggable State Verification:* Verifies `FLAG_DEBUGGABLE` is unset in production environments to thwart APK decompilation and debug flag toggling.
+
 ### <a id="offline-first-synchronization--conflict-handling"></a><a id="offline-first-synchronization-conflict-handling"></a>Offline-first synchronization & conflict handling
 
 - **Write-ahead local truth (Room Outbox):** All mutations and multi-page forms commit first to Room with a synchronization state: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE` on `Dispatchers.IO`. The UI observes reactive Room `Flow` streams, guaranteeing zero data loss, instantaneous UI responsiveness, and resilience across app backgrounding, memory eviction, and device restarts.

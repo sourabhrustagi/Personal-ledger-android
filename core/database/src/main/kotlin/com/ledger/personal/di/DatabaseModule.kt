@@ -17,6 +17,8 @@ import com.ledger.personal.data.local.PromotionDao
 import com.ledger.personal.data.local.TransactionDao
 import com.ledger.personal.data.local.seedPromotions
 import com.ledger.personal.data.local.seedTransactions
+import com.ledger.personal.data.security.AndroidKeyStoreMasterKeyVault
+import com.ledger.personal.data.security.MasterKeyVault
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -71,4 +73,9 @@ object DatabaseModule {
     /** Supplies inspection dao. */
     @Provides
     fun provideInspectionDao(database: LedgerDatabase): InspectionDao = database.inspectionDao()
+
+    /** Supplies master key vault for envelope encryption. */
+    @Provides
+    @Singleton
+    fun provideMasterKeyVault(vault: AndroidKeyStoreMasterKeyVault): MasterKeyVault = vault
 }

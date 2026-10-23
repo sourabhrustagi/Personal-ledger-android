@@ -8,7 +8,7 @@ enum class TransferStep(val title: String) {
 }
 
 /** Allowed values of transfer status. */
-enum class TransferStatus { IDLE, INSUFFICIENT, STEP_UP, PENDING, FAILED, DONE }
+enum class TransferStatus { IDLE, INSUFFICIENT, STEP_UP, PENDING, IN_DOUBT, FAILED, DONE }
 
 /** Values rendered by the wallet screen. */
 data class WalletUiState(
@@ -23,5 +23,6 @@ data class WalletUiState(
     val postedMinor: Long = 0L,
     val attempt: Int = 0,
     val errorMessage: String? = null,
+    val canReconcile: Boolean = false,
 )
 

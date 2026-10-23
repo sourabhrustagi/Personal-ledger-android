@@ -90,6 +90,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [7. Engineering Leadership & Cross-Functional Trade-Offs (Spice Money & Wander Innovations)](#7-engineering-leadership--cross-functional-trade-offs-spice-money--wander-innovations)
   - [8. Incremental Migration: XML & Data Binding to Jetpack Compose](#8-incremental-migration-xml--data-binding-to-jetpack-compose)
   - [9. Testing Non-Deterministic LLM UI Components & CI/CD Isolation](#9-testing-non-deterministic-llm-ui-components--cicd-isolation)
+  - [10. Engineering Leadership: Review Checklists, Static Analysis & Security Gateways](#10-engineering-leadership-review-checklists-static-analysis--security-gateways)
 
 ---
 
@@ -2570,5 +2571,116 @@ To ensure resilience, maintain a version-controlled fixture directory (`src/test
 - **Eliminating Emulator Overhead:** Running instrumentation tests (`connectedAndroidTest`) on physical devices or emulators in GitHub Actions adds 10–15 minutes of provisioning delay.
 - **The Solution:** Execute Compose UI and Espresso tests headlessly on the JVM using **Robolectric** (`testMockDebugUnitTest`).
 - **Performance Impact:** Executes hundreds of Compose UI interaction and semantics tests in under **45 seconds** in CI runners without spinning up an Android emulator image.
+
+---
+
+### 10. Engineering Leadership: Review Checklists, Static Analysis & Security Gateways
+
+As an Engineering Manager and Mobile Lead in high-stakes fintech environments (Spice Money, Wander Innovations, LedgerOne), maintaining software quality across a growing engineering team requires a **"Shift-Left" philosophy**:
+- **The Core Premise:** Human reviewers should **never** spend time pointing out formatting styles, 140-character line lengths, missing null checks, or raw hex colors. Those must be caught mechanically and automatically by pre-commit hooks and CI quality gates.
+- **The Human Superpower:** Human code review must be reserved for high-order architectural trade-offs, financial invariant correctness, concurrency safety, edge-case resilience, and anti-fraud security assumptions.
+
+Here is the concrete framework enforced across the engineering lifecycle:
+
+#### A. Multi-Tier Static Analysis & Quality Gateways
+
+```
+[Developer Machine] ──► Pre-Commit Hook (ktlint / Gitleaks)
+                    ──► CI PR Gateway (Detekt, Android Lint, ModuleBoundaryTest, SonarQube)
+                    ──► SAST / Security Scanning (MobSF, OWASP Dependency-Check, TruffleHog)
+                    ──► Human Review Gate (Standardized PR Checklist & 2-Approval Policy)
+                    ──► Release Gate (Zero Blocker/Critical Vulns, Play Vitals Canary)
+```
+
+##### 1. Detekt (Complexity, Correctness & Kotlin Idioms)
+Enforced in `detekt.yml` with **`maxIssues: 0`** (any violation fails the build):
+- **Complexity Guardrails:**
+  - `LongMethod`: Threshold 60 lines (ignores `@Composable` UI trees).
+  - `LargeClass`: Threshold 600 lines.
+  - `TooManyFunctions`: Threshold 20 per class.
+  - `LongParameterList`: Max 8 parameters (ignores `@Composable` and `@Inject`).
+- **Potential Bugs & Defensive Idioms:**
+  - `UnsafeCallOnNullableType`: Completely active (`!!` is banned across the entire codebase; forces `requireNotNull`, `checkNotNull`, or safe navigation `?.`).
+  - `WildcardImport`: Active (no `import java.util.*`).
+  - `ReturnCount`: Max 6 exit points per method to avoid spaghetti branching.
+  - `ThrowsCount`: Max 2 `throw` statements per function to keep exception handling explicit.
+
+##### 2. Android Lint (`lintMockDebug` & `lintRelease`)
+Configured with `abortOnError = true` to catch platform-specific pitfalls:
+- **Security & Permissions:** Blocks exported activities, services, or receivers lacking `android:permission` or `android:exported="false"`.
+- **Resource Hygiene:** Blocks hardcoded user-facing strings (enforcing `strings.xml`), missing RTL support, and unlocalized strings (`values-hi`).
+- **Deprecation & Target SDK:** Fails on deprecated API usage without explicit version branching (`Build.VERSION.SDK_INT`).
+
+##### 3. Architecture Fitness Tests (`ModuleBoundaryTest`)
+Automated JUnit architecture tests that enforce domain and module boundaries:
+- **Zero Cross-Feature Dependencies:** Scans all `build.gradle.kts` files to verify that no `:feature:*` module ever imports or depends on another `:feature:*` module.
+- **Strict Design System Color Enforcement:** Scans all `.kt` files in `feature/**` to ensure zero instances of raw `Color(0x...)`. All colors must resolve from `MaterialTheme.colorScheme` or `LedgerTheme.colors`.
+- **Financial Invariant Verification:** Tests assert that no money representations in `core/model` or `feature/**` use `Double` or `Float`.
+
+##### 4. SonarQube / SonarCloud (Technical Debt & Code Smells)
+- **Quality Gate Thresholds:**
+  - **New Bugs / Vulnerabilities:** Exactly `0`.
+  - **Code Coverage on New Code:** Minimum `80%`.
+  - **Duplicated Blocks:** Less than `3%`.
+  - **Cognitive Complexity:** Capped at 15 on payment calculations and ledger balance reconciliation methods.
+
+##### 5. Automated Security & Secret Scanning (SAST & SCA)
+- **Secret Detection:** `TruffleHog` and `Gitleaks` integrated into GitHub Actions to scan every commit diff for leaked API keys, PEM certificates, AWS secrets, or Firebase tokens.
+- **Software Composition Analysis (SCA):** `Dependabot` + `OWASP Dependency-Check` running on weekly schedules and PR builds to flag known CVEs in third-party Gradle dependencies.
+- **Mobile Security Static Analysis:** `MobSF` (Mobile Security Framework) scans the release `.aab` for insecure cryptographic modes (e.g. DES, ECB, static nonces) and cleartext HTTP traffic.
+
+---
+
+#### B. Concrete PR Review Checklist (Required for Merge)
+
+Every Pull Request must fill out and pass the standardized engineering review template:
+
+```markdown
+### Pull Request Quality & Security Checklist
+
+#### 1. Financial & Domain Integrity
+- [ ] All money values are strictly `Long` in minor units (paise/cents). No `Float` or `Double`.
+- [ ] Calculations format currency using `formatMoney` from `:core:designsystem`.
+- [ ] Double-entry ledger entries balance: `sum(debits) == sum(credits)`.
+- [ ] Write operations include client-generated idempotency keys (`TransferBook`).
+
+#### 2. Kotlin Coroutines & Structured Concurrency
+- [ ] Coroutines are launched within well-defined lifecycle scopes (`viewModelScope`, `LaunchedEffect`). Zero `GlobalScope`.
+- [ ] `CancellationException` is NEVER swallowed in `try-catch` or `runCatching`.
+- [ ] Shared mutable state is protected with `Mutex` or thread-safe primitives (`AtomicBoolean`, `ConcurrentHashMap`).
+- [ ] Heavy I/O (disk/Room, network, PDF creation) explicitly switches to `Dispatchers.IO`.
+
+#### 3. Security, Anti-Fraud & Data Privacy (PII)
+- [ ] No customer PII (Aadhaar, SSN, PAN, Card PAN, Bank Account) logged via `Log.*` or Crashlytics.
+- [ ] Sensitive screens (KYC, PIN entry, Card details) enforce `FLAG_SECURE` window protections.
+- [ ] Cryptographic keys reside in hardware-backed `AndroidKeyStore` (`MASTER_KEY_ALIAS`).
+- [ ] Network calls enforce TLS 1.3 and Certificate Pinning with backup pin hashes.
+
+#### 4. Jetpack Compose & Performance
+- [ ] Composable state models are annotated with `@Immutable` or `@Stable`.
+- [ ] No raw hex colors (`Color(0x...)`) used in feature modules.
+- [ ] Event lambdas are hoisted to avoid recomposition churn (`onAction = viewModel::handleAction`).
+- [ ] In Fragments hosting Compose, `ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed` is configured.
+
+#### 5. Testing & Verification
+- [ ] Unit tests cover happy path, network error, and empty/edge states.
+- [ ] Local checks passed: `./gradlew testMockDebugUnitTest detekt ktlintCheck`.
+```
+
+---
+
+#### C. Engineering Leadership: Process, SLA & Cultural Enforcement
+1. **Strict Branch Protection Rules:**
+   - Enforce GitHub branch protection on `main`:
+     - Requires **at least 2 approving reviews** (one must be a Senior Engineer or Tech Lead).
+     - Requires all status checks (`build`, `testMockDebugUnitTest`, `detekt`, `ktlintCheck`, `sonarcloud`) to be green.
+     - Enforces signed commits and linear git history.
+2. **Review Turnaround SLA (4 Hours):**
+   - Review lag kills developer momentum. PRs have an agreed team SLA of 4 working hours for initial review.
+   - PR size is capped: PRs larger than 400 lines of diff (excluding generated code and tests) are rejected and requested to be split into incremental slices.
+3. **Codifying Feedback into Rules (The "Automate Recurring Comments" Rule):**
+   - If an Engineering Lead or Senior reviewer leaves the same architectural or style comment on three separate PRs, that rule is immediately codified into a **custom Detekt rule**, **Konsist architecture test**, or **Lint rule**.
+   - This prevents reviewer fatigue, removes subjective bias, and scales engineering excellence across the organization.
+
 
 

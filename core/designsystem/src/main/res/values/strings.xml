@@ -71,4 +71,9 @@
     <string name="message_no_internet">You\'re currently offline. Please check your network connection. We\'ll automatically reconnect once internet is restored.</string>
     <string name="label_waiting_for_connection">Waiting for connection…</string>
     <string name="action_continue_offline">Continue in Offline Mode</string>
+
+    <!-- Payment FSM & In-Doubt States -->
+    <string name="action_check_status">Check status</string>
+    <string name="title_transfer_unconfirmed">Transfer unconfirmed</string>
+    <string name="message_transfer_unconfirmed">Connection lost while confirming. We saved your reference so you won\'t be charged twice. Tap Check status to verify.</string>
 </resources>

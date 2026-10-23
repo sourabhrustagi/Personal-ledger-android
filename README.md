@@ -89,6 +89,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [6. AI-Assisted Engineering Workflow (Copilot, Cursor, Claude Code, Antigravity)](#6-ai-assisted-engineering-workflow-copilot-cursor-claude-code-antigravity)
   - [7. Engineering Leadership & Cross-Functional Trade-Offs (Spice Money & Wander Innovations)](#7-engineering-leadership--cross-functional-trade-offs-spice-money--wander-innovations)
   - [8. Incremental Migration: XML & Data Binding to Jetpack Compose](#8-incremental-migration-xml--data-binding-to-jetpack-compose)
+  - [9. Testing Non-Deterministic LLM UI Components & CI/CD Isolation](#9-testing-non-deterministic-llm-ui-components--cicd-isolation)
 
 ---
 
@@ -2390,4 +2391,143 @@ Fintech applications run real-time animations, ticker balance updates, and trans
    - Roll out to 5% -> 20% -> 50% -> 100% of production users while tracking crash rates, ANR rates, and frame drop metrics in Firebase Performance Monitoring.
 3. **Shared Behavioral Tests:**
    - Verify viewmodel unit tests (`MockK` + JUnit) remain 100% identical since business logic and state contracts never changed during the UI migration.
+
+---
+
+### 9. Testing Non-Deterministic LLM UI Components & CI/CD Isolation
+
+Fintech and ledger applications increasingly integrate Large Language Models (LLMs) for conversational assistants, automated expense categorization, and smart financial insights. However, testing LLM-backed UI components presents a severe engineering paradox:
+- **The Core Problem:** CI/CD pipelines require 100% deterministic, hermetic, fast (< 5 minute) verification gates. LLMs, by definition, produce non-deterministic text, suffer from variable API latency (1–10s per call), incur real token billing, hit rate limits (HTTP 429), and fail when external endpoints experience outages.
+- **The Catastrophe of Naive Testing:** Directly invoking live LLM endpoints in unit, Espresso, or Compose test suites results in flaky builds, prolonged PR review queues, and broken build pipelines that erode developer confidence.
+
+Here is the engineering playbook for architecting an automated test suite that isolates non-deterministic LLM behavior, ensures fast PR verification, and maintains rigorous UI quality:
+
+#### A. Dual-Track Architecture: Client Verification vs. Model Evaluation
+To eliminate test flakiness, separate testing responsibilities into two independent tracks:
+
+| Dimension | Track 1: Client & UI Verification (Deterministic PR Gate) | Track 2: Model Quality & Prompt Evals (Nightly / Scheduled) |
+| :--- | :--- | :--- |
+| **Scope** | UI rendering, state transitions, streaming tokens, markdown parsing, error states, and action execution. | Prompt relevance, hallucinations, factual accuracy, safety refusal, toxicity, and latency benchmarks. |
+| **Environment** | Local JVM (`testMockDebugUnitTest`) & CI runner (`.github/workflows/android.yml`). | Headless cloud runners with secured API secrets or local quantized evaluation models. |
+| **Data Source** | Curated static JSON fixtures, golden replay files, and in-memory test fakes. | Live or staging LLM APIs (Gemini 1.5 Pro, Claude 3.5 Sonnet, GPT-4o). |
+| **Duration** | < 3 minutes total execution across entire test suite. | 30–60 minutes deep batch evaluation across golden datasets. |
+| **CI Gate** | **Strict Blocker:** 100% passing required to merge any PR. | **Non-blocking / Monitoring:** Generates trend reports; alerts on regression spikes. |
+
+#### B. Isolating Tests with In-Memory Fakes over Brittle Mocks
+While `MockK` is standard for unit testing, mocking multi-step asynchronous streams (`Flow<T>`) often produces brittle, complex test setups. Instead, abstract the LLM client behind a domain interface and supply a state-configurable **Fake** in test code:
+
+```kotlin
+// 1. Clean Domain Abstraction
+interface AssistantRepository {
+    fun streamPrompt(prompt: String): Flow<AssistantStreamChunk>
+    suspend fun executeAction(action: PaymentAction): Result<Unit>
+}
+
+// 2. Sealed Streaming Output Contract
+sealed interface AssistantStreamChunk {
+    data class Delta(val text: String) : AssistantStreamChunk
+    data class ToolCall(val action: PaymentAction) : AssistantStreamChunk
+    data class Error(val cause: Throwable) : AssistantStreamChunk
+}
+
+// 3. In-Memory Test Fake with Deterministic Controls
+class FakeAssistantRepository : AssistantRepository {
+    var responseChunks: List<AssistantStreamChunk> = emptyList()
+    var delayMs: Long = 0L
+    var simulatedError: Throwable? = null
+
+    override fun streamPrompt(prompt: String): Flow<AssistantStreamChunk> = flow {
+        simulatedError?.let { throw it }
+        responseChunks.forEach { chunk ->
+            if (delayMs > 0) delay(delayMs)
+            emit(chunk)
+        }
+    }
+
+    override suspend fun executeAction(action: PaymentAction): Result<Unit> = Result.success(Unit)
+}
+```
+
+#### C. Testing Coroutine State & Streaming UI with Turbine
+Use [Turbine](https://github.com/cashapp/turbine) to verify that ViewModels react correctly to progressive streaming tokens without dropping intermediate UI frames:
+
+```kotlin
+@Test
+fun `streaming tokens progressively transition ViewModel uiState to ActionRequired`() = runTest {
+    val fakeRepo = FakeAssistantRepository().apply {
+        responseChunks = listOf(
+            AssistantStreamChunk.Delta("Sending "),
+            AssistantStreamChunk.Delta("₹500 to "),
+            AssistantStreamChunk.Delta("Alice..."),
+            AssistantStreamChunk.ToolCall(PaymentAction.Send(amountPaise = 50_000L, payee = "alice@upi"))
+        )
+    }
+    val viewModel = AssistantViewModel(assistantRepository = fakeRepo)
+
+    viewModel.uiState.test {
+        assertEquals(AssistantUiState.Idle, awaitItem())
+
+        viewModel.submitPrompt("Send 500 to Alice")
+
+        assertEquals(AssistantUiState.Streaming("Sending "), awaitItem())
+        assertEquals(AssistantUiState.Streaming("Sending ₹500 to "), awaitItem())
+        assertEquals(AssistantUiState.Streaming("Sending ₹500 to Alice..."), awaitItem())
+
+        val finalState = awaitItem() as AssistantUiState.ActionRequired
+        assertEquals(50_000L, finalState.action.amountPaise)
+        assertEquals("alice@upi", finalState.action.payee)
+    }
+}
+```
+
+#### D. Jetpack Compose UI Testing: Structural Semantics vs. Fragile Text Matches
+A frequent source of flaky UI tests is checking for exact string matches on AI text. Instead, write UI tests asserting on **structural invariants** and **semantic test tags**:
+
+```kotlin
+@RunWith(AndroidJUnit4::class)
+class AssistantScreenTest {
+
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    @Test
+    fun assistantRendersToolCallCardWithFormattedCurrency() {
+        val testState = AssistantUiState.ActionRequired(
+            action = PaymentAction.Send(amountPaise = 125_000L, payee = "bob@upi"),
+            explanation = "Here is the payment confirmation based on your request."
+        )
+
+        composeTestRule.setContent {
+            LedgerTheme {
+                AssistantContent(state = testState, onConfirm = {})
+            }
+        }
+
+        // 1. Assert on Structural Elements rather than literal AI explanation text
+        composeTestRule.onNodeWithTag("ai_tool_call_card").assertIsDisplayed()
+
+        // 2. Assert on Financial Format Invariants (₹1,250.00)
+        composeTestRule.onNodeWithText("₹1,250.00").assertIsDisplayed()
+        composeTestRule.onNodeWithText("bob@upi").assertIsDisplayed()
+
+        // 3. Assert on Action Safety Controls
+        composeTestRule.onNodeWithTag("confirm_payment_button")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+}
+```
+
+#### E. Exhaustive Golden Fixtures for Edge & Failure Cases
+To ensure resilience, maintain a version-controlled fixture directory (`src/test/resources/fixtures/llm/`) containing recorded JSON responses covering critical failure scenarios:
+1. **Network Drop Midway through Token Stream:** Emits 3 chunks and then throws an `IOException`. Tests verify the UI preserves partial response text and displays a discrete "Retry" chip rather than a blank error screen.
+2. **HTTP 429 Rate Limit Exceeded:** Verifies the UI gracefully informs the user with an exponential backoff countdown.
+3. **Malformed JSON Tool Calls:** The LLM hallucinates an invalid field or generates truncated JSON. Tests assert the domain parser rejects the payload safely without throwing an uncaught `JsonSyntaxException`.
+4. **Safety Policy / Prompt Injection Refusal:** The LLM refuses an unsafe prompt (e.g., attempt to bypass biometric checks). Tests confirm the app displays a neutral security advisory banner.
+
+#### F. High-Speed Headless UI Testing via Robolectric in CI
+- **Eliminating Emulator Overhead:** Running instrumentation tests (`connectedAndroidTest`) on physical devices or emulators in GitHub Actions adds 10–15 minutes of provisioning delay.
+- **The Solution:** Execute Compose UI and Espresso tests headlessly on the JVM using **Robolectric** (`testMockDebugUnitTest`).
+- **Performance Impact:** Executes hundreds of Compose UI interaction and semantics tests in under **45 seconds** in CI runners without spinning up an Android emulator image.
+
 

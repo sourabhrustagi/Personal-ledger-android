@@ -2029,3 +2029,76 @@ AI assistants are treated as high-speed junior pair-programmers whose output req
    - Code is reviewed line-by-line using git diffs. Hidden assumptions, swallowing of `CancellationException`, or unnecessary library additions are rejected.
 4. **Security & Privacy Air-Gapping:**
    - Proprietary banking certificates, secret keys, customer PII, and production server endpoints are strictly redacted before prompting external LLMs; only sanitized abstractions and dummy mocks are shared.
+
+#### E. TDD Acceleration, Test Generation & Adversarial Edge-Case Discovery
+Integrating AI into Test-Driven Development (TDD) flips the typical code-first script by using AI to generate comprehensive test contracts *before* or alongside production code:
+- **Writing Invariant-Driven Test Contracts First:**
+  - Prompting AI with exact mathematical invariants (e.g. "Generate tests verifying that `splitEvenly(totalMinor, parts)` never loses or creates paise, and distributes remainders one-by-one to earliest participants").
+  - The AI generates exhaustive test assertions across zero, singular, and prime partition numbers before the implementation function is finalized.
+- **Adversarial Edge-Case Discovery:**
+  - Asking AI to act as a security/QA adversary: "Given this payment state machine, generate tests that simulate network drop-offs, duplicate server webhooks, expired idempotency keys, and negative numbers."
+  - Generates edge tests covering `Long.MAX_VALUE`, `Long.MIN_VALUE`, malformed UTF-8 inputs, truncated chunk streams, and race conditions across 50 concurrent coroutines.
+- **UI & Semantics Testing Scaffolding (Compose Test & Espresso):**
+  - Automates boilerplate-heavy Compose UI tests using `createComposeRule()`, generating semantics node assertions (`onNodeWithText`, `performClick`, `assertIsDisplayed`), and verifying that obscured touch events are dropped when tapjacking protection is active.
+
+#### F. Real-World Case Studies: Catching Subtly Buggy & Insecure AI Code During Review
+
+AI coding assistants can generate code that appears superficially correct and idiomatic but contains critical concurrency, security, or domain flaws. Below are three actual examples caught during code review in this project:
+
+##### Case 1: The Swallowed `CancellationException` in Coroutines (The Zombie Coroutine)
+- **What the AI Generated:**
+  ```kotlin
+  // AI-generated repository method
+  suspend fun fetchStatement(): Result<Statement> = withContext(Dispatchers.IO) {
+      runCatching {
+          api.getStatement()
+      }.recoverCatching { error ->
+          cache.getFallbackStatement()
+      }
+  }
+  ```
+- **The Subtle Bug:** Standard Kotlin `runCatching` catches `Throwable`, which includes `CancellationException`. If the user navigates away and the hosting `ViewModel` cancels `viewModelScope`, `runCatching` swallows the cancellation signal. The coroutine refuses to terminate, keeping network sockets and memory buffers alive in the background ("zombie work").
+- **How It Was Caught & Resolved:** Caught during code review against our `AGENTS.md` structured concurrency guidelines. Corrected by propagating cancellation:
+  ```kotlin
+  // CORRECT: Propagate CancellationException immediately
+  val result = runCatching { api.getStatement() }
+      .onFailure { if (it is CancellationException) throw it }
+  ```
+
+##### Case 2: Cryptographic Nonce Reuse in AES-GCM (Catastrophic Keystream Leakage)
+- **What the AI Generated:**
+  ```kotlin
+  // AI-generated field encryption helper
+  fun encryptPii(plain: ByteArray, key: SecretKey): ByteArray {
+      val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+      val staticIv = ByteArray(12) // Default zeroed array!
+      cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, staticIv))
+      return cipher.doFinal(plain)
+  }
+  ```
+- **The Catastrophic Flaw:** In Galois/Counter Mode (GCM), encrypting two distinct plaintexts with the same key and Initialization Vector (nonce) allows an attacker to compute the XOR of the plaintexts, recover the authentication key, and forge authenticated messages.
+- **How It Was Caught & Resolved:** Caught during security review of cryptographic storage. Corrected to generate a cryptographically random 12-byte IV for every encryption call, prefixing the IV to the ciphertext:
+  ```kotlin
+  // CORRECT: Cryptographically strong fresh IV per encryption
+  val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
+  cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
+  val ciphertext = cipher.doFinal(plain)
+  val payload = iv + ciphertext
+  ```
+
+##### Case 3: Floating-Point Currency Math Leakage
+- **What the AI Generated:**
+  ```kotlin
+  // AI-generated fee calculation
+  fun calculateProcessingFee(amountPaise: Long, feePercent: Double): Long {
+      return (amountPaise * (feePercent / 100.0)).toLong()
+  }
+  ```
+- **The Financial Flaw:** Using `Double` floating-point math introduces binary precision drift (e.g. `0.1 + 0.2 != 0.3`). Over high-volume micro-transactions, floating-point rounding drops fractional paise, violating double-entry balance invariants.
+- **How It Was Caught & Resolved:** Caught by static analysis and financial invariant checks. Replaced with strictly integer-based basis point calculations:
+  ```kotlin
+  // CORRECT: Zero floating-point arithmetic; integer basis points
+  fun calculateProcessingFeeBasisPoints(amountPaise: Long, feeBps: Long): Long {
+      return (amountPaise * feeBps) / 10_000L
+  }
+  ```

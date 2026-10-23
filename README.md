@@ -88,6 +88,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [5. Kotlin Coroutines & Structured Concurrency](#5-kotlin-coroutines--structured-concurrency)
   - [6. AI-Assisted Engineering Workflow (Copilot, Cursor, Claude Code, Antigravity)](#6-ai-assisted-engineering-workflow-copilot-cursor-claude-code-antigravity)
   - [7. Engineering Leadership & Cross-Functional Trade-Offs (Spice Money & Wander Innovations)](#7-engineering-leadership--cross-functional-trade-offs-spice-money--wander-innovations)
+  - [8. Incremental Migration: XML & Data Binding to Jetpack Compose](#8-incremental-migration-xml--data-binding-to-jetpack-compose)
 
 ---
 
@@ -2285,3 +2286,108 @@ Proposed, architected, and delivered a compliant, high-conversion alternative:
 - **Adoption & Conversion:** 84% of offline-initiated transactions were confirmed within the 15-minute window, recovering substantial transaction volume previously lost to network drops.
 - **Zero Financial Liability:** 0% disputed double-charges or unauthorized delayed debits.
 - **Team Trust:** Established a collaborative blueprint between Product, UX, and Mobile Engineering where technical constraints were leveraged to design superior, fraud-resilient consumer experiences.
+
+---
+
+### 8. Incremental Migration: XML & Data Binding to Jetpack Compose
+
+Migrating an enterprise-scale, production fintech application (such as those at Spice Money, Wander Innovations, or LedgerOne) from legacy XML / Data Binding to modern Jetpack Compose cannot be executed via a risky "big-bang" rewrite. Fintech apps face continuous compliance updates, strict zero-tolerance policies for payment regressions, and complex existing state machines.
+
+The following battle-tested engineering playbook details how to execute an incremental migration without regressions, state duplication, or UI thread bottlenecks:
+
+#### A. Core Migration Strategy: Bottom-Up & Screen-by-Screen Isolation
+1. **The Fallacy of "Big Bang" Rewrites:**
+   - Full rewrites halt product feature delivery for quarters, branch the codebase into divergent streams, multiply regression surfaces, and cannot be validated safely against high-volume production financial traffic.
+2. **Phase 1: Design System Foundations (Bottom-Up):**
+   - Migrate design tokens first (Typography, Colors, Spacing, Shapes) into `:core:designsystem`.
+   - Build standalone Compose atom components (`LedgerOneButton`, `LedgerOneCard`, `LedgerOneTextField`, `LedgerOneText`).
+   - Use `ComposeView` inside existing XML layouts to host these new Compose atoms alongside legacy views, establishing visual parity early.
+3. **Phase 2: Screen-by-Screen Top-Down Container Migration:**
+   - Instead of migrating individual items inside complex XML `RecyclerView` lists (which risks composition thrashing), migrate entire independent leaves/screens (e.g., Transaction Details, Profile, Settings, KYC Document Viewer).
+   - Convert the Fragment or Activity to host a single root `ComposeView`:
+     ```kotlin
+     class TransactionDetailFragment : Fragment() {
+         override fun onCreateView(
+             inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+         ): View = ComposeView(requireContext()).apply {
+             // Avoid composition leaks when Fragment view is destroyed
+             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+             setContent {
+                 LedgerTheme {
+                     TransactionDetailScreen(viewModel = viewModel)
+                 }
+             }
+         }
+     }
+     ```
+
+#### B. Eliminating State Duplication (Single Source of Truth - SSOT)
+The most dangerous failure mode during hybrid migration is dual state divergence—where an `ObservableField` or `LiveData` in XML Data Binding falls out of sync with a Compose `mutableStateOf`.
+
+1. **Unify State at the ViewModel Layer with `StateFlow`:**
+   - Migrate all ViewModel states to a single, immutable, data-class-driven `StateFlow<UiState>`.
+2. **Dual-Consumption from One Source:**
+   - **In Legacy XML with Data Binding:** Data Binding natively supports `StateFlow` (AGP 7.0+). Set the `lifecycleOwner`:
+     ```kotlin
+     binding.lifecycleOwner = viewLifecycleOwner
+     binding.viewModel = viewModel
+     // In XML: android:text="@{viewModel.uiState.formattedAmount}"
+     ```
+   - **In Jetpack Compose:** Consume the exact same `StateFlow` using lifecycle-aware collection:
+     ```kotlin
+     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+     ```
+   - **Result:** Both the legacy XML layout and the new Compose component react to the exact same immutable stream. Neither view layer holds independent domain or calculation state.
+3. **Event Propagation (Unidirectional Data Flow):**
+   - User actions in both XML and Compose dispatch directly to the ViewModel via standard lambdas or function references (`viewModel.onAction(...)`), maintaining strict UDF across both rendering engines.
+
+#### C. Preventing UI Thread Bottlenecks & Interop Jank
+Fintech applications run real-time animations, ticker balance updates, and transaction feeds. Naive Compose-View interop can easily violate the 16.6ms (60 FPS) or 8.3ms (120 FPS) frame budget.
+
+1. **The `ComposeView` in `RecyclerView` Trap:**
+   - **Problem:** Hosting a `ComposeView` inside each `ViewHolder` of a legacy `RecyclerView` without proper strategy causes `ComposeView` to create and destroy composition contexts during fast scrolling, causing frame drops and GC pauses.
+   - **Solution:** 
+     - Set the composition strategy to `ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool` to cache compositions across view recycling.
+     - **Architectural Best Practice:** Migrate entire lists atomically from `RecyclerView` to `LazyColumn` rather than item-by-item whenever possible.
+2. **`ViewCompositionStrategy` Selection Rules:**
+   - **In Fragments:** Always use `ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed` so compositions are disposed when the Fragment's `viewLifecycleOwner` is destroyed (preventing view leaks if the Fragment stays in the backstack).
+   - **In Custom XML Compound Views:** Use `ViewCompositionStrategy.DisposeOnDetachedFromWindow`.
+3. **Recomposition Guardrails:**
+   - Mark domain models with `@Immutable` or `@Stable`.
+   - Avoid passing unstable collections (`List<T>`); use Kotlinx `ImmutableList<T>` or wrap in stable state holders.
+   - Pass primitive `Long` values for currency (paise/cents) rather than formatted strings or floating-point objects to prevent unnecessary layout recalculations.
+   - Hoist inline lambdas or use method references (`onItemClick = viewModel::selectTransaction`) to prevent lambda recreation on every recomposition.
+4. **Hosting Legacy Views via `AndroidView` with `update` Block:**
+   - For components that cannot be rewritten immediately (e.g., custom biometric canvas, legacy camera scanner for QR codes, or financial charting libraries), use `AndroidView`:
+     ```kotlin
+     AndroidView(
+         factory = { context ->
+             LegacyQrScannerView(context).apply { /* 1-time setup */ }
+         },
+         update = { view ->
+             // Reconfiguration logic on state changes without re-inflating
+             view.setScanningActive(uiState.isScanning)
+         }
+     )
+     ```
+
+#### D. Theming & Visual Parity (Zero Visual Jarring)
+- **Token Mapping:** Bridge legacy XML `styles.xml` / `themes.xml` (MaterialComponents or Material3) with Compose `LedgerTheme` tokens.
+- Use `Mdc3Theme` (from Accompanist / M3 Theme Adapter) during transition so that elevation, surface colors, text appearances, and corner radii match 1:1 between legacy XML views and new Compose composables.
+
+#### E. Regression Safeguards & Quality Gateways
+1. **Automated Visual Regression Testing (Screenshot Diffing):**
+   - Run side-by-side screenshot tests (using Roborazzi / Paparazzi) comparing the legacy XML screen with the new Compose screen at 100%, 150% font scale, and dark/light modes before cutting over.
+2. **Remote Feature Flagging & Canary Cutover:**
+   - Wrap the screen router or fragment entry point in Firebase Remote Config / feature flags:
+     ```kotlin
+     if (remoteConfig.getBoolean("use_compose_transaction_detail")) {
+         navigateToComposeDetail(txId)
+     } else {
+         navigateToXmlDetail(txId)
+     }
+     ```
+   - Roll out to 5% -> 20% -> 50% -> 100% of production users while tracking crash rates, ANR rates, and frame drop metrics in Firebase Performance Monitoring.
+3. **Shared Behavioral Tests:**
+   - Verify viewmodel unit tests (`MockK` + JUnit) remain 100% identical since business logic and state contracts never changed during the UI migration.
+

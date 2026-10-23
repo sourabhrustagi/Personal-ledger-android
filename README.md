@@ -1494,6 +1494,47 @@ The application's domain rules are concentrated in pure Kotlin within `core/mode
 - **Card Luhn checksum validation (`luhn`):** Validates primary card account numbers (13–19 digits) using the standard Luhn algorithm (doubling alternate digits from right to left).
 - **PAN data protection (`redactPans`):** Automatically redacts card numbers matching Luhn validity from audit strings and display text by masking the number with `****`.
 
+### <a id="payment-fsm--idempotency-architecture"></a>Payment FSM & Idempotency Architecture (`:feature:wallet`)
+
+Financial transactions in Send & Pay are governed by a deterministic **Finite State Machine (`PaymentStateMachine.kt`)** modeled after mission-critical banking switches (e.g. AEPS, DMT, UPI) to ensure zero duplicate debits and handle mid-flight network partitions gracefully:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Form: User enters Payee & Amount
+    Form --> Form: Validation Error (0/Negative/Exceeds Balance)
+    Form --> AwaitingAuth: Review Passed (Parameters Locked)
+    
+    AwaitingAuth --> Form: User taps "Edit details"
+    AwaitingAuth --> Submitting: Biometric / Key Step-Up Confirmed
+    
+    state Submitting {
+        [*] --> Attempt_1
+        Attempt_1 --> Transient_Drop: Socket Timeout / ServerBusy
+        Transient_Drop --> Attempt_2: withRetry (Exponential Backoff 1s)
+        Attempt_2 --> Transient_Drop2: Socket Timeout / ServerBusy
+        Transient_Drop2 --> Attempt_3: withRetry (Exponential Backoff 2s)
+    }
+    
+    Submitting --> Success: Bank Confirmed (200 OK)
+    Submitting --> Failed: Terminal Business Decline (TransactionRejected)
+    Submitting --> InDoubt: Exhausted Retries on Dropped Connection
+    
+    InDoubt --> Success: Reconcile / Status Check (Bank Already Posted)
+    InDoubt --> Failed: Reconcile / Status Check (Bank Has No Record)
+    
+    Failed --> Submitting: User retries (reusing same Idempotency Key)
+    Failed --> Form: User edits / starts over
+    
+    Success --> Receipt: Render Confirmation Receipt
+    Receipt --> [*]: Done / New Transfer
+```
+
+#### Key Technical Invariants & Edge Case Protections:
+1. **Client-Generated Idempotency Keys:** Every transfer intent generates a cryptographically distinct reference (`idempotencyKey`) before submission. In `TransferBook`, subsequent requests with the same key compute idempotently (`computeIfAbsent`), returning the recorded amount rather than creating duplicate debit records.
+2. **Mid-Flight Drop-Off Handling (`withRetry`):** If a network timeout occurs while awaiting the bank's HTTP 200 response, the engine retries up to 3 times using exponential backoff (1s, 2s, 4s) **reusing the exact same `idempotencyKey`**.
+3. **In-Doubt State & Reconciliation:** If all network retries exhaust without server response, the transaction transitions to `TransferStatus.IN_DOUBT` instead of failing. The UI surfaces **"Check status"** (`viewModel.reconcile()`), querying `TransferBook.status(idempotencyKey)`. If the bank switch posted the debit prior to the network loss, it immediately confirms success without re-charging. If unrecorded, it enables safe re-attempt.
+4. **Terminal Rejection Isolation:** Business declines (`TransactionRejected`, cooling period blocks, invalid VPAs) fail immediately without retry, preventing repetitive server bombardment.
+
 ### <a id="security-authentication--cryptography"></a><a id="security-authentication-cryptography"></a>Security, authentication & cryptography
 
 - **MPIN authentication (`mpinAccepted`):** PIN authorization requires exactly four numerical digits (`pin.length == 4 && pin.all { it.isDigit() }`).

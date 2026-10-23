@@ -71,4 +71,9 @@
     <string name="message_no_internet">आप वर्तमान में ऑफ़लाइन हैं। कृपया अपना नेटवर्क कनेक्शन जांचें। इंटरनेट वापस आते ही स्क्रीन अपने आप बहाल हो जाएगी।</string>
     <string name="label_waiting_for_connection">कनेक्शन की प्रतीक्षा की जा रही है…</string>
     <string name="action_continue_offline">ऑफ़लाइन मोड में जारी रखें</string>
+
+    <!-- Payment FSM & In-Doubt States -->
+    <string name="action_check_status">स्थिति जांचें</string>
+    <string name="title_transfer_unconfirmed">लेनदेन अपुष्ट है</string>
+    <string name="message_transfer_unconfirmed">पुष्टि के दौरान नेटवर्क संपर्क टूट गया। आपका संदर्भ सहेज लिया गया है ताकि दोबारा शुल्क न कटे। पुष्टि के लिए स्थिति जांचें पर टैप करें।</string>
 </resources>

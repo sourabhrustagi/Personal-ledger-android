@@ -1542,6 +1542,23 @@ stateDiagram-v2
 - **End-to-end encrypted utility bill pay (`PayBox`):** Utility bill queries and payments are protected using Elliptic Curve Diffie-Hellman (ECDH P-256) key agreement with AES-GCM (128-bit) authenticated encryption and unique 12-byte initialization vectors (IVs). Neither bill amounts nor customer identifiers travel in plaintext.
 - **Background auto-lock:** The app locks the session immediately upon backgrounding, requiring OTP verification upon foregrounding.
 
+#### Data at Rest Security (Mortgage PII, Android Keystore, SQLCipher & Envelope Encryption)
+- **Hardware-backed Android Keystore Master Key (`AndroidKeyStoreMasterKeyVault`):** Generates and seals an AES-256 Key Encryption Key (KEK) inside the hardware-isolated Trusted Execution Environment (TEE) / StrongBox (`AndroidKeyStore`). The Master Key never leaves hardware boundaries and cannot be extracted offline.
+- **Envelope Encryption for SQLCipher & Encrypted Storage:** The Database Encryption Key (DEK, 256-bit AES) used to encrypt the Room / SQLCipher database is wrapped (encrypted) by the Keystore Master Key via AES-256-GCM and stored in private app storage. On startup, the DEK is unwrapped, applied to initialize the encrypted SQLite database, and the in-memory DEK buffer is immediately sanitized via `PiiMasker.zeroize`.
+- **Field-Level Encryption for Sensitive Mortgage PII (`MortgagePiiCrypto`):** High-risk mortgage application records (Social Security Numbers, W-2 tax returns, financial statements, property deed titles) are serialized and encrypted using AES-256-GCM with distinct, cryptographically random 12-byte IVs and 128-bit authentication tags.
+- **Privacy-Preserving Blind Indexing (`computeBlindIndex`):** To enable exact-match searches (e.g. searching applicant records by SSN or property deed ID) without storing plaintext or decrypting the entire database, the system computes deterministic HMAC-SHA256 blind index hashes. Queries match against the blind index hash without exposing customer PII.
+- **Data Masking & Memory Zeroization (`PiiMasker`):** Masks sensitive strings (`***-**-6789`, `********1098`) before binding to UI view models or logs, and provides explicit zeroization utilities to clear `CharArray` and `ByteArray` memory buffers.
+
+#### Data in Transit Security (TLS, Certificate Pinning & Zero-Downtime Pin Rotation)
+- **TLS 1.3 Enforcement:** All network traffic routes over TLS 1.3 with modern AEAD cipher suites, with cleartext HTTP traffic strictly disabled across manifests (`usesCleartextTraffic=false`).
+- **Subject Public Key Info (SPKI) Pinning:** Pins the SHA-256 hash of the Subject Public Key Info rather than full X.509 certificates (`CertificatePinner`), allowing certificate renewal without app rebuilds as long as the key pair is preserved.
+- **Mandatory Multi-Pin Policy (`DomainPinConfig`, `PinRotationManager`):** Enforces a strict N+1 pinning policy requiring at least two distinct pins per host: a Primary Leaf Pin and an Escrow Backup Pin (plus optional intermediate CA pin). Single-pin configurations are rejected at initialization to prevent application bricking.
+- **Zero-Downtime Pin Rotation Lifecycle:**
+  1. *Stage 1 (Normal Operations):* Live server presents the Primary TLS certificate; a pre-generated Backup public key is held in secure offline escrow and baked into client builds.
+  2. *Stage 2 (Server Staged Switch):* Server transitions live TLS to the Backup certificate. Both legacy and current client versions connect successfully because the Backup pin was already pre-pinned.
+  3. *Stage 3 (Client App Release):* A new application update is rolled out promoting Backup to Primary and baking in a newly generated future Backup pin.
+- **Emergency Signed Over-The-Air Pin Rotation (`SignedPinManifest`):** In the event of dual-key compromise or catastrophic CA revocation, the app verifies an ECDSA-signed pin update manifest against an embedded offline Root Public Key, hot-reloading active pins without requiring an emergency store release.
+
 ### <a id="offline-first-synchronization--conflict-handling"></a><a id="offline-first-synchronization-conflict-handling"></a>Offline-first synchronization & conflict handling
 
 - **Write-ahead local truth (Room Outbox):** All mutations and multi-page forms commit first to Room with a synchronization state: `SYNCED`, `PENDING_CREATE`, `PENDING_UPDATE`, or `PENDING_DELETE` on `Dispatchers.IO`. The UI observes reactive Room `Flow` streams, guaranteeing zero data loss, instantaneous UI responsiveness, and resilience across app backgrounding, memory eviction, and device restarts.

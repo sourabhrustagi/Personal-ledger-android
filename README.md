@@ -79,6 +79,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Testing Builds via Firebase App Distribution](#testing-builds-via-firebase-app-distribution)
   - [Production Release & Google Play Store Upload](#production-release--google-play-store-upload)
   - [Pre-Launch & Staged Rollout Best Practices](#pre-launch--staged-rollout-best-practices)
+  - [CI/CD Pipeline & Production Incident Response Playbook](#cicd-pipeline--production-incident-response-playbook)
 - [Contributing & Engineering Guidelines](#contributing)
   - [1. Architectural & Modularization Rules](#1-architectural--modularization-rules)
   - [2. Financial Integrity & Currency Constraints](#2-financial-integrity--currency-constraints)
@@ -1870,6 +1871,136 @@ end
   - **Day 3:** 50% rollout.
   - **Day 4:** 100% full release.
 - **Halt / Rollback Safety:** If unexpected issues emerge during rollout, halt the release immediately from the Play Console to freeze updates on remaining devices while fixing the regression.
+
+---
+
+### <a id="cicd-pipeline--production-incident-response-playbook"></a>CI/CD Release Automation & Production Incident Response Playbook
+
+Managing mobile releases across Google Play Console and Apple App Store Connect requires robust CI/CD automation and a battle-tested incident response playbook for high-stakes production anomalies.
+
+#### 1. End-to-End Release Lifecycle Management
+
+```
+    ┌──────────────────────┐      ┌─────────────────────────┐      ┌────────────────────────┐
+    │ PR to main (CI)      │ ───► │ Release Tag (v1.4.0)    │ ───► │ Fastlane Automation    │
+    │ Lint + Tests + Build │      │ Trigger Release Action  │      │ AAB/IPA + ProGuard Map │
+    └──────────────────────┘      └─────────────────────────┘      └───────────┬────────────┘
+                                                                               │
+                                  ┌─────────────────────────┐                  │
+                                  │ Staged Rollout (5%-100%)│ ◄────────────────┘
+                                  │ Play Console / Connect  │
+                                  └─────────────────────────┘
+```
+
+##### A. CI/CD Orchestration (GitHub Actions / GitLab CI)
+- **Pull Request Automation:** Every PR into `main` automatically runs static analysis (`ktlintCheck`, `detekt`), mock unit tests (`testMockDebugUnitTest`), core domain tests, and assembles the debug APK. Merging is blocked if any check fails or code coverage regresses.
+- **Release Tag Pipeline:** Pushing a signed release tag (`git tag -a v1.4.0 -m "Release v1.4.0"`) triggers the production release pipeline:
+  1. Sets up JDK 17 and decodes production release keystores and Apple distribution certificates from encrypted CI secrets.
+  2. Increments `versionCode` and tags the commit.
+  3. Executes Fastlane release lanes.
+
+##### B. Fastlane Automation Engine
+- **Android (`Fastfile`):**
+  ```ruby
+  lane :release_play_store do
+    gradle(task: "clean :app:bundleProdRelease")
+    upload_to_play_store(
+      track: 'internal', # Promoted to beta/production after verification
+      aab: 'app/build/outputs/bundle/prodRelease/app-prod-release.aab',
+      mapping_paths: ['app/build/outputs/mapping/prodRelease/mapping.txt'],
+      json_key: ENV["GOOGLE_PLAY_JSON_KEY_PATH"],
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+  ```
+- **iOS (`Fastfile`):**
+  ```ruby
+  lane :release_app_store do
+    match(type: 'appstore', readonly: true)
+    gym(scheme: "LedgerOne", export_method: "app-store")
+    deliver(
+      submit_for_review: false,
+      automatic_release: false,
+      phased_release: true # 7-day staged rollout
+    )
+  end
+  ```
+
+##### C. Store Deployment Stages
+1. **Internal Testing / TestFlight (Day 0):** Distributed to core engineering and product teams for smoke testing.
+2. **Closed Testing Beta (Days 1–2):** Distributed to dogfooding cohorts and security auditors.
+3. **Production Staged Rollout (Days 3–7):**
+   - **Google Play:** Day 1 (5%) $\rightarrow$ Day 2 (20%) $\rightarrow$ Day 3 (50%) $\rightarrow$ Day 4 (100%).
+   - **App Store Connect:** Phased release over 7 days (Day 1: 1%, Day 2: 2%, Day 3: 5%, Day 4: 10%, Day 5: 20%, Day 6: 50%, Day 7: 100%).
+
+---
+
+#### 2. Incident Response Playbook: Critical Bug or Unexpected AI Behavior Spike at 20% Rollout
+
+Scenario: A critical payment calculation error or an unexpected generative AI hallucination loop causes erratic responses or an unhandled crash spike right after promoting the release to **20% staged rollout**.
+
+```
+    [Alert Fires: Crashlytics/Vitals] ──► 0-5 min:  P0 Incident Declared & Triage
+                                      ──► 5-10 min: HALT Rollout in Play Console & App Store
+                                      ──► 5-10 min: FIREBASE REMOTE CONFIG KILL-SWITCH (Instant)
+                                      ──► 1-2 hrs:  Root-Cause Reproduction & Bisect
+                                      ──► 2-3 hrs:  Surgical Hotfix & Automated Tests
+                                      ──► 3-4 hrs:  Expedited Review & Hotfix Rollout
+```
+
+##### Phase 0: Detection & Triage (< 5 Minutes)
+- **Monitoring Trigger:** Firebase Crashlytics triggers a velocity alert, Google Play Vitals flags a crash/ANR rate breaching 0.47%, or AI guardrails flag malformed JSON parsing spikes.
+- **Incident Declaration:** On-call mobile lead declares a **Sev-1 (P0) Production Incident**. Release manager, mobile architect, and backend leads join the war room.
+
+##### Phase 1: Immediate Blast Radius Containment (< 10 Minutes — Zero App Store Delay)
+An app store hotfix takes hours or days to pass review and reach user devices. Immediate containment must happen **over the air**:
+
+1. **Halt Staged Rollout in Google Play Console & App Store Connect:**
+   - Play Console: Navigate to **Production** $\rightarrow$ **Releases** $\rightarrow$ Click **Halt rollout**.
+   - App Store Connect: Select the version $\rightarrow$ Click **Pause Phased Release**.
+   - *Impact:* Freezes the rollout immediately at 20%. The remaining 80% of production users are completely shielded from receiving the flawed update.
+2. **Trigger Firebase Remote Config Dynamic Kill-Switches:**
+   - Update Remote Config values globally (propagates to active clients in under **60 seconds**):
+     - `is_ai_assistant_enabled = false`: Instantly hides the affected AI entry points and screens across all client devices.
+     - `fallback_to_deterministic_engine = true`: Forces the client to bypass AI generative logic and route payments/inquiries through static, rule-based server rails.
+     - `min_supported_version_code = 142`: Automatically triggers the in-app Force Update dialog for the 20% of users already running the buggy build.
+3. **API Gateway & Backend Interception:**
+   - If the issue stems from an unexpected client-side API payload, update API Gateway rules (Kong / Cloudflare / Envoy) to intercept requests matching header `X-App-Version: 1.4.0` and return structured graceful fallback responses (`HTTP 426 Upgrade Required`).
+
+##### Phase 2: Root-Cause Analysis & Local Reproduction (< 1–2 Hours)
+- **Telemetry Inspection:** Review Crashlytics breadcrumbs, thread dumps, and user journey analytics leading up to the failure.
+- **Git Bisect:** Execute `git bisect` between the last known stable tag (`v1.3.9`) and the release tag (`v1.4.0`) to isolate the exact offending commit.
+- **AI Behavior Diagnosis:** If caused by an AI feature, examine prompt drift, model temperature settings, missing guardrail schema validators, or malformed JSON deserialization failures.
+
+##### Phase 3: Surgical Hotfix Engineering & Verification (< 1 Hour)
+- Branch directly off the release tag:
+  ```bash
+  git checkout -b hotfix/1.4.1 v1.4.0
+  ```
+- **Surgical Patching:** Implement the minimal, targeted fix without any unrelated refactoring or feature additions.
+- **Regression Unit Test:** Write an explicit unit test reproducing the exact failure scenario and verifying that the fix prevents recurrence.
+- **Version Bump:** Increment `versionCode` (e.g. 141 $\rightarrow$ 142) and bump `versionName` to `"1.4.1"`.
+- **Pre-flight Validation:** Execute the complete verification suite locally:
+  ```bash
+  ./gradlew testMockDebugUnitTest :core:model:test detekt ktlintCheck
+  ```
+
+##### Phase 4: Expedited Store Submission & Resumed Rollout
+1. Build the production bundle via Fastlane:
+   ```bash
+   bundle exec fastlane release_play_store
+   ```
+2. **Expedited Review Request:**
+   - **Google Play:** In Play Console, file a **Priority Review Request** citing active financial/security production impact.
+   - **Apple App Store:** Submit an **Expedited App Review Request** via App Store Connect citing severe production defect.
+3. **Staged Hotfix Rollout:**
+   - Once approved, deploy the hotfix on a progressive staged rollout (5% $\rightarrow$ 20% $\rightarrow$ 50% $\rightarrow$ 100%).
+   - Once metrics stabilize in Android Vitals and Crashlytics, re-enable the Firebase Remote Config feature flag.
+
+##### Phase 5: Blameless Post-Mortem & Preventative Hardening
+- Convene a blameless post-mortem reviewing: Timeline, Root Cause, Detection Lag, Time to Mitigation, and Action Items.
+- **Automated Guardrails:** Add new automated CI checks, custom Detekt lint rules, or AI output schema validators to permanently prevent similar regressions in future builds.
 
 ## <a id="contributing"></a>Contributing & Engineering Guidelines
 

@@ -959,8 +959,13 @@ fun SecureWindow() {
 }
 ```
 
-#### B. Background Session Auto-Lock (`LedgerOneApp.kt` in `:app`)
-Monitors application background lifecycle using AndroidX `LifecycleEventObserver` and auto-locks the session immediately upon backgrounding, requesting verification upon return:
+#### B. Background Session Auto-Lock & Verification (`LedgerOneApp.kt` in `:app`)
+Monitors application background lifecycle using AndroidX `LifecycleEventObserver` and auto-locks the session immediately upon backgrounding, enforcing passcode/OTP re-verification before granting access to personal financial data:
+
+- **Immediate Inactivity Lock:** Whenever the user minimizes the app, presses the home button, switches to another app, or turns off the screen (`ON_STOP`), the active session is locked immediately (`sessionManager.end()`, `SessionState.unlocked = false`).
+- **Configuration Change Exemption:** Screen rotations and multi-window resizing (`isChangingConfigurations == true`) do not trigger session locks, preventing disruptive verification prompts during normal display adjustments.
+- **Immediate Re-Verification on Return:** Upon foregrounding (`ON_START`), the application detects that it was stopped and presents `OtpLoginScreen` (or passcode verification), ensuring zero unauthorized exposure.
+- **Unit-Tested:** Validated by `BackgroundLockTest` simulating lifecycle state transitions.
 
 ```kotlin
 @Composable
@@ -975,6 +980,30 @@ private fun LockWhenBackgrounded(onLock: () -> Unit) {
         owner.lifecycle.addObserver(observer)
         // Clean up: unregister the lifecycle observer when navigating away
         onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+}
+
+internal fun createBackgroundLockObserver(
+    isChangingConfigurations: () -> Boolean,
+    onLock: () -> Unit,
+): LifecycleEventObserver {
+    var wasStopped = false
+    return LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_STOP -> {
+                if (!isChangingConfigurations()) {
+                    wasStopped = true
+                    onLock()
+                }
+            }
+            Lifecycle.Event.ON_START -> {
+                if (wasStopped) {
+                    wasStopped = false
+                    onLock()
+                }
+            }
+            else -> Unit
+        }
     }
 }
 ```

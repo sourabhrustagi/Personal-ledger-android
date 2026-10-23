@@ -9,6 +9,9 @@ class TransferBook {
     /** Stores the amount the first time this key is seen and returns that same amount afterwards. */
     fun submit(idempotencyKey: String, amountMinor: Long): Long = posted.computeIfAbsent(idempotencyKey) { amountMinor }
 
+    /** Returns the posted amount if this idempotency key was previously processed, or null if unrecorded. */
+    fun status(idempotencyKey: String): Long? = posted[idempotencyKey]
+
     /** How many distinct transfers have been recorded. */
     val size: Int get() = posted.size
 

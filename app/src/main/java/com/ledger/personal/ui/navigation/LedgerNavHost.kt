@@ -3,8 +3,15 @@ package com.ledger.personal.ui.navigation
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -18,7 +25,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.util.Consumer
@@ -47,6 +60,7 @@ import com.ledger.personal.ui.app.hubs.PayHub
 import com.ledger.personal.ui.app.hubs.PromotionsHub
 import com.ledger.personal.ui.app.hubs.PromotionsViewModel
 import com.ledger.personal.ui.app.scan.ScanScreen
+import com.ledger.personal.ui.components.OfflineScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
 import com.ledger.personal.ui.feature.WalletScreen
 import com.ledger.personal.ui.screens.create.CreateTransactionScreen
@@ -70,7 +84,17 @@ fun LedgerNavHost(
     val session by appViewModel.session.collectAsStateWithLifecycle()
     val demo: DemoViewModel = hiltViewModel()
     val mockOffline by demo.offline.collectAsStateWithLifecycle()
-    val offline = offlineNow(mockOffline, rememberConnected())
+    var retryCount by remember { mutableIntStateOf(0) }
+    val connected = rememberConnected(retryCount)
+    val offline = offlineNow(mockOffline, connected)
+    var offlineDismissed by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(offline) {
+        if (!offline) {
+            offlineDismissed = false
+        }
+    }
+
     val empty by demo.empty.collectAsStateWithLifecycle()
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
@@ -121,15 +145,33 @@ fun LedgerNavHost(
             }
         },
     ) { inner ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home,
-            modifier = Modifier.padding(inner).consumeWindowInsets(inner),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .consumeWindowInsets(inner),
         ) {
-            tabRoutes(navController, prefs, flags, home)
-            ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
-            productRoutes(navController, offline)
-            payRoutes(navController)
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                tabRoutes(navController, prefs, flags, home)
+                ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
+                productRoutes(navController, offline)
+                payRoutes(navController)
+            }
+
+            AnimatedVisibility(
+                visible = offline && !offlineDismissed,
+                enter = fadeIn() + slideInVertically { it / 6 },
+                exit = fadeOut() + slideOutVertically { it / 6 },
+            ) {
+                OfflineScreen(
+                    onRetry = { retryCount++ },
+                    onContinueOffline = { offlineDismissed = true },
+                )
+            }
         }
     }
 }

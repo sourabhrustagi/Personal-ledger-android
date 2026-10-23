@@ -1939,9 +1939,9 @@ Managing mobile releases across Google Play Console and Apple App Store Connect 
 
 ---
 
-#### 2. Incident Response Playbook: Critical Bug or Unexpected AI Behavior Spike at 20% Rollout
+#### 2. Incident Response Playbook: Staged Rollout Spikes on OEM Skins & Device Architectures
 
-Scenario: A critical payment calculation error or an unexpected generative AI hallucination loop causes erratic responses or an unhandled crash spike right after promoting the release to **20% staged rollout**.
+**Scenario:** During a progressive **20% staged rollout** on the Google Play Console, telemetry triggers an alert: an unhandled native crash or a malformed AI response pattern is spiking sharply, isolated specifically to devices running an OEM skin (e.g. **Xiaomi MIUI/HyperOS**, **Samsung OneUI**) or a specific hardware architecture (e.g. **32-bit `armeabi-v7a`** or **MediaTek Mali GPU** devices).
 
 ```
     [Alert Fires: Crashlytics/Vitals] ──► 0-5 min:  P0 Incident Declared & Triage
@@ -1952,58 +1952,99 @@ Scenario: A critical payment calculation error or an unexpected generative AI ha
                                       ──► 3-4 hrs:  Expedited Review & Hotfix Rollout
 ```
 
-##### Phase 0: Detection & Triage (< 5 Minutes)
-- **Monitoring Trigger:** Firebase Crashlytics triggers a velocity alert, Google Play Vitals flags a crash/ANR rate breaching 0.47%, or AI guardrails flag malformed JSON parsing spikes.
-- **Incident Declaration:** On-call mobile lead declares a **Sev-1 (P0) Production Incident**. Release manager, mobile architect, and backend leads join the war room.
+##### Phase 0: Detection, Velocity Alert & Telemetry Segmentation (< 5 Minutes)
+1. **Automated Monitoring Triggers:**
+   - **Firebase Crashlytics Velocity Alert:** High-severity crash spike exceeds 1% of active rollout sessions.
+   - **Google Play Vitals:** Bad behavior threshold breached (User-perceived crash rate > 0.47% or ANR rate > 0.34%).
+   - **AI Guardrail Metrics:** Deserialization error rate spikes for structured tool-calls or token streaming breaks.
+2. **Instant Segmentation in Crashlytics & BigQuery:**
+   - Filter Crashlytics logs by **Manufacturer**, **Brand**, **Device**, **OS Build**, and **CPU ABI**:
+     - *Pattern A (OEM Skin Conflict):* Failures concentrated on Xiaomi (MIUI/HyperOS) or Samsung OneUI due to aggressive OEM background power policies killing sync workers or custom font rendering engines crashing Compose text layouts.
+     - *Pattern B (Architecture Conflict):* Crashes exclusively isolated to 32-bit `armeabi-v7a` or MediaTek chipsets due to native memory alignment issues (e.g. Android 15 16 KB page size support) or Vulkan/OpenGL shader compilation bugs in Compose canvas drawing.
+3. **Incident Declaration:** On-call Mobile Lead declares a **Sev-1 (P0) Production Incident** in the emergency Slack channel (`#mobile-war-room`).
 
-##### Phase 1: Immediate Blast Radius Containment (< 10 Minutes — Zero App Store Delay)
-An app store hotfix takes hours or days to pass review and reach user devices. Immediate containment must happen **over the air**:
+##### Phase 1: Blast Radius Containment (< 10 Minutes — Zero Store Review Delay)
+Because an app store hotfix takes hours to be reviewed and downloaded, containment must occur **over the air immediately**:
 
-1. **Halt Staged Rollout in Google Play Console & App Store Connect:**
-   - Play Console: Navigate to **Production** $\rightarrow$ **Releases** $\rightarrow$ Click **Halt rollout**.
-   - App Store Connect: Select the version $\rightarrow$ Click **Pause Phased Release**.
-   - *Impact:* Freezes the rollout immediately at 20%. The remaining 80% of production users are completely shielded from receiving the flawed update.
-2. **Trigger Firebase Remote Config Dynamic Kill-Switches:**
-   - Update Remote Config values globally (propagates to active clients in under **60 seconds**):
-     - `is_ai_assistant_enabled = false`: Instantly hides the affected AI entry points and screens across all client devices.
-     - `fallback_to_deterministic_engine = true`: Forces the client to bypass AI generative logic and route payments/inquiries through static, rule-based server rails.
-     - `min_supported_version_code = 142`: Automatically triggers the in-app Force Update dialog for the 20% of users already running the buggy build.
-3. **API Gateway & Backend Interception:**
-   - If the issue stems from an unexpected client-side API payload, update API Gateway rules (Kong / Cloudflare / Envoy) to intercept requests matching header `X-App-Version: 1.4.0` and return structured graceful fallback responses (`HTTP 426 Upgrade Required`).
+1. **Halt Staged Rollout in Google Play Console:**
+   - Navigate to: **Google Play Console** $\rightarrow$ **Release** $\rightarrow$ **Production** $\rightarrow$ Click **Halt rollout**.
+   - *Impact:* Freezes deployment instantly at 20%. The remaining 80% of production users are completely protected from receiving the defective build.
+2. **The "Rollback" Reality on Android:**
+   > [!IMPORTANT]
+   > The Google Play Console **does not support automatic binary downgrades**. Once a user has installed `versionCode 140` (v1.4.0), the Play Store cannot silently reinstall `versionCode 139` (v1.3.9) over it without wiping user app data. Therefore, "rollback" in mobile consists of:
+   > 1. Freezing the rollout.
+   > 2. Disabling the offending code via Remote Config.
+   > 3. Expediting a "roll-forward" hotfix (`versionCode 141`).
+3. **Targeted Firebase Remote Config Dynamic Kill-Switches:**
+   Instead of disabling the feature for all users, apply **granular Remote Config Conditions** that neutralize the bug specifically for the affected OEM or architecture:
+   - **Targeted Condition 1 (OEM-Specific Guard):**
+     - *Rule:* If `Device Brand` matches regex `(?i)(xiaomi|redmi|poco)` or `OS Version == 14`:
+     - *Action:* `disable_custom_font_rendering = true` or `force_legacy_worker_scheduling = true`.
+   - **Targeted Condition 2 (Architecture-Specific Guard):**
+     - *Rule:* If `Device Architecture == armeabi-v7a` or `RAM < 3GB`:
+     - *Action:* `ai_streaming_enabled = false` and `ai_model_tier = "lightweight_cloud"`.
+   - **Global Emergency Kill-Switch (Fail-Safe):**
+     - If the issue is widespread: set `is_ai_assistant_enabled = false` or `fallback_to_deterministic_engine = true`.
+   - *Propagation:* Leveraging Firebase Real-time Remote Config (`addOnConfigUpdateListener`), active client sessions receive and apply the kill-switch within **seconds**, immediately hiding the crash path without requiring an app restart.
 
-##### Phase 2: Root-Cause Analysis & Local Reproduction (< 1–2 Hours)
-- **Telemetry Inspection:** Review Crashlytics breadcrumbs, thread dumps, and user journey analytics leading up to the failure.
-- **Git Bisect:** Execute `git bisect` between the last known stable tag (`v1.3.9`) and the release tag (`v1.4.0`) to isolate the exact offending commit.
-- **AI Behavior Diagnosis:** If caused by an AI feature, examine prompt drift, model temperature settings, missing guardrail schema validators, or malformed JSON deserialization failures.
+##### Phase 2: Root-Cause Analysis & Lab Reproduction (< 1–2 Hours)
+1. **Telemetry & Breadcrumbs:**
+   - Inspect Crashlytics breadcrumbs leading up to the crash (Room queries, navigation routes, network state).
+2. **Firebase Test Lab / Real Device Farm:**
+   - Spin up real device cloud instances matching the exact failing device profiles (e.g. *Xiaomi Redmi Note 12 on MIUI 14* or *Samsung Galaxy A14 on OneUI 6*).
+3. **Common OEM / Architecture Root Causes:**
+   - *OEM Battery Killers:* Xiaomi MIUI killing coroutines during inter-process communication (IPC) or WorkManager execution.
+   - *Compose Text/Canvas Shader Crash:* Mali GPU driver crashes on older Android versions when rendering complex blurred glassmorphism modifiers (`Modifier.blur()`).
+   - *AI Malformed Output:* Token stream truncated by low-memory device buffer constraints, causing JSON syntax exceptions in client deserializers.
 
 ##### Phase 3: Surgical Hotfix Engineering & Verification (< 1 Hour)
-- Branch directly off the release tag:
-  ```bash
-  git checkout -b hotfix/1.4.1 v1.4.0
-  ```
-- **Surgical Patching:** Implement the minimal, targeted fix without any unrelated refactoring or feature additions.
-- **Regression Unit Test:** Write an explicit unit test reproducing the exact failure scenario and verifying that the fix prevents recurrence.
-- **Version Bump:** Increment `versionCode` (e.g. 141 $\rightarrow$ 142) and bump `versionName` to `"1.4.1"`.
-- **Pre-flight Validation:** Execute the complete verification suite locally:
-  ```bash
-  ./gradlew testMockDebugUnitTest :core:model:test detekt ktlintCheck
-  ```
+1. **Branch Directly from Release Tag:**
+   ```bash
+   git checkout -b hotfix/1.4.1 v1.4.0
+   ```
+2. **Surgical Patching & Defensive Guardrails:**
+   - Apply defensive fallbacks: wrap hardware-accelerated shaders in device-capability checks, handle OEM `SecurityException` on background alarms, or add lenient JSON streaming parsers with default values.
+3. **Automated Regression Test:**
+   - Write a unit/Robolectric test recreating the exact OEM/architecture payload to prove the crash is permanently resolved.
+4. **Version Increment:**
+   - Increment `versionCode` (e.g. `140` $\rightarrow$ `141`) and bump `versionName` to `"1.4.1"`.
+5. **Fast Pre-Flight Validation:**
+   ```bash
+   ./gradlew testMockDebugUnitTest :core:model:test detekt
+   ```
 
-##### Phase 4: Expedited Store Submission & Resumed Rollout
-1. Build the production bundle via Fastlane:
+##### Phase 4: Expedited Store Submission, Play Priority Review & Forced In-App Updates
+1. **Automated Production Build via Fastlane:**
    ```bash
    bundle exec fastlane release_play_store
    ```
-2. **Expedited Review Request:**
-   - **Google Play:** In Play Console, file a **Priority Review Request** citing active financial/security production impact.
-   - **Apple App Store:** Submit an **Expedited App Review Request** via App Store Connect citing severe production defect.
-3. **Staged Hotfix Rollout:**
-   - Once approved, deploy the hotfix on a progressive staged rollout (5% $\rightarrow$ 20% $\rightarrow$ 50% $\rightarrow$ 100%).
-   - Once metrics stabilize in Android Vitals and Crashlytics, re-enable the Firebase Remote Config feature flag.
+2. **Expedited Review Request in Google Play Console:**
+   - In Google Play Console, file an **Expedited Review / Priority Review Request**:
+     - *Category:* Critical Production Regression / Active Financial or Security Impact.
+     - *Evidence:* Attach Crashlytics velocity chart, affected device list, and link to the halted 20% rollout.
+     - *Review Turnaround:* Reduces review turnaround time from 24–48 hours down to **2–4 hours**.
+3. **Immediate In-App Forced Update for Affected 20% Cohort:**
+   - Once `v1.4.1` is published, prevent users stranded on buggy `v1.4.0` from continuing to crash by triggering Google Play In-App Updates (`AppUpdateType.IMMEDIATE`):
+     ```kotlin
+     val appUpdateManager = AppUpdateManagerFactory.create(context)
+     appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+         if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+             info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) &&
+             currentVersionCode < remoteConfig.getLong("min_supported_version_code")
+         ) {
+             appUpdateManager.startUpdateFlowForResult(
+                 info, AppUpdateType.IMMEDIATE, activity, UPDATE_REQUEST_CODE
+             )
+         }
+     }
+     ```
+   - In Remote Config, set `min_supported_version_code = 141`, forcing the in-app blocking modal on launch for the affected cohort.
 
-##### Phase 5: Blameless Post-Mortem & Preventative Hardening
-- Convene a blameless post-mortem reviewing: Timeline, Root Cause, Detection Lag, Time to Mitigation, and Action Items.
-- **Automated Guardrails:** Add new automated CI checks, custom Detekt lint rules, or AI output schema validators to permanently prevent similar regressions in future builds.
+##### Phase 5: Resumed Rollout & Post-Mortem Hardening
+1. **Gradual Staged Rollout:** Roll out `v1.4.1` progressively: `5%` $\rightarrow$ `20%` $\rightarrow$ `50%` $\rightarrow$ `100%`.
+2. **Re-Enable Feature Flags:** Once Crashlytics shows 0% recurrence on the target OEM/architecture models, safely re-enable the Remote Config feature flag.
+3. **Blameless Post-Mortem:**
+   - Add the specific OEM device and architecture matrix to the automated pre-launch **Firebase Test Lab** pipeline in `.github/workflows/android.yml` to permanently prevent regressions on that hardware profile.
 
 ## <a id="contributing"></a>Contributing & Engineering Guidelines
 

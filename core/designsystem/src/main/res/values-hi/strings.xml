@@ -65,4 +65,10 @@
     <string name="section_send_to_anyone">किसी को भी भेजें</string>
     <string name="section_saved_contacts">सहेजे गए संपर्क</string>
     <string name="section_recent_transactions">हाल के लेन-देन</string>
+
+    <!-- Offline Screen -->
+    <string name="title_no_internet">कोई इंटरनेट कनेक्शन नहीं है</string>
+    <string name="message_no_internet">आप वर्तमान में ऑफ़लाइन हैं। कृपया अपना नेटवर्क कनेक्शन जांचें। इंटरनेट वापस आते ही स्क्रीन अपने आप बहाल हो जाएगी।</string>
+    <string name="label_waiting_for_connection">कनेक्शन की प्रतीक्षा की जा रही है…</string>
+    <string name="action_continue_offline">ऑफ़लाइन मोड में जारी रखें</string>
 </resources>

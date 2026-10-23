@@ -11,8 +11,10 @@ import androidx.room.TypeConverters
         AssistantMessageEntity::class,
         PosForwardEntity::class,
         PromotionEntity::class,
+        InspectionFormEntity::class,
+        InspectionPhotoEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 /** Ledger database. */
@@ -28,6 +30,8 @@ abstract class LedgerDatabase : RoomDatabase() {
     abstract fun posForwardDao(): PosForwardDao
     /** Promotion dao. */
     abstract fun promotionDao(): PromotionDao
+    /** Inspection dao. */
+    abstract fun inspectionDao(): InspectionDao
 
     companion object {
         const val NAME = "ledger.db"

@@ -74,6 +74,10 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Offline-First Synchronization & Conflict Handling](#offline-first-synchronization--conflict-handling)
 - [Dependencies](#dependencies)
 - [Tests and Checks](#tests-and-checks)
+- [Release, App Testing & Distribution](#release-app-testing--distribution)
+  - [Testing Builds via Firebase App Distribution](#testing-builds-via-firebase-app-distribution)
+  - [Production Release & Google Play Store Upload](#production-release--google-play-store-upload)
+  - [Pre-Launch & Staged Rollout Best Practices](#pre-launch--staged-rollout-best-practices)
 - [Contributing & Engineering Guidelines](#contributing)
   - [1. Architectural & Modularization Rules](#1-architectural--modularization-rules)
   - [2. Financial Integrity & Currency Constraints](#2-financial-integrity--currency-constraints)
@@ -1607,6 +1611,182 @@ Versions live in `gradle/libs.versions.toml`. A library is added only when the A
 ```
 
 CI (`.github/workflows/android.yml`) runs on every push to `main` and every pull request into `main`. It runs static analysis, the app mock unit tests, the core module unit tests, and assembles the `mockDebug` APK. A failing test fails the job.
+
+## <a id="release-app-testing--distribution"></a>Release, App Testing & Distribution
+
+LedgerOne uses a structured delivery pipeline supporting internal QA testing via **Firebase App Distribution** and production distribution through the **Google Play Console** using Android App Bundles (`.aab`).
+
+---
+
+### Testing Builds via Firebase App Distribution
+
+Firebase App Distribution provides rapid, secure distribution of pre-release builds (`devDebug`, `stagingDebug`, or `stagingRelease`) to QA engineers, internal testers, and external stakeholders.
+
+#### 1. Flavor Selection for Testing
+- **`stagingDebug` or `stagingRelease`:** Recommended for QA cycles. Targets the staging backend (`https://staging-api.personal-ledger.com/retail/v1/`), incorporates production ProGuard optimizations (for `stagingRelease`), and mirrors live environment behavior without touching real customer balances.
+- **`devDebug`:** Used for active daily sprint feature verification against developer services.
+
+#### 2. Building the Distribution Artifact
+Compile the APK for the desired test variant:
+
+```bash
+# Build staging debug APK
+./gradlew :app:assembleStagingDebug
+
+# Artifact location:
+# app/build/outputs/apk/staging/debug/app-staging-debug.apk
+```
+
+For release qualification testing with R8 code shrinking enabled:
+```bash
+# Build staging release APK
+./gradlew :app:assembleStagingRelease
+
+# Artifact location:
+# app/build/outputs/apk/staging/release/app-staging-release.apk
+```
+
+#### 3. Uploading to Firebase App Distribution
+
+##### Method A: Firebase CLI (Recommended for Local & CI)
+1. Install the Firebase CLI:
+   ```bash
+   npm install -g firebase-tools
+   ```
+2. Authenticate using a CI token or service account credentials:
+   ```bash
+   firebase login:ci
+   # Store the generated token in the FIREBASE_TOKEN environment variable
+   ```
+3. Distribute the build to designated tester groups:
+   ```bash
+   firebase appdistribution:distribute app/build/outputs/apk/staging/debug/app-staging-debug.apk \
+     --app "$FIREBASE_APP_ID" \
+     --groups "qa-team,internal-beta,security-auditors" \
+     --release-notes "QA Sprint Release: Added offline-first inspection sync and zero-downtime pin rotation."
+   ```
+
+##### Method B: Fastlane Automated Distribution
+Integrate Firebase distribution in `fastlane/Fastfile`:
+```ruby
+lane :distribute_staging do
+  gradle(
+    task: ":app:assembleStagingDebug",
+    project_dir: "./"
+  )
+  firebase_app_distribution(
+    app: ENV["FIREBASE_STAGING_APP_ID"],
+    groups: "qa-team,stakeholders",
+    release_notes: "Automated CI build from branch #{git_branch}",
+    firebase_cli_token: ENV["FIREBASE_TOKEN"]
+  )
+end
+```
+
+#### 4. Tester Experience
+- Testers receive an automated email invitation and App Tester notification.
+- In-app feedback and crash telemetry stream directly into Firebase Crashlytics and Timber logs.
+
+---
+
+### Production Release & Google Play Store Upload
+
+Production releases (`prodRelease`) are packaged as **Android App Bundles (`.aab`)** and distributed through Google Play Console tracks (Internal, Closed Beta, Open Testing, and Production).
+
+#### 1. Keystore & Release Signing Configuration
+Never check production keystores or credentials into version control. Configure release signing using environment variables:
+
+1. **Generate a Production Keystore (if not already existing):**
+   ```bash
+   keytool -genkey -v -keystore ledgerone-release.jks \
+     -alias ledgerone_prod \
+     -keyalg RSA -keysize 4096 -validity 10000 \
+     -dname "CN=LedgerOne, OU=Engineering, O=Personal Ledger, L=Bangalore, ST=Karnataka, C=IN"
+   ```
+2. **Environment Variables Configuration:**
+   Export signing variables in your local environment or CI secrets store:
+   ```bash
+   export LEDGER_KEYSTORE_PATH="/path/to/ledgerone-release.jks"
+   export LEDGER_KEYSTORE_PASSWORD="<store-password>"
+   export LEDGER_KEY_ALIAS="ledgerone_prod"
+   export LEDGER_KEY_PASSWORD="<key-password>"
+   ```
+3. **Gradle Signing Integration (`app/build.gradle.kts`):**
+   ```kotlin
+   signingConfigs {
+       create("release") {
+           val keystorePath = System.getenv("LEDGER_KEYSTORE_PATH")
+           if (!keystorePath.isNullOrBlank()) {
+               storeFile = file(keystorePath)
+               storePassword = System.getenv("LEDGER_KEYSTORE_PASSWORD")
+               keyAlias = System.getenv("LEDGER_KEY_ALIAS")
+               keyPassword = System.getenv("LEDGER_KEY_PASSWORD")
+           }
+       }
+   }
+   ```
+
+#### 2. Building the Production Android App Bundle (AAB)
+Google Play requires `.aab` bundles rather than `.apk` files to enable Dynamic Delivery, language splitting, and density-optimized APK generation:
+
+```bash
+# Clean, verify, and bundle the production release variant
+./gradlew clean :app:bundleProdRelease
+
+# Generated App Bundle:
+# app/build/outputs/bundle/prodRelease/app-prod-release.aab
+# Deobfuscation Mapping File (R8 / ProGuard):
+# app/build/outputs/mapping/prodRelease/mapping.txt
+```
+
+#### 3. Uploading to Google Play Console
+
+##### Method A: Google Play Console Web Dashboard
+1. Log in to the [Google Play Console](https://play.google.com/console).
+2. Select **LedgerOne** (`com.ledger.personal`).
+3. In the left navigation, navigate to:
+   - **Internal testing** (for initial smoke testing by core team members).
+   - **Closed testing** (for wider beta user testing).
+   - **Production** (for live consumer distribution).
+4. Click **Create new release**:
+   - Drag and drop `app-prod-release.aab`.
+   - Upload the R8 deobfuscation file `mapping.txt` under **ReTrace mapping file** so crash reports display readable stack traces in the Vitals dashboard.
+   - Enter localized release notes:
+     - `en-US`: "Performance enhancements, offline mortgage sync improvements, and enhanced security protections."
+     - `hi-IN`: "प्रदर्शन संवर्द्धन, ऑफ़लाइन सिंक सुधार और उन्नत सुरक्षा संरक्षण।"
+5. Click **Next**, review errors or warnings, and click **Save and publish**.
+
+##### Method B: Fastlane Automated Play Store Deployment (`supply`)
+Automate continuous deployment directly from CI/CD:
+```ruby
+lane :deploy_internal_testing do
+  gradle(
+    task: ":app:bundleProdRelease",
+    project_dir: "./"
+  )
+  upload_to_play_store(
+    package_name: 'com.ledger.personal',
+    track: 'internal', # Options: internal, alpha, beta, production
+    aab: 'app/build/outputs/bundle/prodRelease/app-prod-release.aab',
+    mapping_paths: ['app/build/outputs/mapping/prodRelease/mapping.txt'],
+    json_key: ENV["GOOGLE_PLAY_JSON_KEY_PATH"],
+    skip_upload_images: true,
+    skip_upload_screenshots: true
+  )
+end
+```
+
+---
+
+### Pre-Launch & Staged Rollout Best Practices
+
+- **Pre-Launch Report Review:** Review Google's automated pre-launch report across physical Firebase Test Lab devices to catch ANRs, crashes, layout clipping on diverse screen sizes, and accessibility violations before user rollout.
+- **Staged Rollouts:** Never push a 100% immediate release to production for banking/ledger applications. Use progressive staged rollouts:
+  - **Day 1:** 5% rollout $\rightarrow$ Monitor Android Vitals crash rate (< 0.10% threshold) and API error metrics.
+  - **Day 2:** 20% rollout $\rightarrow$ Review support inquiries and payment completion rates.
+  - **Day 3:** 50% rollout.
+  - **Day 4:** 100% full release.
+- **Halt / Rollback Safety:** If unexpected issues emerge during rollout, halt the release immediately from the Play Console to freeze updates on remaining devices while fixing the regression.
 
 ## <a id="contributing"></a>Contributing & Engineering Guidelines
 

@@ -85,6 +85,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [3. Design System & Theming Rules](#3-design-system--theming-rules)
   - [4. Kotlin Idioms & Coding Standards](#4-kotlin-idioms--coding-standards)
   - [5. Kotlin Coroutines & Structured Concurrency](#5-kotlin-coroutines--structured-concurrency)
+  - [6. AI-Assisted Engineering Workflow (Copilot, Cursor, Claude Code, Antigravity)](#6-ai-assisted-engineering-workflow-copilot-cursor-claude-code-antigravity)
 
 ---
 
@@ -1979,3 +1980,52 @@ Follow the official [Kotlin coroutines guide](https://kotlinlang.org/docs/corout
 - **Reactive Streams:** Expose streams via [Flow](https://kotlinlang.org/docs/coroutines-flow.html) with [operators](https://kotlinlang.org/docs/coroutines-flow-operators.html) (`catch`, `sample`, `stateIn`); `delay` serves as the cancellation check in a repetitive loop.
 - **Shared State & Concurrency:** Shared mutable writes across coroutines must use `Mutex.withLock` ([shared state](https://kotlinlang.org/docs/shared-mutable-state-and-concurrency.html)).
 - **Channels vs Flows:** Do not add a [Channel](https://kotlinlang.org/docs/channels.html) ([channels and coroutines](https://kotlinlang.org/docs/coroutines-and-channels.html)) or experimental [select](https://kotlinlang.org/docs/select-expression.html) unless you need fan-in/fan-out pipelines or single-consumer one-off event buffers.
+
+---
+
+### 6. AI-Assisted Engineering Workflow (Copilot, Cursor, Claude Code, Antigravity)
+
+Modern mobile engineering leverages AI coding assistants (GitHub Copilot, Cursor, Claude Code, Antigravity) as active pair programmers to accelerate delivery, reduce cognitive load on repetitive mechanics, and maintain rigorous code quality. Below is the concrete workflow and governance model used across the development lifecycle:
+
+#### A. Accelerating Mobile Boilerplate
+- **Room Database Entities, DAOs & Migrations:** 
+  - Prompting AI tools with domain models to generate SQL-safe Room `@Entity`, `@Dao` interfaces with reactive `Flow` queries, and deterministic SQLite DDL migration scripts (`MIGRATION_X_Y`).
+  - Automatically creating type-converters and JSON serializers for complex nested structures.
+- **Retrofit & DTO Scaffolding:**
+  - Ingesting backend Swagger/OpenAPI schemas or JSON payloads into Cursor/Claude Code to generate immutable `@Serializable` Kotlin data classes with explicit field defaults.
+- **Compose UI Preview & State Factories:**
+  - Rapidly generating `@PreviewLightDark` composable wrappers, fake data repositories, and mock UI state snapshots (`UiState.Loading`, `UiState.Success`, `UiState.Error`) to visualize screen states without running an emulator.
+- **Comprehensive Unit & Parameterized Testing:**
+  - Auto-generating boundary test matrices (e.g. edge-case currency division in `splitEvenly`, Luhn checksum edge cases, and 3-way merge conflict scenarios) with JUnit 4 and MockK assertions.
+
+#### B. Safe Refactoring of Legacy Java & Imperative Code
+- **Java / RxJava to Modern Idiomatic Kotlin Coroutines & Flow:**
+  - Refactoring legacy `Single`, `Observable`, or callback-heavy Java classes into clean suspend functions and cold `Flow` streams, ensuring proper context switching (`Dispatchers.IO`) and structured cancellation propagation.
+- **XML Layouts & Imperative ViewBinding to Jetpack Compose:**
+  - Converting legacy `RecyclerView.Adapter` and XML layouts into Compose `LazyColumn` and declarative components conforming to `LedgerTheme` tokens.
+- **Legacy SharedPreferences to Preferences DataStore:**
+  - Transforming blocking `SharedPreferences.apply()` calls into non-blocking, atomic Jetpack DataStore preferences, eliminating `QueuedWork.waitToFinish` ANR vulnerabilities.
+- **Architectural Decoupling:**
+  - Breaking down monolithic Activities/Fragments into Clean Architecture tiers: moving data operations into single-responsibility Repositories and state logic into `ViewModel` + `StateFlow`.
+
+#### C. Living Architecture Documentation & Contract Synthesis
+- **System Design & Sequence Diagrams:**
+  - Synthesizing complex asynchronous lifecycles into GitHub-flavored Markdown and Mermaid diagrams (e.g. UPI payment FSM transitions, offline 3-way merge conflict inbox, and zero-downtime certificate pin rotation).
+- **KDoc & Technical Documentation:**
+  - Generating precise KDoc headers with `@param`, `@return`, and `@throws` tags that accurately document business rules and invariants rather than restating method names.
+- **Incident Post-Mortems & Onboarding Runbooks:**
+  - Transforming raw debugging logs, flame charts, and thread traces into structured engineering post-mortems and quick-start documentation.
+
+#### D. Engineering Guardrails, Verification & Zero-Hallucination Discipline
+AI assistants are treated as high-speed junior pair-programmers whose output requires strict verification against project invariants:
+1. **Context Anchoring via `AGENTS.md` and System Rules:**
+   - AI tools are anchored using project rules (`AGENTS.md` / `.cursorrules`): enforcing minor-unit `Long` currency amounts, prohibiting floating-point money math, enforcing structured concurrency without `GlobalScope`, and strictly forbidding cross-feature module imports.
+2. **Deterministic Build & Lint Verification:**
+   - Every AI-generated file must immediately pass compiler verification and static analysis before staging:
+     ```bash
+     ./gradlew testMockDebugUnitTest :core:model:test detekt ktlintCheck
+     ```
+3. **No Blind Commits:**
+   - Code is reviewed line-by-line using git diffs. Hidden assumptions, swallowing of `CancellationException`, or unnecessary library additions are rejected.
+4. **Security & Privacy Air-Gapping:**
+   - Proprietary banking certificates, secret keys, customer PII, and production server endpoints are strictly redacted before prompting external LLMs; only sanitized abstractions and dummy mocks are shared.

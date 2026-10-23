@@ -3,6 +3,7 @@ package com.ledger.personal
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.ledger.personal.data.diagnostics.StrictModeConfig
 import com.ledger.personal.domain.sync.SyncCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -26,7 +27,8 @@ class LedgerApplication : Application(), Configuration.Provider {
         super.onCreate()
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
-            Timber.d("Personal Ledger Application initialized in DEBUG mode")
+            StrictModeConfig.install()
+            Timber.d("Personal Ledger Application initialized in DEBUG mode with StrictMode")
         }
         syncCoordinator.enqueue()
     }

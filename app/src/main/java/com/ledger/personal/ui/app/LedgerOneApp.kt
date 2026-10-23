@@ -27,7 +27,6 @@ import com.ledger.personal.ui.navigation.LedgerNavHost
 import com.ledger.personal.ui.theme.LedgerOneTheme
 import com.ledger.personal.ui.theme.ThemeMode
 
-private const val LOCK_AFTER_MS = 30_000L
 
 /** Picks splash, update, onboarding, lock, or the signed-in app. */
 @Composable
@@ -94,24 +93,41 @@ private fun Locked(
     )
 }
 
-/** Locks after 30 s in the background. */
+/** Locks immediately when backgrounded and returning. */
 @Composable
 private fun LockWhenBackgrounded(onLock: () -> Unit) {
     val owner = LocalLifecycleOwner.current
     val activity = LocalActivity.current
     DisposableEffect(owner) {
-        var stoppedAt = 0L
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_STOP -> if (activity?.isChangingConfigurations != true) stoppedAt = System.currentTimeMillis()
-                Lifecycle.Event.ON_START -> {
-                    if (stoppedAt != 0L && System.currentTimeMillis() - stoppedAt > LOCK_AFTER_MS) onLock()
-                    stoppedAt = 0L
-                }
-                else -> Unit
-            }
-        }
+        val observer = createBackgroundLockObserver(
+            isChangingConfigurations = { activity?.isChangingConfigurations == true },
+            onLock = onLock,
+        )
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+}
+
+internal fun createBackgroundLockObserver(
+    isChangingConfigurations: () -> Boolean,
+    onLock: () -> Unit,
+): LifecycleEventObserver {
+    var wasStopped = false
+    return LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_STOP -> {
+                if (!isChangingConfigurations()) {
+                    wasStopped = true
+                    onLock()
+                }
+            }
+            Lifecycle.Event.ON_START -> {
+                if (wasStopped) {
+                    wasStopped = false
+                    onLock()
+                }
+            }
+            else -> Unit
+        }
     }
 }

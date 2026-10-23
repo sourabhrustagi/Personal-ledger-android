@@ -73,6 +73,12 @@ object AppStrings {
     @StringRes val SECTION_SAVED_CONTACTS: Int = R.string.section_saved_contacts
     @StringRes val SECTION_RECENT_TRANSACTIONS: Int = R.string.section_recent_transactions
 
+    // Offline Screen
+    @StringRes val TITLE_NO_INTERNET: Int = R.string.title_no_internet
+    @StringRes val MESSAGE_NO_INTERNET: Int = R.string.message_no_internet
+    @StringRes val LABEL_WAITING_FOR_CONNECTION: Int = R.string.label_waiting_for_connection
+    @StringRes val ACTION_CONTINUE_OFFLINE: Int = R.string.action_continue_offline
+
     // Non-translatable technical currency tokens
     const val CURRENCY_INR: String = "INR"
     const val CURRENCY_USD: String = "USD"

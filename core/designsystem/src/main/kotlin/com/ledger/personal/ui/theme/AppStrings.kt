@@ -79,6 +79,11 @@ object AppStrings {
     @StringRes val LABEL_WAITING_FOR_CONNECTION: Int = R.string.label_waiting_for_connection
     @StringRes val ACTION_CONTINUE_OFFLINE: Int = R.string.action_continue_offline
 
+    // Payment FSM & In-Doubt States
+    @StringRes val ACTION_CHECK_STATUS: Int = R.string.action_check_status
+    @StringRes val TITLE_TRANSFER_UNCONFIRMED: Int = R.string.title_transfer_unconfirmed
+    @StringRes val MESSAGE_TRANSFER_UNCONFIRMED: Int = R.string.message_transfer_unconfirmed
+
     // Non-translatable technical currency tokens
     const val CURRENCY_INR: String = "INR"
     const val CURRENCY_USD: String = "USD"

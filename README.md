@@ -128,7 +128,7 @@ LedgerOne directly resolves these real-world business challenges through five co
   - **Hardware Keystore Device Binding:** Generates elliptic curve (ECDSA P-256) cryptographic keys secured inside the Android Hardware Keystore, signing cryptographic server challenges upon biometric confirmation to block unauthorized access.
   - **Window Protection (`SecureWindow`):** Enforces `FLAG_SECURE` across authentication, payment, and sensitive ledger screens, blocking screenshot capture and masking screen contents in the recent apps task switcher.
   - **Masked Balances:** Hides account balances by default (`••••••`), revealing values only upon explicit user eye-icon toggle.
-  - **Inactivity Auto-Lock:** Automatically locks the application after 30 seconds of backgrounding, requiring biometric or OTP re-authentication upon return.
+  - **Inactivity Auto-Lock:** Automatically locks the application immediately upon backgrounding, requiring OTP re-authentication upon return.
 - **Business Impact:** Bank-grade privacy and anti-fraud defense protecting user funds and confidential transaction metadata.
 
 ---
@@ -278,7 +278,7 @@ flowchart TD
     %% Lifecycle and Shell Transitions
     CheckStatus -->|versionCode < min| UpdateScreen["ForceUpdateScreen<br/>(Play Store Redirect)"]
     CheckStatus -->|First Launch / No Session| OnboardFlow["OnboardingFlow<br/>(PhoneStep ➔ OtpStep)"]
-    CheckStatus -->|Session Locked / >30s Background| LockScreen["OtpLoginScreen<br/>(Unlock with OTP)"]
+    CheckStatus -->|Session Locked / App Backgrounded| LockScreen["OtpLoginScreen<br/>(Unlock with OTP)"]
     CheckStatus -->|Active Authenticated Session| MainTabs
 
     OnboardFlow -->|OTP Verified & Terms Accepted| MainTabs["Main Shell: LedgerNavHost<br/>(Bottom Navigation Bar)"]
@@ -960,7 +960,7 @@ fun SecureWindow() {
 ```
 
 #### B. Background Session Auto-Lock (`LedgerOneApp.kt` in `:app`)
-Monitors application background duration using AndroidX `LifecycleEventObserver` and auto-locks the session if backgrounded for more than 30 seconds:
+Monitors application background lifecycle using AndroidX `LifecycleEventObserver` and auto-locks the session immediately upon backgrounding, requesting verification upon return:
 
 ```kotlin
 @Composable
@@ -968,21 +968,10 @@ private fun LockWhenBackgrounded(onLock: () -> Unit) {
     val owner = LocalLifecycleOwner.current
     val activity = LocalActivity.current
     DisposableEffect(owner) {
-        var stoppedAt = 0L
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_STOP -> if (activity?.isChangingConfigurations != true) {
-                    stoppedAt = System.currentTimeMillis()
-                }
-                Lifecycle.Event.ON_START -> {
-                    if (stoppedAt != 0L && System.currentTimeMillis() - stoppedAt > LOCK_AFTER_MS) {
-                        onLock()
-                    }
-                    stoppedAt = 0L
-                }
-                else -> Unit
-            }
-        }
+        val observer = createBackgroundLockObserver(
+            isChangingConfigurations = { activity?.isChangingConfigurations == true },
+            onLock = onLock,
+        )
         owner.lifecycle.addObserver(observer)
         // Clean up: unregister the lifecycle observer when navigating away
         onDispose { owner.lifecycle.removeObserver(observer) }
@@ -1481,7 +1470,7 @@ The application's domain rules are concentrated in pure Kotlin within `core/mode
 - **MPIN authentication (`mpinAccepted`):** PIN authorization requires exactly four numerical digits (`pin.length == 4 && pin.all { it.isDigit() }`).
 - **Cryptographic device binding:** Hardware-backed ECDSA key pairs (P-256) are generated inside the Android Keystore. During registration, the server issues a random challenge nonce that the device signs. The server verifies the public key signature and prevents nonce replay before associating the device with an account.
 - **End-to-end encrypted utility bill pay (`PayBox`):** Utility bill queries and payments are protected using Elliptic Curve Diffie-Hellman (ECDH P-256) key agreement with AES-GCM (128-bit) authenticated encryption and unique 12-byte initialization vectors (IVs). Neither bill amounts nor customer identifiers travel in plaintext.
-- **Background auto-lock:** The app starts a 30-second countdown upon backgrounding. Exceeding this threshold locks the session, requiring biometric or MPIN authentication upon foregrounding.
+- **Background auto-lock:** The app locks the session immediately upon backgrounding, requiring OTP verification upon foregrounding.
 
 ### <a id="offline-first-synchronization--conflict-handling"></a><a id="offline-first-synchronization-conflict-handling"></a>Offline-first synchronization & conflict handling
 

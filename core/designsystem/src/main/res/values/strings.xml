@@ -65,4 +65,10 @@
     <string name="section_send_to_anyone">Send to anyone</string>
     <string name="section_saved_contacts">Saved contacts</string>
     <string name="section_recent_transactions">Recent transactions</string>
+
+    <!-- Offline Screen -->
+    <string name="title_no_internet">No Internet Connection</string>
+    <string name="message_no_internet">You\'re currently offline. Please check your network connection. We\'ll automatically reconnect once internet is restored.</string>
+    <string name="label_waiting_for_connection">Waiting for connection…</string>
+    <string name="action_continue_offline">Continue in Offline Mode</string>
 </resources>

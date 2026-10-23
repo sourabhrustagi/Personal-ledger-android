@@ -20,4 +20,9 @@ class OfflineNowTest {
         assertTrue(offlineNow(mockOffline = false, connected = false))
         assertFalse(offlineNow(mockOffline = false, connected = true))
     }
+
+    @Test
+    fun hasInternetReturnsFalseWhenManagerIsNull() {
+        assertFalse(hasInternet(null))
+    }
 }

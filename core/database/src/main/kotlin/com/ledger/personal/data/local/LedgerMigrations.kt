@@ -42,6 +42,36 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    /** Migrate to add offline inspection forms and photos outbox tables. */
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `inspection_forms` (" +
+                "`id` TEXT NOT NULL, " +
+                "`loanId` TEXT NOT NULL, " +
+                "`propertyAddress` TEXT NOT NULL, " +
+                "`inspectorNotes` TEXT NOT NULL, " +
+                "`damageReport` TEXT NOT NULL, " +
+                "`clientUpdatedAtEpochMs` INTEGER NOT NULL, " +
+                "`baseServerVersion` INTEGER NOT NULL, " +
+                "`syncStatus` TEXT NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `inspection_photos` (" +
+                "`photoId` TEXT NOT NULL, " +
+                "`formId` TEXT NOT NULL, " +
+                "`localFilePath` TEXT NOT NULL, " +
+                "`fileSizeBytes` INTEGER NOT NULL, " +
+                "`bytesUploaded` INTEGER NOT NULL, " +
+                "`checksum` TEXT NOT NULL, " +
+                "`remoteUrl` TEXT, " +
+                "`uploadStatus` TEXT NOT NULL, " +
+                "PRIMARY KEY(`photoId`))",
+        )
+    }
+}
+
 /** Inserts the promotion rows. Fresh databases and the 3 to 4 upgrade both use this. */
 fun SupportSQLiteDatabase.seedPromotions() {
     execSQL(

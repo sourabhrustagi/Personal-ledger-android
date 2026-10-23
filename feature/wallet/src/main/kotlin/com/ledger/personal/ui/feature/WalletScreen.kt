@@ -234,8 +234,32 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
                 if (state.attempt <= 1) "Sending…" else "Weak connection. Trying again (${state.attempt} of $TRANSACTION_ATTEMPTS)…",
             )
         }
+        TransferStatus.IN_DOUBT -> {
+            StatusBanner(
+                state.errorMessage ?: stringResource(AppStrings.MESSAGE_TRANSFER_UNCONFIRMED),
+                BannerTone.WARNING,
+                title = stringResource(AppStrings.TITLE_TRANSFER_UNCONFIRMED),
+            )
+            PrimaryButton(
+                stringResource(AppStrings.ACTION_CHECK_STATUS),
+                onClick = viewModel::reconcile,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedButton(
+                onClick = viewModel::retry,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(AppStrings.ACTION_RETRY))
+            }
+        }
         TransferStatus.FAILED -> {
             StatusBanner(state.errorMessage.orEmpty(), BannerTone.ERROR, title = "Payment not completed")
+            PrimaryButton(
+                stringResource(AppStrings.ACTION_RETRY),
+                onClick = viewModel::retry,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         else -> {
             StatusBanner("We'll ask for your fingerprint or screen lock before sending.", BannerTone.INFO)
@@ -387,3 +411,22 @@ private fun WalletReceiptPreview() {
         }
     }
 }
+
+@PreviewLightDark
+@Composable
+private fun WalletInDoubtPreview() {
+    PersonalLedgerTheme {
+        FeatureScaffold("Review transfer", onBack = {}) {
+            TransferReview(
+                reviewState.copy(
+                    status = TransferStatus.IN_DOUBT,
+                    errorMessage = "Connection lost while confirming. We saved your reference so you won't be charged twice.",
+                    canReconcile = true,
+                ),
+                debugStepUp = true,
+                previewWallet,
+            )
+        }
+    }
+}
+

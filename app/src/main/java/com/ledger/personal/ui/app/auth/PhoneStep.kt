@@ -46,25 +46,22 @@ fun PhoneStep(
     onSendClick: () -> Unit = {},
 ) {
     var consent by rememberSaveable { mutableStateOf(false) }
-    var validationError by rememberSaveable { mutableStateOf<String?>(null) }
-
-    val activeError = uiState.errorMessage ?: validationError
     val isSending = uiState.isSending
+    val errorMessage = uiState.errorMessage
 
     Text("Enter your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text(
         "We'll send a 6-digit verification code to verify your phone.",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    if (activeError != null) {
-        StatusBanner(activeError, BannerTone.ERROR)
+    if (errorMessage != null) {
+        StatusBanner(errorMessage, BannerTone.ERROR)
     }
     OutlinedTextField(
         value = phone,
         onValueChange = { next ->
             if (next.length <= PHONE_LENGTH && next.all(Char::isDigit)) {
                 onPhone(next)
-                validationError = null
             }
         },
         label = { Text("Mobile number") },
@@ -72,6 +69,7 @@ fun PhoneStep(
         supportingText = { Text("10-digit mobile number") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true,
+        isError = errorMessage != null,
         enabled = !isSending,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -81,14 +79,7 @@ fun PhoneStep(
     }
     PrimaryButton(
         text = if (isSending) "Sending code..." else "Send code",
-        onClick = {
-            if (phone.length == PHONE_LENGTH && phone.all(Char::isDigit)) {
-                validationError = null
-                onSendClick()
-            } else {
-                validationError = "Please enter a valid 10-digit mobile number."
-            }
-        },
+        onClick = onSendClick,
         enabled = consent && phone.length == PHONE_LENGTH && !isSending,
         icon = Icons.Outlined.Sms,
         modifier = Modifier.fillMaxWidth(),

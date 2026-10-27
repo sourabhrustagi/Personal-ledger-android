@@ -46,7 +46,7 @@ data class ScanUiState(
 @Composable
 fun ScanScreen(liveCamera: Boolean, onBack: () -> Unit, onTarget: (UpiTarget) -> Unit) {
     val context = LocalContext.current
-    var granted by remember {
+    var granted by rememberSaveable {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }

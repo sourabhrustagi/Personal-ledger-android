@@ -71,9 +71,19 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Financial Calculations & Accounting Invariants](#financial-calculations--accounting-invariants)
   - [Payments, UPI & Fraud Prevention](#payments-upi--fraud-prevention)
   - [Security, Authentication & Cryptography](#security-authentication--cryptography)
-  - [Offline-First Synchronization & Conflict Handling](#offline-first-synchronization--conflict-handling)
-  - [Production Debugging, Performance Monitoring & ANR/Leak Diagnosis](#production-debugging-performance-monitoring--anrleak-diagnosis)
-- [Dependencies](#dependencies)
+- [Dependencies & Architectural Rationale](#dependencies)
+  - [Dependency Philosophy & Version Catalog (`libs.versions.toml`)](#dependency-philosophy--version-catalog)
+  - [1. Language, Asynchronous Concurrency & Serialization](#1-language-asynchronous-concurrency--serialization)
+  - [2. Modern Declarative UI, Theming & Navigation](#2-modern-declarative-ui-theming--navigation)
+  - [3. AndroidX Architecture, Lifecycle & State Preservation](#3-androidx-architecture-lifecycle--state-preservation)
+  - [4. Dependency Injection (Hilt & JSR-330)](#4-dependency-injection-hilt--jsr-330)
+  - [5. Offline-First Storage, Transactions & Paging](#5-offline-first-storage-transactions--paging)
+  - [6. Resilient Background Synchronization (WorkManager)](#6-resilient-background-synchronization-workmanager)
+  - [7. Secure Networking & HTTP Engine (Retrofit & OkHttp)](#7-secure-networking--http-engine-retrofit--okhttp)
+  - [8. Hardware, Machine Learning & Cryptographic Security](#8-hardware-machine-learning--cryptographic-security)
+  - [9. Observability, Memory Diagnostics & Traffic Inspection](#9-observability-memory-diagnostics--traffic-inspection)
+  - [10. Testing Pyramid, Verification & Build Tooling](#10-testing-pyramid-verification--build-tooling)
+  - [Comprehensive Architectural Trade-Off Matrix](#comprehensive-architectural-trade-off-matrix)
 - [Tests and Checks](#tests-and-checks)
 - [Release, App Testing & Distribution](#release-app-testing--distribution)
   - [Testing Builds via Firebase App Distribution](#testing-builds-via-firebase-app-distribution)
@@ -1660,34 +1670,221 @@ Fintech applications face complex low-level concurrency failures in production a
    - P95 app backgrounding latency decreased by **91%**, delivering seamless app switching across all OEM devices.
 
 
-## <a id="dependencies"></a>Dependencies
+## <a id="dependencies"></a>Dependencies & Architectural Rationale
 
-Versions live in `gradle/libs.versions.toml`. A library is added only when the Android or Kotlin standard library does not already solve the problem. Why this stack instead of Retrofit, SQLDelight, Koin, and the rest is in [docs/LIBRARIES.md](docs/LIBRARIES.md).
+All external library and plugin dependencies are strictly declared and managed in the central Gradle Version Catalog at [`gradle/libs.versions.toml`](gradle/libs.versions.toml). LedgerOne enforces a **lean dependency footprint**: a third-party library is introduced **only** when the Kotlin standard library or native Android platform APIs cannot solve the business problem with equivalent reliability, memory safety, or performance. Architectural comparison rationale against other popular Android stacks is documented in detail in [docs/LIBRARIES.md](docs/LIBRARIES.md).
 
-| Dependency | Purpose |
-| --- | --- |
-| Kotlin, coroutines, Flow | Language, background work, and streams for Room, network, and UI state |
-| kotlinx.serialization | Compile-time JSON for Retrofit DTOs and type-safe navigation routes |
-| Jetpack Compose, Material 3, Compose Foundation / Animation | Screens, theme, motion, and shared components |
-| Compose UI Tooling | `@Preview` / `@PreviewLightDark` in the app and library modules |
-| Navigation Compose | Back stack, deep links, and typed routes; only `:app` joins feature screens |
-| Lifecycle, Activity Compose, ViewModel | Configuration-change state and lifecycle-aware collection |
-| Hilt, Hilt Navigation, Hilt Work | Compile-time graphs for repositories, Retrofit APIs, ViewModels, and workers |
-| Room, Room Paging | Local source of truth, migrations, and paged transaction history |
-| DataStore Preferences | Small settings: theme, privacy, categories, skipped update code |
-| WorkManager | Durable sync work that survives process death |
-| Paging 3 | Incremental transaction lists from Room into Compose |
-| Retrofit (OkHttp engine) | REST, static API, device binding, and secure networking |
-| OkHttp, logging interceptor | TLS, certificate pinning, HTTP cache; debug-only request summaries |
-| CameraX | Lifecycle-aware camera for UPI QR capture |
-| ML Kit barcode scanning | On-device QR decode from CameraX frames |
-| AndroidX Biometric | System biometric prompt; keys stay in Android Keystore |
-| Timber | App logging; debug tree only on debug builds |
-| Chucker | On-device HTTP inspector in debug; no-op artifact in release |
-| LeakCanary | Debug-only leak detection for Activities and Compose hosts |
-| JUnit, AndroidX Test, Espresso, Compose UI Test | Local rules, instrumented UI, and HTTP mock tests without a server |
-| Detekt, ktlint | Complexity, correctness, and formatting in CI |
-| Android Gradle Plugin, Compose / serialization compiler, KSP | Variants, R8, Compose, serializers, Hilt, and Room codegen |
+---
+
+### <a id="dependency-philosophy--version-catalog"></a>Dependency Philosophy & Version Catalog (`libs.versions.toml`)
+
+- **Single Source of Truth:** Dependency coordinates and versions are decoupled from multi-module `build.gradle.kts` files, preventing version drift, transitive classpath collisions, and diamond dependency resolution bugs.
+- **Minimal Surface Area & Clean Architecture:** Modules depend only on what they strictly require (e.g. `:core:model` has zero Android platform dependencies; `:feature:*` modules never depend on other `:feature:*` modules).
+- **Compile-Time Safety Over Runtime Reflection:** Libraries relying heavily on runtime reflection (such as Gson, runtime DI containers, or dynamic classloaders) are rejected in favor of compile-time code generation (KSP, Dagger Hilt, `kotlinx.serialization`) to ensure deterministic behavior, aggressive R8 dead-code shrinking, and instant cold start.
+
+---
+
+### <a id="1-language-asynchronous-concurrency--serialization"></a>1. Language, Asynchronous Concurrency & Serialization
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Kotlin Standard Library** | `2.2.0` | Global |
+| **Kotlinx Coroutines Android** (`kotlinx-coroutines-android`) | `1.10.2` | `:core:*`, `:feature:*`, `:app` |
+| **Kotlinx Coroutines Test** (`kotlinx-coroutines-test`) | `1.10.2` | Test Scopes |
+| **Kotlinx Serialization JSON** (`kotlinx-serialization-json`) | `1.9.0` | `:core:model`, `:core:network`, `:app` |
+
+#### Architectural Role & Importance
+- **Kotlin (v2.2.0):** Provides compile-time null safety, sealed class hierarchies for strict finite-state machines (e.g., `PaymentFsmState`, `AppStatus`), value classes for zero-allocation domain primitives, and expressive extension functions for minor-unit currency calculations.
+- **Kotlin Coroutines & Flow (v1.10.2):**
+  - **Structured Concurrency:** Eliminates thread leaks by binding all background jobs to specific lifecycle scopes (`viewModelScope`, `LaunchedEffect`, `coroutineScope`).
+  - **Cold Reactive Streams (`Flow`):** Acts as the asynchronous pipeline carrying transactional updates from the SQLite Room database up through ViewModels into Compose UI screens. Emits updates only while active subscribers exist, preventing CPU waste.
+  - **Main-Safety Guarantee:** All repository suspend functions use `withContext(Dispatchers.IO)` for database/network I/O and `Dispatchers.Default` for CPU-intensive cryptographic hashing, guaranteeing that the Android UI thread is never blocked.
+- **Kotlinx Serialization JSON (v1.9.0):**
+  - **Reflection-Free Parsing:** Generates static Kotlin bytecode serializers at compile time. Unlike reflection-based parsers, it avoids inspecting class metadata at runtime, speeding up cold startup and preventing JSON deserialization crashes under R8/ProGuard obfuscation.
+  - **Unified Data Contracts:** Decodes backend REST JSON DTOs and serializes type-safe Navigation Compose arguments with the exact same data contracts.
+- **Kotlinx Coroutines Test:** Supplies `runTest`, `StandardTestDispatcher`, and `TestScope` with virtual clock control (`advanceUntilIdle()`), enabling instantaneous, deterministic unit testing of asynchronous loops, timeouts, and debounce flows without brittle `Thread.sleep()` delays.
+
+---
+
+### <a id="2-modern-declarative-ui-theming--navigation"></a>2. Modern Declarative UI, Theming & Navigation
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Compose BOM** (`compose-bom`) | `2026.03.01` | UI Modules |
+| **Compose UI** (`ui`, `ui-graphics`, `foundation`, `animation`) | BOM | `:core:designsystem`, `:core:ui`, `:feature:*`, `:app` |
+| **Material 3** (`material3`, `material-icons-extended`) | BOM | `:core:designsystem`, `:core:ui`, `:feature:*`, `:app` |
+| **Navigation Compose** (`navigation-compose`) | `2.8.8` | `:app` |
+| **Compose UI Tooling** (`ui-tooling`, `ui-tooling-preview`) | BOM | Debug / Preview Scopes |
+
+#### Architectural Role & Importance
+- **Jetpack Compose BOM (v2026.03.01):** Enforces strict binary and API compatibility across all Compose UI, foundation, animation, and runtime artifacts without manual version management.
+- **Declarative Reactive UI:** Eliminates imperative DOM/View manipulation (`findViewById`, `ViewBinding`). The UI is rendered purely as a mathematical function of immutable state: `UI = f(State)`. Recomposition skips unchanged subtrees, maintaining a consistent 60/120 FPS rendering pipeline.
+- **Material 3 (M3) & Design System (`:core:designsystem`):** Implements dynamic surface elevation, tonal palettes, and custom financial semantic color schemes (`LedgerTheme.colors`). Raw hex colors are strictly prohibited in feature code, ensuring seamless switching between Dark Mode and Light Mode.
+- **Navigation Compose (v2.8.8):**
+  - **Type-Safe Serializable Routes:** Routes are declared as `@Serializable` Kotlin data classes/objects rather than error-prone raw URL strings. Parameter parsing, deep link extraction, and screen transitions are validated at compile time.
+  - **Strict Feature Decoupling:** Feature modules (`:feature:ledger`, `:feature:wallet`) never reference each other's screens or navigation graphs. The `:app` shell acts as the sole orchestrator assembling top-level tabs and sub-flows.
+- **Compose UI Tooling (`@PreviewLightDark`):** Enables instantaneous isolated UI testing in Android Studio without compiling or launching full APKs on emulators, dramatically shortening UI development feedback loops.
+
+---
+
+### <a id="3-androidx-architecture-lifecycle--state-preservation"></a>3. AndroidX Architecture, Lifecycle & State Preservation
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **AndroidX Core KTX** (`core-ktx`) | `1.18.0` | Global Android Modules |
+| **Lifecycle Runtime KTX** (`lifecycle-runtime-ktx`) | `2.10.0` | `:core:ui`, `:feature:*`, `:app` |
+| **Lifecycle Runtime Compose** (`lifecycle-runtime-compose`) | `2.10.0` | `:core:ui`, `:feature:*`, `:app` |
+| **Lifecycle ViewModel Compose** (`lifecycle-viewmodel-compose`) | `2.10.0` | `:core:ui`, `:feature:*`, `:app` |
+| **Activity Compose** (`activity-compose`) | `1.13.0` | `:app` |
+
+#### Architectural Role & Importance
+- **`lifecycle-viewmodel-compose` & `ViewModel`:** Holds business state and coroutine scopes across Android Activity recreation (screen rotations, fold/unfold events, dark mode toggles), preventing data loss and redundant network/database requests.
+- **`collectAsStateWithLifecycle()`:** Safely collects Kotlin `StateFlow` streams from ViewModels inside Compose. When the application moves to the background (e.g. user presses Home or screen locks), collection automatically pauses, saving battery and preventing background rendering overhead.
+- **`activity-compose`:** Provides `ComponentActivity.setContent` integration, back-press handling (`BackHandler`), and direct access to window insets (`WindowInsetsCompat`, `safeDrawingPadding`).
+
+---
+
+### <a id="4-dependency-injection-hilt--jsr-330"></a>4. Dependency Injection (Hilt & JSR-330)
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Dagger Hilt Android** (`hilt-android`, `hilt-compiler`) | `2.60.1` | `:core:*`, `:feature:*`, `:app` |
+| **Hilt Navigation Compose** (`hilt-navigation-compose`) | `1.2.0` | `:app` |
+| **Hilt WorkManager** (`androidx-hilt-work`, `androidx-hilt-compiler`) | `1.2.0` | `:core:database`, `:app` |
+| **JSR-330 Inject** (`javax-inject`) | `1` | `:core:model` |
+
+#### Architectural Role & Importance
+- **Dagger Hilt (v2.60.1):** Provides compile-time dependency injection. It constructs the entire object graph (Database, DAOs, Retrofit API services, Repositories, Use Cases, ViewModels) before compilation completes. If any dependency is missing or forms a cyclic reference, the build fails immediately rather than crashing at runtime.
+- **Hilt Navigation Compose:** Integrates `hiltViewModel()` directly into Compose navigation back-stack entries, scoping ViewModel lifecycles to their specific destination subgraphs.
+- **Hilt WorkManager:** Enables `@HiltWorker` assisted injection into background workers (`SyncWorker`), allowing background tasks to inject repositories and network clients without manual service locators.
+- **`javax.inject` in Pure Modules:** Allows `:core:model` and domain interfaces to declare `@Inject` annotations without adding heavy Android or Dagger runtime dependencies, keeping the domain core 100% platform-agnostic.
+
+---
+
+### <a id="5-offline-first-storage-transactions--paging"></a>5. Offline-First Storage, Transactions & Paging
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Room Runtime & Compiler** (`room-runtime`, `room-compiler`) | `2.7.2` | `:core:database` |
+| **Room Testing** (`room-testing`) | `2.7.2` | `:core:database:test` |
+| **Room Paging** (`room-paging`) | `2.7.2` | `:core:database`, `:feature:ledger` |
+| **DataStore Preferences** (`datastore-preferences`) | `1.1.7` | `:core:database`, `:app` |
+| **Paging 3** (`paging-runtime`, `paging-compose`, `paging-testing`) | `3.3.6` | `:core:database`, `:feature:ledger` |
+
+#### Architectural Role & Importance
+- **Room SQLite Object Mapping (v2.7.2):**
+  - **Local Single Source of Truth:** All UI screens read directly from Room tables via reactive `Flow<List<T>>`. Network responses update Room; the UI never observes network calls directly.
+  - **Double-Entry Financial Integrity:** Atomic Room transactions (`@Transaction`) ensure multi-row financial ledger postings (simultaneous debit and credit legs) commit completely or roll back entirely, guaranteeing zero balance corruption.
+  - **Compile-Time SQL Verification:** Room verifies SQLite query syntax, table names, and column types against Kotlin data classes during compilation.
+- **DataStore Preferences (v1.1.7):** Replaces legacy `SharedPreferences`. Operates asynchronously on background dispatchers, supports transactional atomic updates, and exposes preferences as reactive `Flow<Preferences>` with zero UI-thread disk I/O.
+- **Paging 3 & Room Paging (v3.3.6):** Efficiently streams thousands of transaction history records from SQLite into Compose `LazyColumn`. Loads chunks incrementally on demand, caches memory windows, handles pull-to-refresh invalidation, and prevents `OutOfMemoryError` on large ledgers.
+
+---
+
+### <a id="6-resilient-background-synchronization-workmanager"></a>6. Resilient Background Synchronization (WorkManager)
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **AndroidX WorkManager Runtime** (`work-runtime`) | `2.10.1` | `:core:database`, `:app` |
+| **WorkManager Testing** (`work-testing`) | `2.10.1` | `:app:test` |
+
+#### Architectural Role & Importance
+- **Guaranteed Deferrable Execution:** Manages synchronization of locally created transactions and idempotency keys to remote banking servers. Unlike Coroutine scopes or foreground services, WorkManager tasks survive app process death, OS low-memory kills, and device restarts.
+- **Constraint-Driven Triggers:** Tasks execute only when system constraints are satisfied (`NetworkType.CONNECTED`, battery not low), preventing battery drain during offline periods.
+- **Exponential Backoff & Anti-Double-Spend:** Retries failed sync operations with exponential backoff while preserving transaction idempotency keys, guaranteeing that network failures never trigger duplicate payments.
+
+---
+
+### <a id="7-secure-networking--http-engine-retrofit--okhttp"></a>7. Secure Networking & HTTP Engine (Retrofit & OkHttp)
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Retrofit Core** (`retrofit`) | `2.11.0` | `:core:network` |
+| **Retrofit Kotlinx Serialization Converter** | `2.11.0` | `:core:network` |
+| **OkHttp Core & BOM** (`okhttp`, `okhttp-bom`) | `5.4.0` | `:core:network` |
+| **OkHttp Logging Interceptor** (`logging-interceptor`) | `5.4.0` | `:core:network` (Debug only) |
+
+#### Architectural Role & Importance
+- **Retrofit (v2.11.0):** Turns HTTP banking APIs into type-safe Kotlin interfaces with native coroutine suspend function support (`suspend fun transfer(...)`).
+- **OkHttp (v5.4.0):**
+  - **Connection Pooling & HTTP/2:** Reuses TCP/TLS connections across multiple API requests, reducing round-trip latency for payment confirmation handshakes.
+  - **Certificate Pinning (`CertificatePinner`):** Enforces cryptographic SHA-256 public key hashes against target hosts (`*.personal-ledger.com`), preventing Man-in-the-Middle (MITM) attacks even if a malicious root certificate is installed on the user device.
+  - **Custom Interceptors:** Injects authentication tokens (`AuthInterceptor`), device binding headers (`BankingHeaders`), and client-generated idempotency keys (`IdempotencyInterceptor`).
+  - **Strict Log Redaction:** In debug variants, logs only high-level request/response status lines. Authorization headers, cookies, and payment card numbers are automatically masked (`****`), preventing financial data exposure in system log buffers.
+
+---
+
+### <a id="8-hardware-machine-learning--cryptographic-security"></a>8. Hardware, Machine Learning & Cryptographic Security
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **CameraX** (`camera-core`, `camera2`, `lifecycle`, `view`) | `1.4.2` | `:app` |
+| **Google ML Kit Barcode Scanning** (`barcode-scanning`) | `17.3.0` | `:app` |
+| **AndroidX Biometric** (`biometric`) | `1.1.0` | `:app` |
+
+#### Architectural Role & Importance
+- **CameraX (v1.4.2):** Manages the device camera for scanning UPI QR codes. Automatically handles sensor aspect ratios, device-specific hardware bugs across OEM manufacturers, and binds the camera lifecycle directly to the Compose lifecycle.
+- **Google ML Kit Barcode Scanning (v17.3.0):** Performs high-speed on-device UPI QR detection directly from CameraX image analysis frames. Completely offline—zero image bytes or QR payload strings ever leave the device.
+- **AndroidX Biometric (v1.1.0):** Implements system-level `BiometricPrompt` (Fingerprint, Face Unlock, Device PIN/Pattern fallback). Interacts with the **Android Keystore hardware security module (Secure Element / StrongBox)** to unlock asymmetric cryptographic private keys used for authorizing high-value transfers.
+
+---
+
+### <a id="9-observability-memory-diagnostics--traffic-inspection"></a>9. Observability, Memory Diagnostics & Traffic Inspection
+
+| Library | Version | Module / Scope |
+|---|---|---|
+| **Timber** (`timber`) | `5.0.1` | `:core:*`, `:feature:*`, `:app` |
+| **LeakCanary** (`leakcanary-android`) | `2.14` | `:app` (Debug builds only) |
+| **Chucker** (`chucker-debug`, `chucker-release`) | `4.2.0` | `:core:network` (Debug inspection; release no-op) |
+
+#### Architectural Role & Importance
+- **Timber (v5.0.1):** Replaces raw Android `Log.d/e` calls with a clean logging facade. Automatically sets log tags based on enclosing classes, plants `DebugTree` in debug builds, and completely strips verbose logs in release APKs.
+- **LeakCanary (v2.14):** Automatically monitors Activity, Fragment, and Compose composition lifecycles in debug builds. When a memory leak occurs (e.g. static reference holding a destroyed Activity or uncancelled coroutine listener), it dumps the heap, traverses the shortest reference path, and posts a notification detailing the leak.
+- **Chucker (v4.2.0):** Provides an on-device push-notification HTTP inspector allowing developers and QA engineers to inspect API request headers, response bodies, and latency metrics directly on the phone without connecting a USB debugging cable. Uses a zero-overhead `no-op` library artifact in production release builds.
+
+---
+
+### <a id="10-testing-pyramid-verification--build-tooling"></a>10. Testing Pyramid, Verification & Build Tooling
+
+| Library / Plugin | Version | Module / Scope |
+|---|---|---|
+| **JUnit 4** (`junit`) | `4.13.2` | Unit Test Scopes |
+| **AndroidX Test Ext JUnit** (`androidx-test-ext-junit`) | `1.3.0` | Instrumented Test Scopes |
+| **Espresso Core** (`espresso-core`) | `3.7.0` | Instrumented Test Scopes |
+| **Compose UI Test JUnit 4** (`ui-test-junit4`) | BOM | Instrumented Test Scopes |
+| **Android Gradle Plugin (AGP)** | `9.0.1` | Root Build / Plugins |
+| **Kotlin Symbol Processing (KSP)** | `2.2.0-2.0.2` | Root Build / Plugins |
+| **Detekt** (`io.gitlab.arturbosch.detekt`) | `1.23.8` | CI Quality Gate |
+| **Ktlint Gradle Plugin** (`org.jlleitschuh.gradle.ktlint`) | `12.2.0` | CI Quality Gate |
+
+#### Architectural Role & Importance
+- **Hermetic Testing Pyramid:**
+  - **JVM Unit Tests (JUnit 4, Kotlinx Coroutines Test):** Executes hundreds of unit tests for bookkeeping invariants (`Money`, double-entry balance, transaction filters, ViewModels) in milliseconds on the JVM without an emulator.
+  - **Instrumented Integration Tests (AndroidX Test, Room Testing, Compose UI Test):** Tests SQLite database schema migrations (v1 ➔ v2), WorkManager constraints, and Compose accessibility/semantics on physical devices or Android emulators.
+- **Kotlin Symbol Processing (KSP v2.2.0-2.0.2):** Replaces legacy KAPT (Kotlin Annotation Processing Tool). Analyzes Kotlin source code directly without compiling intermediate Java stubs, speeding up Hilt and Room code generation by up to 2x.
+- **Detekt & Ktlint:** Automated CI static analysis enforcement. Flags cyclomatic complexity, excessive line length, swallowed `CancellationException`s in coroutines, and enforces idiomatic Kotlin coding standards on every pull request.
+
+---
+
+### <a id="comprehensive-architectural-trade-off-matrix"></a>Comprehensive Architectural Trade-Off Matrix
+
+The following table summarizes why each core dependency was chosen over its industry alternatives:
+
+| Dependency | Primary Purpose | Why Chosen for LedgerOne | Alternatives Considered | Why Alternative Was Rejected |
+|---|---|---|---|---|
+| **Jetpack Compose** | UI Rendering | Pure Kotlin declarative state model, zero XML boilerplate, direct `StateFlow` binding | Traditional Android XML Views | Requires mutable view references, `findViewById`/`ViewBinding` glue, complex lifecycle synchronization |
+| **Kotlin Coroutines & Flow** | Asynchronous Concurrency | Integrated structured concurrency, cancellation propagation, main-safety, cold reactive database streams | RxJava 2/3 | Adds duplicate asynchronous type system, larger binary footprint, steeper learning curve, non-native Compose integration |
+| **Kotlinx Serialization** | JSON & Route Serialization | Compile-time bytecode generation, reflection-free, zero R8/ProGuard runtime lookup, native Kotlin multiplatform | Gson / Moshi | Gson relies on runtime reflection and is unsafe with non-null Kotlin types; Moshi requires extra Kotlin reflection adapters |
+| **Room Database** | Offline Persistence | Compile-time SQL validation, double-entry atomic transactions, first-class Room Paging & Flow support | SQLDelight / Raw SQLite | Raw SQLite lacks compile-time query verification; SQLDelight has less turnkey integration with Android Paging 3 and WorkManager |
+| **Dagger Hilt** | Dependency Injection | Compile-time graph validation, zero runtime reflection, hierarchical Android lifecycle scoping | Koin / Manual Service Locator | Koin resolves dependencies at runtime, risking fatal runtime crashes in production; manual locators create tight coupling and testing boilerplate |
+| **WorkManager** | Background Sync | OS-guaranteed persistent execution surviving reboots and app termination, network constraint triggers | Foreground Services / AlarmManager | AlarmManager does not guarantee execution when battery saver or Doze activates; Foreground Services require intrusive persistent user notifications |
+| **DataStore Preferences** | Key-Value Storage | Asynchronous background I/O, transactional consistency, error signaling via Flow | SharedPreferences | Synchronous main-thread disk I/O causes UI stutters/ANRs; no transactional safety during concurrent writes |
+| **Retrofit + OkHttp** | Networking | Declarative REST interfaces, native coroutine suspend functions, connection pooling, certificate pinning | Ktor Client / HttpURLConnection | HttpURLConnection requires extensive connection/cache plumbing; Retrofit offers the most battle-tested enterprise Android ecosystem |
+| **CameraX + ML Kit** | QR Code Scanning | Camera lifecycle awareness, hardware-accelerated on-device ML barcode detection without cloud round-trip | ZXing ("Zebra Crossing") | ZXing is CPU-intensive on older devices, lacks modern CameraX frame analysis pipeline integration, and struggles with skewed angles |
+| **AndroidX Biometric** | Hardware Authentication | Standardized OS authentication UI, direct integration with Android Keystore StrongBox/SE | Custom PIN/Biometric Views | Custom biometric UIs cannot access hardware-backed cryptographic keystores or ensure anti-spoofing compliance |
+| **KSP** | Annotation Processing | Analyzes Kotlin symbols directly; eliminates Java stub generation | KAPT (Legacy) | KAPT requires compiling expensive synthetic Java stubs, significantly inflating build and clean-compilation times |
+
+---
 
 ## <a id="tests-and-checks"></a>Tests and checks
 

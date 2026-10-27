@@ -8,8 +8,10 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,10 +19,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -37,11 +42,19 @@ internal fun CameraScanner(onCode: (String) -> Unit) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val preview = remember { PreviewView(context) }
-    var done by remember { mutableStateOf(false) }
-    AndroidView(
-        factory = { preview },
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.medium),
-    )
+    var done by rememberSaveable { mutableStateOf(false) }
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        AndroidView(
+            factory = { preview },
+            modifier = Modifier
+                .heightIn(max = 280.dp)
+                .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                .clip(MaterialTheme.shapes.medium),
+        )
+    }
     Text("Point the camera at the QR code", color = MaterialTheme.colorScheme.onSurfaceVariant)
     DisposableEffect(owner) {
         if (context.findActivity() == null) return@DisposableEffect onDispose {}

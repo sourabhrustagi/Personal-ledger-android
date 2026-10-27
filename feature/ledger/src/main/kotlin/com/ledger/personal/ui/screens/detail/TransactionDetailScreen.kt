@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,7 +50,6 @@ import com.ledger.personal.util.toFormattedDateTime
 fun TransactionDetailScreen(
     uiState: TransactionDetailUiState,
     onNavigateBack: () -> Unit,
-    onNavigateEdit: ((String) -> Unit)? = null,
     onRetry: () -> Unit,
     onShowDeleteDialog: ((Boolean) -> Unit)? = null,
     onConfirmDelete: (() -> Unit)? = null,
@@ -67,18 +65,6 @@ fun TransactionDetailScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
-                    }
-                },
-                actions = {
-                    if (uiState.transaction != null) {
-                        onNavigateEdit?.let { editNav ->
-                            IconButton(onClick = { editNav(uiState.transaction.id) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = stringResource(AppStrings.TITLE_EDIT_TRANSACTION)
-                                )
-                            }
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -230,7 +216,6 @@ private fun TransactionDetailLoadingPreview() {
         TransactionDetailScreen(
             uiState = TransactionDetailUiState(isLoading = true),
             onNavigateBack = {},
-            onNavigateEdit = {},
             onRetry = {},
         )
     }
@@ -244,7 +229,6 @@ private fun TransactionDetailErrorPreview() {
         TransactionDetailScreen(
             uiState = TransactionDetailUiState(errorMessage = "Failed to find transaction"),
             onNavigateBack = {},
-            onNavigateEdit = {},
             onRetry = {},
         )
     }
@@ -258,7 +242,6 @@ private fun TransactionDetailEmptyPreview() {
         TransactionDetailScreen(
             uiState = TransactionDetailUiState(),
             onNavigateBack = {},
-            onNavigateEdit = {},
             onRetry = {},
         )
     }
@@ -272,7 +255,6 @@ private fun TransactionDetailContentPreview() {
         TransactionDetailScreen(
             uiState = TransactionDetailUiState(transaction = previewTransaction()),
             onNavigateBack = {},
-            onNavigateEdit = {},
             onRetry = {},
         )
     }

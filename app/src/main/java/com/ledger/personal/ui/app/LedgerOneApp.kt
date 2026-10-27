@@ -78,11 +78,14 @@ private fun Locked(
     onReset: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
+    val resendCountdown by viewModel.resendCountdown.collectAsStateWithLifecycle()
     OtpLoginScreen(
         uiState = OtpLoginUiState(
             phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
             demoOtp = BuildConfig.FLAVOR == "mock",
         ),
+        resendCountdown = resendCountdown,
+        onResend = viewModel::startResendTimer,
         onVerifyOtp = { code, onResult ->
             viewModel.verifyOtp(code) { success ->
                 onResult(success)

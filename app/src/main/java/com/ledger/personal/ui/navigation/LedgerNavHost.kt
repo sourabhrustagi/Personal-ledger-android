@@ -84,7 +84,7 @@ fun LedgerNavHost(
     val session by appViewModel.session.collectAsStateWithLifecycle()
     val demo: DemoViewModel = hiltViewModel()
     val mockOffline by demo.offline.collectAsStateWithLifecycle()
-    var retryCount by remember { mutableIntStateOf(0) }
+    var retryCount by rememberSaveable { mutableIntStateOf(0) }
     val connected = rememberConnected(retryCount)
     val offline = offlineNow(mockOffline, connected)
     var offlineDismissed by rememberSaveable { mutableStateOf(false) }

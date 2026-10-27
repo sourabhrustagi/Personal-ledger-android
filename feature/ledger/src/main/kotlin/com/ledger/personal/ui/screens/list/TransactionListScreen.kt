@@ -19,14 +19,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,7 +63,6 @@ fun TransactionListScreen(
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onTransactionClick: (String) -> Unit,
-    onCreateClick: () -> Unit,
     onProductsClick: () -> Unit = {},
     paging: LazyPagingItems<Transaction>? = null,
 ) {
@@ -126,18 +123,6 @@ fun TransactionListScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(AppStrings.TITLE_NEW_TRANSACTION)
-                )
-            }
         }
     ) { innerPadding ->
         Box(
@@ -171,9 +156,7 @@ fun TransactionListScreen(
                 empty -> {
                     EmptyState(
                         title = stringResource(AppStrings.EMPTY_TRANSACTIONS_DEFAULT_TITLE),
-                        message = stringResource(AppStrings.EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE),
-                        actionLabel = stringResource(AppStrings.ACTION_ADD_TRANSACTION),
-                        onActionClick = onCreateClick
+                        message = stringResource(AppStrings.EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE)
                     )
                 }
                 else -> {
@@ -333,8 +316,7 @@ private fun TransactionListLoadingPreview() {
             uiState = TransactionListUiState(isLoading = true),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {},
-            onCreateClick = {}
+            onTransactionClick = {}
         )
     }
 }
@@ -348,8 +330,7 @@ private fun TransactionListEmptyPreview() {
             uiState = TransactionListUiState(isLoading = false),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {},
-            onCreateClick = {}
+            onTransactionClick = {}
         )
     }
 }
@@ -363,8 +344,7 @@ private fun TransactionListErrorPreview() {
             uiState = TransactionListUiState(errorMessage = "Failed to load transactions."),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {},
-            onCreateClick = {}
+            onTransactionClick = {}
         )
     }
 }
@@ -388,8 +368,7 @@ private fun TransactionListPopulatedPreview() {
             ),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {},
-            onCreateClick = {}
+            onTransactionClick = {}
         )
     }
 }

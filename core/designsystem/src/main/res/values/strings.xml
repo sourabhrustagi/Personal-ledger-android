@@ -86,4 +86,15 @@
     <string name="label_terms_and_privacy">I agree to the Terms of Service and Privacy Policy.</string>
     <string name="action_send_code">Send code</string>
     <string name="action_sending_code">Sending code…</string>
+    <string name="title_enter_code">Enter the code</string>
+    <string name="subtitle_code_sent_to">Sent to +91 %1$s</string>
+    <string name="action_change_number">Change number</string>
+    <string name="error_invalid_otp">That code doesn\'t match. Check the SMS and try again.</string>
+    <string name="info_demo_otp">Demo build: use code %1$s.</string>
+    <string name="label_resend_code_timer">Resend code in %1$s</string>
+    <string name="action_resending_code">Resending…</string>
+    <string name="action_resend_code">Resend code</string>
+    <string name="action_verify">Verify</string>
+    <string name="step_phone">Phone</string>
+    <string name="step_verify">Verify</string>
 </resources>

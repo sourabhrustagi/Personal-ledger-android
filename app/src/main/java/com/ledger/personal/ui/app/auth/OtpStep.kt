@@ -12,9 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -23,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.core.AppConstants
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.BannerTone
@@ -32,16 +31,13 @@ import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.TextLink
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import kotlinx.coroutines.delay
 
-private const val RESEND_SECONDS = 30
-private const val OTP_LENGTH = 6
-
-/** Shows OTP verification step. */
+/** Shows OTP verification step with timer state managed by ViewModel StateFlow. */
 @Composable
 fun OtpStep(
     phone: String,
     uiState: OtpUiState = OtpUiState(),
+    resendCountdown: Int = uiState.resendCountdown,
     onEdit: () -> Unit,
     onResend: (() -> Unit)? = null,
     onVerified: () -> Unit,
@@ -51,14 +47,7 @@ fun OtpStep(
     val isResending = uiState.isSending
     var code by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf(false) }
-    var seconds by rememberSaveable { mutableIntStateOf(RESEND_SECONDS) }
 
-    LaunchedEffect(seconds) {
-        if (seconds > 0) {
-            delay(1_000)
-            seconds -= 1
-        }
-    }
     Text(
         text = stringResource(AppStrings.TITLE_ENTER_CODE),
         style = MaterialTheme.typography.headlineSmall,
@@ -77,8 +66,8 @@ fun OtpStep(
     errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
     StatusBanner(sentMessage, BannerTone.INFO)
     StatusBanner(stringResource(AppStrings.INFO_DEMO_OTP, MockValues.OTP), BannerTone.INFO)
-    if (seconds > 0) {
-        val timerText = "0:${seconds.toString().padStart(2, '0')}"
+    if (resendCountdown > 0) {
+        val timerText = "0:${resendCountdown.toString().padStart(2, '0')}"
         Text(
             text = stringResource(AppStrings.LABEL_RESEND_CODE_TIMER, timerText),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -92,7 +81,6 @@ fun OtpStep(
             },
             onClick = {
                 if (!isResending) {
-                    seconds = RESEND_SECONDS
                     onResend?.invoke()
                 }
             },
@@ -103,7 +91,7 @@ fun OtpStep(
         onClick = {
             if (code == MockValues.OTP) onVerified() else error = true
         },
-        enabled = code.length == OTP_LENGTH,
+        enabled = code.length == AppConstants.OTP_CODE_LENGTH,
         modifier = Modifier.fillMaxWidth(),
     )
 }

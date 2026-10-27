@@ -341,10 +341,8 @@ flowchart TD
     %% Passbook & List to Detail Flow
     TabPassbook -->|Tap Transaction Item| TxDetail["TransactionDetailScreen<br/>(Metadata, Legs, Status)"]
     TxList -->|Tap Transaction Item| TxDetail
-    TxList -->|FAB: Create Transaction| CreateTx["CreateTransactionScreen<br/>(Form Validation & Submit)"]
 
     %% Transaction Detail Sub-Flows
-    TxDetail -->|Edit Action| EditTx["EditTransactionScreen<br/>(Patch & Conflict Resolution)"]
     TxDetail -->|Delete Action| DeleteDialog["Delete Confirmation Dialog"]
 
     %% Wallet Multi-Step Wizard
@@ -450,7 +448,7 @@ flowchart TD
    - Contains immutable business models (`Transaction`, `OtpResponse`, `SessionResponse`).
    - Defines abstract repository interfaces (`TransactionRepository`, `PromotionRepository`).
    - Houses reusable, single-responsibility **Use Cases** (`operator fun invoke`):
-     - `CreateTransactionUseCase`, `UpdateTransactionUseCase`, `DeleteTransactionUseCase`
+     - `DeleteTransactionUseCase`
      - `GetTransactionsUseCase`, `GetPagedTransactionsUseCase`, `GetTransactionByIdUseCase`
      - `RefreshTransactionsUseCase`, `SendOtpUseCase`, `GetPromotionsUseCase`
 2. **Data Layer (`:core:database`, `:core:network`):**
@@ -603,8 +601,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
 | `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and retry |
-| `:feature:ledger` | `CreateTransactionViewModel` | Transaction creation form validation and submission |
-| `:feature:ledger` | `EditTransactionViewModel` | Transaction editing, draft state, and conflict handling |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `GetPagedTransactionsUseCase` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
 
@@ -937,7 +933,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 
 ##### Why `rememberScrollState` is Critical in LedgerOne:
 1. **Preventing Content Clipping Across Varied Screen Sizes:**
-   Android runs on thousands of screen resolutions, aspect ratios, and split-screen multi-window modes. In `CreateTransactionScreen.kt` and `EditTransactionScreen.kt`, input forms contain amount fields, category chips, notes, and action buttons. Attaching `.verticalScroll(rememberScrollState())` guarantees that all content remains accessible regardless of screen height.
+   Android runs on thousands of screen resolutions, aspect ratios, and split-screen multi-window modes. In screens with dynamic input forms and action buttons (such as `WalletScreen.kt` and `Onboarding.kt`), attaching `.verticalScroll(rememberScrollState())` guarantees that all content remains accessible regardless of screen height.
 2. **On-Screen Keyboard (IME) Inset Adaptation:**
    When a user taps an input field to enter an amount, name, or phone number, the software keyboard rises, consuming over 40–50% of the display height. Combined with `Modifier.safeDrawingPadding()`, `rememberScrollState()` allows the container to compress and scroll smoothly, preventing primary submission buttons and text fields from being trapped behind the keyboard (`PhoneStep.kt`, `OtpStep.kt`, `Onboarding.kt`).
 3. **Surviving Screen Rotation & Process Death:**
@@ -953,7 +949,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
   ```kotlin
   modifier = (if (scrollable) base.verticalScroll(rememberScrollState()) else base)
   ```
-- **Transaction creation & editing forms (`CreateTransactionScreen.kt` & `EditTransactionScreen.kt`):**
+- **Transaction detail and audit workflows (`TransactionDetailScreen.kt`):**
   ```kotlin
   Column(
       modifier = Modifier
@@ -1064,15 +1060,14 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
        LedgerOneText("₹50,000.00", role = LedgerOneTextRole.Title)
    }
    ```
-2. **`Arrangement.spacedBy(dp)` for Form Fields & Carousels (`CreateTransactionScreen.kt`, `HomeScreen.kt`):**
+2. **`Arrangement.spacedBy(dp)` for Form Fields & Carousels (`WalletScreen.kt`, `HomeScreen.kt`):**
    ```kotlin
-   // Vertical form with consistent 16.dp gaps between inputs
+   // Vertical layout with consistent 16.dp gaps between inputs
    Column(
        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
        verticalArrangement = Arrangement.spacedBy(16.dp)
    ) {
        LedgerOneTextField(...)
-       CategoryPicker(...)
        LedgerOneButton(...)
    }
 
@@ -1207,14 +1202,12 @@ Central overview and transaction history feeds.
 - **Landscape Viewport Sizing:**
   Both screens wrap their lazy lists inside `Box(contentAlignment = Alignment.TopCenter)` with `Modifier.fillMaxWidth().widthIn(max = 840.dp)`. This prevents horizontal blowout on wide landscape displays while allowing smooth vertical scrolling.
 
-##### 5. Transaction CRUD Workflows (`CreateTransactionScreen`, `EditTransactionScreen`, `TransactionDetailScreen`)
-Critical transaction entry and inspection screens where user input must never be lost.
-- **Form State Scoped to ViewModel:**
-  `CreateTransactionViewModel` and `EditTransactionViewModel` hold form buffers (`amount`, `category`, `description`, `isSubmitting`, and validation errors) in `StateFlow`. Rotating the device mid-entry preserves every keystroke without resetting.
+##### 5. Transaction Inspection & Detail Workflow (`TransactionDetailScreen`)
+Critical transaction audit and inspection screen.
 - **Detail View & Action Retention:**
-  `TransactionDetailScreen` observes `TransactionDetailViewModel.uiState`. The selected transaction entity and dialog states remain loaded during orientation changes.
+  `TransactionDetailScreen` observes `TransactionDetailViewModel.uiState`. The selected transaction entity, audit metadata, and deletion confirmation dialog states remain loaded during orientation changes.
 - **Landscape Scrollability:**
-  All three screens wrap form content inside `Modifier.verticalScroll(rememberScrollState())` inside a centered `widthIn(max = 720.dp)` column. This guarantees that on low-height landscape displays (360dp–400dp) or when the IME keyboard appears, inputs and the "Save Changes" / "Delete" buttons remain fully accessible via vertical scrolling.
+  Wraps transaction detail content inside `Modifier.verticalScroll(rememberScrollState())` inside a centered `widthIn(max = 720.dp)` column. This guarantees that on low-height landscape displays (360dp–400dp) or when multi-window is used, all transaction metadata and the "Delete Transaction" action button remain fully accessible via vertical scrolling.
 
 ##### 6. Money Transfers & Payments (`WalletScreen.kt`)
 Instant UPI transfer flow with multi-step validation.
@@ -1268,8 +1261,6 @@ Top-level application container managing navigation backstacks and global alerts
 | **Returning Login (`OtpLoginScreen`)** | `Modifier.verticalScroll(rememberScrollState())` with fixed spacers | `LoginViewModel.resendCountdown` | `code`, `wrong`, `checking`, `confirmReset` | 30s resend timer survives rotation; account switch dialog stays open; validation error banner stays visible |
 | **Dashboard (`HomeScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `HomeViewModel.uiState`, `AppViewModel.session` | Built-in `LazyListState` item/offset saver | Balance overview and promotion carousels stay readable; scroll position and reveal balance state survive rotation |
 | **Transaction Feed (`TransactionListScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `TransactionListViewModel.pages`, `uiState` | `rememberLazyListState()` scroll position | Exact reading offset preserved across rotation; paginated pages remain in memory without refetching |
-| **Add Transaction (`CreateTransactionScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `CreateTransactionViewModel.uiState` | Form input buffers, selected category | Entered amount, note, and selected category survive rotation; button accessible in landscape |
-| **Edit Transaction (`EditTransactionScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `EditTransactionViewModel.uiState` | Transaction form buffers | Form modifications retained across rotation; safe from keyboard occlusion in landscape |
 | **Transaction Detail (`TransactionDetailScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `TransactionDetailViewModel.uiState` | Selected transaction entity | Full transaction details and action buttons remain scrollable and intact on rotation |
 | **UPI Transfer (`WalletScreen`)** | Centered `720.dp` column via `FeatureScaffold` with vertical scroll | `WalletViewModel.uiState` (`TransferStep`), balance, idempotency key | `amountText` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
 | **Payment Hub (`PayHub`)** | Responsive grid via `FeatureScaffold` | N/A (Catalog & intents) | `recipientInput` | Typed UPI handle preserved across rotation; contact picker result handled gracefully |
@@ -1313,7 +1304,7 @@ LedgerOne resolves large-screen ergonomics by wrapping every screen surface insi
    - **Screens:** `HomeScreen.kt`, `TransactionListScreen.kt`.
    - **Rationale:** Dashboards display balance cards, horizontal category chips, and multi-column transaction metadata. An 840dp boundary provides ample room for horizontal chips and rich card layouts while preventing infinite horizontal stretch on desktop-class tablet screens.
 2. **Feature Scaffolds & Banking Workflows (`720.dp`):**
-   - **Screens:** `FeatureScaffold.kt` (central scaffold powering `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen`), `CreateTransactionScreen.kt`, `EditTransactionScreen.kt`, and `TransactionDetailScreen.kt`.
+   - **Screens:** `FeatureScaffold.kt` (central scaffold powering `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen`) and `TransactionDetailScreen.kt`.
    - **Rationale:** Centrally bounding `FeatureScaffold` automatically guarantees that all current and future banking sub-features render within a comfortable 720dp reading column on tablets without requiring repetitive boilerplate on each sub-screen.
 3. **Authentication & Security Wizards (`600.dp`):**
    - **Screens:** `OnboardingFlow` (`PhoneStep.kt`, `OtpStep.kt`, `ProfileStep.kt`), `OtpLoginScreen` (`Login.kt`).
@@ -1334,8 +1325,6 @@ LedgerOne resolves large-screen ergonomics by wrapping every screen surface insi
 | **`HomeScreen`** | `840.dp` | `Alignment.TopCenter` | Balance overview cards and horizontal promotion carousels stay readable; cards don't overstretch |
 | **`TransactionListScreen`** | `840.dp` | `Alignment.TopCenter` | Paginated transaction rows remain compact; timestamps and amounts align within natural scanning span |
 | **`FeatureScaffold`** | `720.dp` | `Alignment.TopCenter` | Automatically bounds `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen` |
-| **`CreateTransactionScreen`** | `720.dp` | `Alignment.TopCenter` | Category chips, amount inputs, and save buttons remain grouped; scrollable in landscape/tablet multi-window |
-| **`EditTransactionScreen`** | `720.dp` | `Alignment.TopCenter` | Retains full form layout within 720dp; prevents sprawling text fields on 12-inch displays |
 | **`TransactionDetailScreen`** | `720.dp` | `Alignment.TopCenter` | Amount headline, category badge, and action buttons centered ergonomically |
 | **`OnboardingFlow`** | `600.dp` | `Alignment.TopCenter` | Phone entry, OTP verification, and name capture remain centered; keyboard-safe in split-screen |
 | **`OtpLoginScreen`** | `600.dp` | `Alignment.TopCenter` | MPIN / OTP pin pads tightly grouped in thumb-reach zone; reset dialog maintains tablet bounds |

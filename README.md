@@ -1042,23 +1042,57 @@ Secures the application whenever the app is backgrounded or locked.
 - **Landscape Scrollability:**
   `OtpLoginScreen` attaches `Modifier.safeDrawingPadding().verticalScroll(rememberScrollState())` to its main `Column` and uses `Spacer(Modifier.height(16.dp))` rather than unbounded `Modifier.weight(1f)`, preventing `IllegalStateException` during vertical measurement in landscape mode.
 
-##### 4. Ledger Hubs & Dashboard (`LedgerHub.kt`, `BankingHub.kt`, `PayHub.kt`, `WalletHub.kt`)
-Central navigation hubs showing balances, category breakdowns, and transaction history.
+##### 4. Dashboard & Transaction Feed (`HomeScreen.kt` & `TransactionListScreen.kt`)
+Central overview and transaction history feeds.
 - **Durable ViewModel State:**
-  Hubs observe hot `StateFlow` streams exposed by `AppViewModel`, `TransactionListViewModel`, and `WalletViewModel`. Accounts, live ledger balances, and filtered transactions survive Activity recreation immediately from memory without re-querying the disk.
+  Hubs observe hot `StateFlow` streams exposed by `AppViewModel`, `HomeViewModel`, and `TransactionListViewModel`. Accounts, live ledger balances, and filtered transactions survive Activity recreation immediately from JVM memory without re-querying the Room database.
 - **Virtual List Scroll Position (`rememberLazyListState`):**
-  `TransactionListScreen` and `LedgerHistory` use `LazyColumn(state = rememberLazyListState())`. `LazyListState` implements a built-in `Saver` that serializes the first visible item index and scroll offset into the saved state bundle, restoring the user's exact reading position upon rotation.
+  `TransactionListScreen` uses `LazyColumn(state = listState)` with `val listState = rememberLazyListState()`. `LazyListState` implements a built-in `Saver` that serializes the first visible item index and scroll offset into the saved state bundle, restoring the user's exact reading position upon rotation.
+- **Landscape Viewport Sizing:**
+  Both screens wrap their lazy lists inside `Box(contentAlignment = Alignment.TopCenter)` with `Modifier.fillMaxWidth().widthIn(max = 840.dp)`. This prevents horizontal blowout on wide landscape displays while allowing smooth vertical scrolling.
 
-##### 5. Transaction Creation, Transfers & Split Bill (`CreateTransactionScreen`, `PayScreen`, `SplitBillScreen`)
-Critical financial input screens where data loss could cause user frustration or duplicate charges.
-- **Finite State Machine Retention (`PaymentFsm`):**
-  Money transfers use a state machine (`AMOUNT` → `REVIEW` → `STEP_UP` → `RECEIPT`) scoped to `WalletViewModel`. Rotating the phone while entering an MPIN or viewing a payment receipt maintains the exact step and transaction ID.
+##### 5. Transaction CRUD Workflows (`CreateTransactionScreen`, `EditTransactionScreen`, `TransactionDetailScreen`)
+Critical transaction entry and inspection screens where user input must never be lost.
+- **Form State Scoped to ViewModel:**
+  `CreateTransactionViewModel` and `EditTransactionViewModel` hold form buffers (`amount`, `category`, `description`, `isSubmitting`, and validation errors) in `StateFlow`. Rotating the device mid-entry preserves every keystroke without resetting.
+- **Detail View & Action Retention:**
+  `TransactionDetailScreen` observes `TransactionDetailViewModel.uiState`. The selected transaction entity and dialog states remain loaded during orientation changes.
+- **Landscape Scrollability:**
+  All three screens wrap form content inside `Modifier.verticalScroll(rememberScrollState())` inside a centered `widthIn(max = 720.dp)` column. This guarantees that on low-height landscape displays (360dp–400dp) or when the IME keyboard appears, inputs and the "Save Changes" / "Delete" buttons remain fully accessible via vertical scrolling.
+
+##### 6. Money Transfers & Payments (`WalletScreen.kt`)
+Instant UPI transfer flow with multi-step validation.
+- **Finite State Machine Retention (`TransferStep`):**
+  Money transfers use a state machine (`FORM` → `REVIEW` → `RECEIPT`) driven by `WalletViewModel.uiState`. Rotating the device while reviewing transfer details or viewing a payment receipt maintains the exact step and payment reference.
 - **Idempotency Key Protection:**
   Every transfer generation creates an idempotency key held in the ViewModel. Device rotation never regenerates a new key, guaranteeing that retries or orientation changes will never result in duplicate debit transactions.
-- **Form Fields & Category Pickers:**
-  Amount text, selected category IDs, and note inputs are stored in `rememberSaveable`, ensuring zero loss of partially typed data during rotation.
+- **Form Input & Contact Picker Buffers:**
+  Amount text is stored in `rememberSaveable { mutableStateOf(...) }`, and the recipient handle and note are bound to `WalletViewModel`. Even if the user switches apps or rotates the screen during contact lookup, all data remains intact.
+- **Landscape Layout:**
+  Wrapped in `FeatureScaffold` with `.verticalScroll(rememberScrollState())`, ensuring full access to contact lists and the transfer action button on landscape displays.
 
-##### 6. Navigation Shell, Network Connectivity & System Banners (`LedgerNavHost.kt`, `LedgerOneApp.kt`)
+##### 7. Payment Hubs & Promotions (`PayHub.kt` & `PromotionsHub.kt`)
+Quick pay shortcuts and promotional partner offers.
+- **Recipient Input Retention:**
+  `PayHub` stores `recipientInput` in `rememberSaveable { mutableStateOf("") }`, ensuring entered UPI IDs survive rotation.
+- **Promotion Shelves & Tab Selection:**
+  `PromotionsHub` observes `PromotionsViewModel` for shelves and selected category tabs, preserving active tab index during rotation.
+- **Scroll Safe:**
+  Both hubs use `FeatureScaffold`, which provides standard landscape vertical scrolling and max-width bounding.
+
+##### 8. App Upgrade & Version Blockers (`ForceUpdate.kt`)
+System-enforced update block screens and soft update dialogs.
+- **Landscape Safety:**
+  `ForceUpdateScreen` applies `.safeDrawingPadding().verticalScroll(rememberScrollState())` to its centered column, guaranteeing that the "Update now" button is always reachable on short landscape screens.
+- **Dialog Preservation:**
+  `SoftUpdateDialog` uses Material 3 `AlertDialog`, which automatically retains dismissal/confirmation state during configuration changes.
+
+##### 9. Offline Connectivity Screen (`OfflineScreen.kt`)
+Global overlay displayed when network connectivity is lost.
+- **Landscape Scrolling:**
+  The centered column applies `Modifier.verticalScroll(rememberScrollState())`, preventing the 96dp error icon, status indicators, and "Retry" / "Continue offline" buttons from being clipped on low-height landscape screens.
+
+##### 10. Navigation Shell, Network Connectivity & System Banners (`LedgerNavHost.kt`, `LedgerOneApp.kt`)
 Top-level application container managing navigation backstacks and global alerts.
 - **Backstack Restoration:**
   `rememberNavController()` delegates to `NavHostController.Saver`. Rotating the screen anywhere in the application preserves the full navigation backstack and current destination arguments.
@@ -1073,12 +1107,19 @@ Top-level application container managing navigation backstacks and global alerts
 
 | Screen / Component | Landscape Viewport Adaptation | ViewModel State (`StateFlow`) | `rememberSaveable` (Bundle State) | Rotation & Landscape Guarantees |
 |---|---|---|---|---|
-| **QR Scanner (`ScanScreen` / `QrCamera`)** | Centered 280dp max-height constraint; scrollable via `FeatureScaffold` | N/A (Reactive scanner callback) | `done`, `cameraGranted`, `manual`, `invalid` | Viewfinder maintains 1:1 ratio without screen blowout; orientation auto-rotates ML Kit frames; no double-scan on rotation |
-| **Onboarding (`OnboardingFlow` / `OtpStep`)** | `Modifier.verticalScroll(rememberScrollState())` with IME safe insets | `OnboardingViewModel.resendCountdown`, `otpState` | `phone`, `code`, `error`, `editPhoneRequested` | Timer keeps ticking across rotation; phone number and OTP inputs preserved; inputs never trapped behind landscape keyboard |
+| **QR Scanner (`ScanScreen` / `QrCamera`)** | Centered 280dp max-height constraint; scrollable via `FeatureScaffold` | N/A (Reactive scanner callback) | `done`, `cameraGranted`, `manual`, `invalid` | Viewfinder maintains 1:1 ratio without blowout; orientation auto-rotates ML Kit frames; no double-scan on rotation |
+| **Onboarding (`OnboardingFlow` / `OtpStep`)** | `Modifier.verticalScroll(rememberScrollState())` with IME safe insets | `OnboardingViewModel.resendCountdown`, `otpState` | `phone`, `code`, `error`, `editPhoneRequested`, `consent` | Timer keeps ticking across rotation; phone number and OTP inputs preserved; inputs never trapped behind landscape keyboard |
 | **Returning Login (`OtpLoginScreen`)** | `Modifier.verticalScroll(rememberScrollState())` with fixed spacers | `LoginViewModel.resendCountdown` | `code`, `wrong`, `checking`, `confirmReset` | 30s resend timer survives rotation; account switch dialog stays open; validation error banner stays visible |
-| **Ledger Hub (`LedgerHub`)** | Responsive summary grid; vertical scrolling | `AppViewModel.session`, `TransactionListViewModel.pages` | Category filter selection, search query | Balance calculations and pagination caches retained in memory; list scroll offset preserved |
-| **Wallet & UPI Transfer (`WalletScreen` / `PayScreen`)** | Adaptive column scroll; keyboard-safe action buttons | `WalletViewModel.uiState` (`PaymentFsm`), balance, idempotency key | `amountText`, `recipientInput` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
-| **Add / Edit Transaction (`CreateTransactionScreen`)** | Scrollable form via `FeatureScaffold` | `TransactionFormViewModel.state` | Form input buffers, category picker dropdown | All entered amounts, notes, and selected category chips survive rotation |
+| **Dashboard (`HomeScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `HomeViewModel.uiState`, `AppViewModel.session` | Built-in `LazyListState` item/offset saver | Balance overview and promotion carousels stay readable; scroll position and reveal balance state survive rotation |
+| **Transaction Feed (`TransactionListScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `TransactionListViewModel.pages`, `uiState` | `rememberLazyListState()` scroll position | Exact reading offset preserved across rotation; paginated pages remain in memory without refetching |
+| **Add Transaction (`CreateTransactionScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `CreateTransactionViewModel.uiState` | Form input buffers, selected category | Entered amount, note, and selected category survive rotation; button accessible in landscape |
+| **Edit Transaction (`EditTransactionScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `EditTransactionViewModel.uiState` | Transaction form buffers | Form modifications retained across rotation; safe from keyboard occlusion in landscape |
+| **Transaction Detail (`TransactionDetailScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `TransactionDetailViewModel.uiState` | Selected transaction entity | Full transaction details and action buttons remain scrollable and intact on rotation |
+| **UPI Transfer (`WalletScreen`)** | Centered `720.dp` column via `FeatureScaffold` with vertical scroll | `WalletViewModel.uiState` (`TransferStep`), balance, idempotency key | `amountText` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
+| **Payment Hub (`PayHub`)** | Responsive grid via `FeatureScaffold` | N/A (Catalog & intents) | `recipientInput` | Typed UPI handle preserved across rotation; contact picker result handled gracefully |
+| **Promotions Hub (`PromotionsHub`)** | `PrimaryScrollableTabRow` via `FeatureScaffold` | `PromotionsViewModel.shelves`, `selected` | Tab index selection | Active promo tab and loaded promotional cards survive rotation |
+| **Force Update (`ForceUpdateScreen`)** | Centered `560.dp` column with `.verticalScroll(rememberScrollState())` | `ForceUpdateUiState` | N/A | Update banner and action button remain accessible on low-height landscape screens |
+| **Offline Screen (`OfflineScreen`)** | Centered `520.dp` card with `.verticalScroll(rememberScrollState())` | N/A | N/A | Disconnection icon, status pills, and retry button never overflow or clip in landscape |
 | **Navigation Shell (`LedgerNavHost`)** | `safeDrawingPadding()` around bottom navigation bar | `AppViewModel.session` | `retryCount`, `connected`, `offlineDismissed`, navigation backstack | Current screen destination and full backstack preserved; offline banner does not flicker |
 
 ---

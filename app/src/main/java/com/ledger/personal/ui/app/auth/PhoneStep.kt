@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -33,6 +34,7 @@ import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.BannerTone
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 private const val PHONE_LENGTH = 10
@@ -49,9 +51,13 @@ fun PhoneStep(
     val isSending = uiState.isSending
     val errorMessage = uiState.errorMessage
 
-    Text("Enter your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text(
-        "We'll send a 6-digit verification code to verify your phone.",
+        text = stringResource(AppStrings.TITLE_ENTER_MOBILE),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+    )
+    Text(
+        text = stringResource(AppStrings.SUBTITLE_PHONE_VERIFICATION),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     if (errorMessage != null) {
@@ -64,9 +70,9 @@ fun PhoneStep(
                 onPhone(next)
             }
         },
-        label = { Text("Mobile number") },
-        prefix = { Text("+91 ") },
-        supportingText = { Text("10-digit mobile number") },
+        label = { Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER)) },
+        prefix = { Text(stringResource(AppStrings.PHONE_PREFIX)) },
+        supportingText = { Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER_HINT)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true,
         isError = errorMessage != null,
@@ -75,10 +81,17 @@ fun PhoneStep(
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = consent, onCheckedChange = { consent = it }, enabled = !isSending)
-        Text("I agree to the Terms of Service and Privacy Policy.", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = stringResource(AppStrings.LABEL_TERMS_AND_PRIVACY),
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
     PrimaryButton(
-        text = if (isSending) "Sending code..." else "Send code",
+        text = if (isSending) {
+            stringResource(AppStrings.ACTION_SENDING_CODE)
+        } else {
+            stringResource(AppStrings.ACTION_SEND_CODE)
+        },
         onClick = onSendClick,
         enabled = consent && phone.length == PHONE_LENGTH && !isSending,
         icon = Icons.Outlined.Sms,

@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import com.ledger.personal.ui.feature.OtpField
 import com.ledger.personal.ui.feature.PrimaryButton
 import com.ledger.personal.ui.feature.StatusBanner
 import com.ledger.personal.ui.feature.TextLink
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.delay
 
@@ -57,29 +59,47 @@ fun OtpStep(
             seconds -= 1
         }
     }
-    Text("Enter the code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-    Text("Sent to +91 $phone", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    TextLink("Change number", onEdit)
+    Text(
+        text = stringResource(AppStrings.TITLE_ENTER_CODE),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+    )
+    Text(
+        text = stringResource(AppStrings.SUBTITLE_CODE_SENT_TO, phone),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    TextLink(stringResource(AppStrings.ACTION_CHANGE_NUMBER), onEdit)
     OtpField(code, {
         code = it
         error = false
     })
-    if (error) StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
+    if (error) StatusBanner(stringResource(AppStrings.ERROR_INVALID_OTP), BannerTone.ERROR)
     errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
     StatusBanner(sentMessage, BannerTone.INFO)
-    StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
+    StatusBanner(stringResource(AppStrings.INFO_DEMO_OTP, MockValues.OTP), BannerTone.INFO)
     if (seconds > 0) {
-        Text("Resend code in 0:${seconds.toString().padStart(2, '0')}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val timerText = "0:${seconds.toString().padStart(2, '0')}"
+        Text(
+            text = stringResource(AppStrings.LABEL_RESEND_CODE_TIMER, timerText),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     } else {
-        TextLink(if (isResending) "Resending..." else "Resend code", {
-            if (!isResending) {
-                seconds = RESEND_SECONDS
-                onResend?.invoke()
-            }
-        })
+        TextLink(
+            text = if (isResending) {
+                stringResource(AppStrings.ACTION_RESENDING_CODE)
+            } else {
+                stringResource(AppStrings.ACTION_RESEND_CODE)
+            },
+            onClick = {
+                if (!isResending) {
+                    seconds = RESEND_SECONDS
+                    onResend?.invoke()
+                }
+            },
+        )
     }
     PrimaryButton(
-        "Verify",
+        text = stringResource(AppStrings.ACTION_VERIFY),
         onClick = {
             if (code == MockValues.OTP) onVerified() else error = true
         },

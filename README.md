@@ -712,23 +712,179 @@ To eliminate Garbage Collection churn and heap allocations caused by Java primit
 
 ---
 
-### <a id="2-remember-vs-remembersaveable"></a>2. `remember` vs `rememberSaveable`
+### <a id="2-remember-vs-remembersaveable"></a>2. `remember` vs `rememberSaveable`: Deep Architectural Comparison
 
-| Mechanism | Survives Recomposition? | Survives Device Rotation? | Survives Process Death? | Where Data Is Stored |
-|---|---|---|---|---|
-| **`remember { ... }`** | **Yes** | ❌ **No** (resets to initial) | ❌ **No** | Composition memory tree |
-| **`rememberSaveable { ... }`** | **Yes** | **Yes** (restored) | **Yes** (restored) | Android `SavedStateRegistry` (`Bundle`) |
+In Jetpack Compose, managing ephemeral UI state requires choosing the correct state retention mechanism. While both `remember` and `rememberSaveable` retain state during the composition lifecycle, their storage backends, lifetime scopes, and resilience under Android OS events are fundamentally different.
 
-#### Why `remember` Alone Is Not Enough
-In Compose, `remember { mutableStateOf(initialValue) }` keeps state alive across recompositions. However, when a user rotates their device or toggles dark mode, the host Android `Activity` is completely destroyed and recreated. All plain `remember` allocations are wiped out and reset to their initial value.
+```mermaid
+flowchart TD
+    subgraph Trigger ["Lifecycle Triggers"]
+        T1["Recomposition (State Change)"]
+        T2["Configuration Change (Screen Rotation / Theme Toggle)"]
+        T3["Process Death (System Low Memory Termination)"]
+    end
 
-#### How `rememberSaveable` Works Under the Hood
-`rememberSaveable` saves and restores values via Android's **`SavedStateRegistry`** (the same underlying mechanism as `onSaveInstanceState(Bundle)`):
-1. **During execution:** Reads and mutates the in-memory state object like standard `remember`.
-2. **On configuration change or background process termination:** Serializes the value into the Android `Bundle`.
-3. **Upon recreation:** Restores the saved value from the `Bundle` instead of resetting to the default initializer.
+    subgraph Memory ["Composition Slot Table (JVM Heap)"]
+        R["remember { mutableStateOf(...) }"]
+    end
 
-> **Supported Types:** Primitives (`Int`, `Long`, `Float`, `Boolean`), `String`, `Bundle`, and `Parcelable` are supported automatically. Custom complex objects can be saved by supplying a custom Compose `Saver` (`rememberSaveable(stateSaver = ...)`).
+    subgraph OS ["Android SavedStateRegistry (OS Bundle)"]
+        RS["rememberSaveable { mutableStateOf(...) }"]
+    end
+
+    T1 -->|Preserved| R
+    T1 -->|Preserved| RS
+
+    T2 -->|❌ Destroyed & Reset| R
+    T2 -->|✅ Restored from Bundle| RS
+
+    T3 -->|❌ Destroyed & Reset| R
+    T3 -->|✅ Restored from Bundle| RS
+```
+
+---
+
+#### A. Comprehensive Comparison Matrix
+
+| Feature / Dimension | `remember { ... }` | `rememberSaveable { ... }` |
+|---|---|---|
+| **Underlying Storage** | Compose **Slot Table** (in-memory JVM heap structure managed by `Composer`) | Android OS **`SavedStateRegistry`** (backed by `Bundle` serialized via `onSaveInstanceState`) |
+| **Recomposition Resilience** | ✅ **Yes** — preserves value across recomposition passes | ✅ **Yes** — preserves value across recomposition passes |
+| **Activity Recreation (Screen Rotation)** | ❌ **No** — destroyed with the `Activity` and resets to default initial value | ✅ **Yes** — serialized into `savedInstanceState` `Bundle` and restored upon recreation |
+| **System Process Death (Low Memory)** | ❌ **No** — completely lost when the OS terminates the background app | ✅ **Yes** — serialized to system memory by Android OS and restored upon user return |
+| **Supported Data Types** | **Any JVM Object** (lambdas, coroutine scopes, complex graphs, heavy painters) | **`Bundle`-compatible types only** (primitives, `String`, `Parcelable`, `Serializable`) OR types with a custom `Saver` |
+| **Serialization Overhead** | **Zero** — direct memory reference lookup in the slot table | **Low-to-Moderate** — data is serialized to the Android `Bundle` during lifecycle teardowns |
+| **Failure Mode on Invalid Types** | None — accepts any type | Throws `IllegalArgumentException` at runtime if non-Parcelable objects are passed without a `Saver` |
+| **Ideal Use Cases** | Animation clocks (`Animatable`), ephemeral UI calculations (`derivedStateOf`), heavy formatting instances (`DecimalFormat`), cached calculations | Draft user input in `OutlinedTextField`, dialog/bottom-sheet visibility flags, wizard step index, scroll offset (`rememberScrollState`) |
+
+---
+
+#### B. How `remember` Works Under the Hood
+When the Kotlin compiler processes a composable function containing `remember`, it injects calls into the Compose `Composer`:
+```kotlin
+// Source code:
+val formattedDate = remember(timestamp) { formatDate(timestamp) }
+
+// Conceptually translated by the Compose compiler to:
+val composer = currentComposer
+val slotValue = composer.nextSlot()
+val formattedDate = if (composer.inserting || slotValue == Composer.Empty || keyChanged) {
+    val computed = formatDate(timestamp)
+    composer.updateValue(computed)
+    computed
+} else {
+    slotValue as String
+}
+```
+1. **Slot Table Allocation:** Every `remember` call maps to a physical slot in the composition's linear slot table.
+2. **Keyed Invalidation:** If positional arguments (`keys`) are passed to `remember(key1, key2)`, Compose compares the new keys against previous keys using structural equality (`equals`). If keys match, the cached slot value is reused without executing the lambda.
+3. **Limitation:** The slot table exists exclusively in the memory heap of the active `Activity`. The moment an orientation change, locale shift, or theme change destroys the `Activity`, the entire `Composer` and its slot table are garbage collected.
+
+---
+
+#### C. How `rememberSaveable` Works Under the Hood
+`rememberSaveable` builds upon `remember` by registering the state holder with the composition's `LocalSaveableStateRegistry`:
+```kotlin
+// Source code:
+var enteredAmount by rememberSaveable { mutableStateOf("") }
+```
+1. **SaveableStateRegistry Bridge:** When `rememberSaveable` is first evaluated, it generates a unique deterministic key based on its composition invocation path and source code position.
+2. **Registration:** It registers a `SavedStateProvider` callback with Android's `SavedStateRegistryOwner` (implemented by `ComponentActivity` / `NavBackStackEntry`).
+3. **State Serialization (`onSaveInstanceState`):** When the Android OS signals that the Activity is pausing or stopping, the registry invokes all registered providers, packaging their values into the top-level `outState: Bundle`.
+4. **State Restoration (`onCreate`):** When the Activity is recreated:
+   - `rememberSaveable` checks the restored `Bundle` for its unique key.
+   - If a saved entry exists, it deserializes the saved value rather than evaluating the default initializer lambda.
+   - If no saved state exists (e.g. fresh launch), it runs the lambda and stores the initial value.
+
+---
+
+#### D. The `Saver` Contract: Saving Custom Objects
+`Bundle` natively supports primitives (`Int`, `Boolean`, `Long`, `Float`), `String`, `Parcelable`, and `Serializable`. When attempting to save domain models or custom structures with `rememberSaveable`, Compose requires a `Saver`:
+
+##### 1. Custom `listSaver` Example
+```kotlin
+data class DateFilterRange(val startEpoch: Long, val endEpoch: Long)
+
+val DateFilterSaver = listSaver<DateFilterRange, Long>(
+    save = { listOf(it.startEpoch, it.endEpoch) },
+    restore = { DateFilterRange(startEpoch = it[0], endEpoch = it[1]) }
+)
+
+@Composable
+fun FilterSection() {
+    var filter by rememberSaveable(stateSaver = DateFilterSaver) {
+        mutableStateOf(DateFilterRange(0L, 0L))
+    }
+}
+```
+
+##### 2. Custom `mapSaver` Example
+```kotlin
+val DateFilterMapSaver = mapSaver(
+    save = { mapOf("start" to it.startEpoch, "end" to it.endEpoch) },
+    restore = { DateFilterRange(it["start"] as Long, it["end"] as Long) }
+)
+```
+
+##### 3. How Compose Built-in Components Use `Saver`
+Compose's own navigation and scrolling state holders delegate directly to `rememberSaveable` with pre-built savers:
+- `rememberScrollState()` delegates to `rememberSaveable(saver = ScrollState.Saver) { ScrollState(initial) }`.
+- `rememberLazyListState()` delegates to `rememberSaveable(saver = LazyListState.Saver) { LazyListState(firstVisibleItemIndex, firstVisibleItemScrollOffset) }`.
+
+---
+
+#### E. Concrete Demonstration: What Happens During Device Rotation
+
+##### Scenario 1: Using Plain `remember` (Incorrect for User Input)
+```kotlin
+@Composable
+fun BadAmountInput() {
+    // ❌ WRONG: Value will be wiped on screen rotation!
+    var amount by remember { mutableStateOf("") }
+    OutlinedTextField(
+        value = amount,
+        onValueChange = { amount = it },
+        label = { Text("Enter Amount") }
+    )
+}
+```
+- **User Action:** User types `"1500"`.
+- **Event:** User rotates phone to landscape to view details.
+- **Result:** `Activity` is destroyed. Compose Slot Table is destroyed. New composition evaluates `mutableStateOf("")`. **User's typed "1500" vanishes instantly**, causing significant user frustration.
+
+##### Scenario 2: Using `rememberSaveable` (Correct Pattern)
+```kotlin
+@Composable
+fun GoodAmountInput() {
+    // ✅ CORRECT: Preserved across rotation and system process death
+    var amount by rememberSaveable { mutableStateOf("") }
+    OutlinedTextField(
+        value = amount,
+        onValueChange = { amount = it },
+        label = { Text("Enter Amount") }
+    )
+}
+```
+- **User Action:** User types `"1500"`.
+- **Event:** User rotates phone to landscape.
+- **Result:** `"1500"` is serialized to the `Bundle`. Upon recreation in landscape, `rememberSaveable` restores `"1500"`. **Zero data loss.**
+
+---
+
+#### F. Decision Rule: When to Use `remember` vs `rememberSaveable` vs `ViewModel`
+
+```mermaid
+flowchart TD
+    Q1{"Is the state business logic, database data, or async network calls?"}
+    Q1 -->|Yes| VM["Use ViewModel + StateFlow\n(Survives rotation on JVM heap;\ncoroutine-friendly)"]
+    Q1 -->|No (Pure UI State)| Q2{"Must the state survive screen rotation\nor system process death?"}
+
+    Q2 -->|Yes| Q3{"Can the data be serialized\ninto a Bundle (< 500 KB)?"}
+    Q3 -->|Yes| RS["Use rememberSaveable\n• Text field typing buffers\n• Dialog / BottomSheet open flags\n• Wizard step index\n• Scroll offsets"]
+    Q3 -->|No (Too large)| VM
+
+    Q2 -->|No (Transient to active screen)| R["Use remember\n• Animation clocks (Animatable)\n• Heavy calculations (derivedStateOf)\n• Formatting instances (Path, Paint)\n• Ephemeral visual state"]
+```
 
 ---
 

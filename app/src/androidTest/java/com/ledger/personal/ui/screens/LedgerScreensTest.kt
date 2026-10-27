@@ -12,12 +12,8 @@ import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
-import com.ledger.personal.ui.screens.create.CreateTransactionScreen
-import com.ledger.personal.ui.screens.create.CreateTransactionUiState
 import com.ledger.personal.ui.screens.detail.TransactionDetailScreen
 import com.ledger.personal.ui.screens.detail.TransactionDetailUiState
-import com.ledger.personal.ui.screens.edit.EditTransactionScreen
-import com.ledger.personal.ui.screens.edit.EditTransactionUiState
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListUiState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -71,8 +67,7 @@ class LedgerScreensTest {
     }
 
     @Test
-    fun listScreenShowsTransactionsAndCreateAction() {
-        var createClicked = false
+    fun listScreenShowsTransactions() {
         var openedId: String? = null
         var refreshed = false
         composeRule.setContent {
@@ -84,16 +79,13 @@ class LedgerScreensTest {
                     onRefresh = { refreshed = true },
                     onLoadMore = {},
                     onTransactionClick = { openedId = it },
-                    onCreateClick = { createClicked = true }
                 )
             }
         }
         composeRule.onNodeWithText("Personal Ledger").assertIsDisplayed()
         composeRule.onNodeWithText("Team lunch").performClick()
-        composeRule.onNodeWithContentDescription("New Transaction").performClick()
         composeRule.onNodeWithContentDescription("Refresh list").performClick()
         assertEquals("tx-9", openedId)
-        assertTrue(createClicked)
         assertTrue(refreshed)
     }
 
@@ -106,7 +98,6 @@ class LedgerScreensTest {
                     onRefresh = {},
                     onLoadMore = {},
                     onTransactionClick = {},
-                    onCreateClick = {}
                 )
             }
         }
@@ -114,51 +105,7 @@ class LedgerScreensTest {
     }
 
     @Test
-    fun createScreenSubmitsTypedValues() {
-        var amount: String? = null
-        var category: String? = null
-        var submitted = false
-        composeRule.setContent {
-            PersonalLedgerTheme {
-                CreateTransactionScreen(
-                    uiState = CreateTransactionUiState(),
-                    onAmountChange = { amount = it },
-                    onCategoryChange = { category = it },
-                    onDescriptionChange = {},
-                    onSubmit = { submitted = true },
-                    onNavigateBack = {}
-                )
-            }
-        }
-        composeRule.onNodeWithText("Amount (e.g. 25.50)").performTextInput("12.50")
-        composeRule.onNodeWithText("Groceries").performClick()
-        composeRule.onNodeWithText("Save Transaction").performClick()
-        assertEquals("12.50", amount)
-        assertEquals("Groceries", category)
-        assertTrue(submitted)
-    }
-
-    @Test
-    fun createScreenDisablesSubmitWhileRecording() {
-        composeRule.setContent {
-            PersonalLedgerTheme {
-                CreateTransactionScreen(
-                    uiState = CreateTransactionUiState(isSubmitting = true),
-                    onAmountChange = {},
-                    onCategoryChange = {},
-                    onDescriptionChange = {},
-                    onSubmit = {},
-                    onNavigateBack = {}
-                )
-            }
-        }
-        composeRule.onNodeWithText("Recording...").assertIsDisplayed()
-        composeRule.onNodeWithText("Recording...").assertIsNotEnabled()
-    }
-
-    @Test
     fun detailScreenShowsTransactionDetails() {
-        var editId: String? = null
         composeRule.setContent {
             PersonalLedgerTheme {
                 TransactionDetailScreen(
@@ -166,40 +113,11 @@ class LedgerScreensTest {
                         transaction = sampleTransaction(id = "tx-9", description = "Team lunch"),
                     ),
                     onNavigateBack = {},
-                    onNavigateEdit = { editId = it },
                     onRetry = {},
                 )
             }
         }
         composeRule.onNodeWithText("Team lunch").assertIsDisplayed()
         composeRule.onNodeWithText("Transaction ID").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Edit Transaction").performClick()
-        assertEquals("tx-9", editId)
-    }
-
-    @Test
-    fun editScreenShowsLoadedValuesAndSubmits() {
-        var submitted = false
-        composeRule.setContent {
-            PersonalLedgerTheme {
-                EditTransactionScreen(
-                    uiState = EditTransactionUiState(
-                        isLoadingInitial = false,
-                        transactionId = "tx-9",
-                        amountInput = "25.50",
-                        category = "Dining",
-                        description = "Lunch"
-                    ),
-                    onAmountChange = {},
-                    onCategoryChange = {},
-                    onDescriptionChange = {},
-                    onSubmit = { submitted = true },
-                    onNavigateBack = {},
-                    onRetry = {}
-                )
-            }
-        }
-        composeRule.onNodeWithText("Update Transaction").assertIsEnabled().performClick()
-        assertTrue(submitted)
     }
 }

@@ -93,6 +93,17 @@ object AppStrings {
     @StringRes val LABEL_TERMS_AND_PRIVACY: Int = R.string.label_terms_and_privacy
     @StringRes val ACTION_SEND_CODE: Int = R.string.action_send_code
     @StringRes val ACTION_SENDING_CODE: Int = R.string.action_sending_code
+    @StringRes val TITLE_ENTER_CODE: Int = R.string.title_enter_code
+    @StringRes val SUBTITLE_CODE_SENT_TO: Int = R.string.subtitle_code_sent_to
+    @StringRes val ACTION_CHANGE_NUMBER: Int = R.string.action_change_number
+    @StringRes val ERROR_INVALID_OTP: Int = R.string.error_invalid_otp
+    @StringRes val INFO_DEMO_OTP: Int = R.string.info_demo_otp
+    @StringRes val LABEL_RESEND_CODE_TIMER: Int = R.string.label_resend_code_timer
+    @StringRes val ACTION_RESENDING_CODE: Int = R.string.action_resending_code
+    @StringRes val ACTION_RESEND_CODE: Int = R.string.action_resend_code
+    @StringRes val ACTION_VERIFY: Int = R.string.action_verify
+    @StringRes val STEP_PHONE: Int = R.string.step_phone
+    @StringRes val STEP_VERIFY: Int = R.string.step_verify
 
     // Non-translatable technical currency tokens
     const val CURRENCY_INR: String = "INR"

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -69,13 +70,22 @@ fun FeatureScaffold(
         snackbarHost = snackbarHost,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        val base = Modifier.fillMaxSize().padding(padding)
-        Column(
-            modifier = (if (scrollable) base.verticalScroll(rememberScrollState()) else base)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            content = content,
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val base = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 720.dp)
+            Column(
+                modifier = (if (scrollable) base.verticalScroll(rememberScrollState()) else base)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content,
+            )
+        }
     }
 }
 

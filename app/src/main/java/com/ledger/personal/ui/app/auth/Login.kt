@@ -3,6 +3,7 @@
 package com.ledger.personal.ui.app.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -64,57 +66,64 @@ fun OtpLoginScreen(
 
     SecureWindow()
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier
-                .safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Spacer(Modifier.height(24.dp))
-            IconBadge(Icons.Outlined.Lock, size = 56)
-            Text(
-                "Welcome back",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                "Enter the 6-digit OTP sent to +91 $phone",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OtpField(code, onValueChange = {
-                code = it
-                wrong = false
-            })
-            if (wrong) {
-                StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
-            }
-            if (demoOtp) {
-                StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
-            }
-            if (resendCountdown > 0) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 600.dp)
+                    .safeDrawingPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Spacer(Modifier.height(24.dp))
+                IconBadge(Icons.Outlined.Lock, size = 56)
                 Text(
-                    "Resend code in 0:${resendCountdown.toString().padStart(2, '0')}",
+                    "Welcome back",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Enter the 6-digit OTP sent to +91 $phone",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                TextLink("Resend code", onResend)
+                OtpField(code, onValueChange = {
+                    code = it
+                    wrong = false
+                })
+                if (wrong) {
+                    StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
+                }
+                if (demoOtp) {
+                    StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
+                }
+                if (resendCountdown > 0) {
+                    Text(
+                        "Resend code in 0:${resendCountdown.toString().padStart(2, '0')}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    TextLink("Resend code", onResend)
+                }
+                Spacer(Modifier.height(16.dp))
+                PrimaryButton(
+                    "Verify and sign in",
+                    onClick = {
+                        checking = true
+                        onVerifyOtp(code) { ok ->
+                            checking = false
+                            wrong = !ok
+                        }
+                    },
+                    enabled = code.length == AppConstants.OTP_CODE_LENGTH && !checking,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextLink("Sign in with another number", { confirmReset = true })
             }
-            Spacer(Modifier.height(16.dp))
-            PrimaryButton(
-                "Verify and sign in",
-                onClick = {
-                    checking = true
-                    onVerifyOtp(code) { ok ->
-                        checking = false
-                        wrong = !ok
-                    }
-                },
-                enabled = code.length == AppConstants.OTP_CODE_LENGTH && !checking,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextLink("Sign in with another number", { confirmReset = true })
         }
     }
     if (confirmReset) {

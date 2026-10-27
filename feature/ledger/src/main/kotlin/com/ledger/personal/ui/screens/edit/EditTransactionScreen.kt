@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -92,7 +93,8 @@ fun EditTransactionScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 uiState.isLoadingInitial -> {
@@ -115,7 +117,8 @@ fun EditTransactionScreen(
                 else -> {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .widthIn(max = 720.dp)
                             .verticalScroll(rememberScrollState())
                             .padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)

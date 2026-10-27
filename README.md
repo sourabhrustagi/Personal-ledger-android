@@ -1,5 +1,12 @@
 # LedgerOne (Personal Ledger)
 
+[![Android SDK](https://img.shields.io/badge/Android%20SDK-26%20..%2036-green.svg?logo=android&logoColor=white)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose BOM](https://img.shields.io/badge/Compose%20BOM-2026.03.01-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Offline--First%20%2F%20Modular-orange.svg)](#architecture--how-the-app-works)
+[![Testing](https://img.shields.io/badge/Unit%20Tests-Passing%20(JVM)-brightgreen.svg)](#tests-and-checks)
+[![Static Analysis](https://img.shields.io/badge/Quality%20Gate-Detekt%20%2B%20Ktlint-purple.svg)](#tests-and-checks)
+
 LedgerOne is an Android personal-finance app. It tracks your transactions, sends and requests money by UPI, and keeps working offline.
 
 It is written in Kotlin with Jetpack Compose, Hilt, Room, WorkManager and Retrofit.
@@ -101,6 +108,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [8. Incremental Migration: XML & Data Binding to Jetpack Compose](#8-incremental-migration-xml--data-binding-to-jetpack-compose)
   - [9. Testing Non-Deterministic LLM UI Components & CI/CD Isolation](#9-testing-non-deterministic-llm-ui-components--cicd-isolation)
   - [10. Engineering Leadership: Review Checklists, Static Analysis & Security Gateways](#10-engineering-leadership-review-checklists-static-analysis--security-gateways)
+  - [11. Technical Documentation & README Best Practices (Documentation-as-Code)](#11-technical-documentation--readme-best-practices-documentation-as-code)
 
 ---
 
@@ -2878,6 +2886,116 @@ Every Pull Request must fill out and pass the standardized engineering review te
 3. **Codifying Feedback into Rules (The "Automate Recurring Comments" Rule):**
    - If an Engineering Lead or Senior reviewer leaves the same architectural or style comment on three separate PRs, that rule is immediately codified into a **custom Detekt rule**, **Konsist architecture test**, or **Lint rule**.
    - This prevents reviewer fatigue, removes subjective bias, and scales engineering excellence across the organization.
+
+---
+
+### <a id="11-technical-documentation--readme-best-practices-documentation-as-code"></a>11. Technical Documentation & README Best Practices (Documentation-as-Code)
+
+In an enterprise fintech codebase, the `README.md` is not marketing collateral—it is the **executable operational manual and single source of architectural truth** for developers, platform engineers, QA leads, and security auditors. Stale, incomplete, or inaccurate documentation causes architectural degradation, onboarding friction, and catastrophic production misunderstandings.
+
+LedgerOne treats documentation as **first-class code** governed by the **Documentation-as-Code (DaC)** methodology.
+
+---
+
+#### A. The Core Tenets of Documentation-as-Code (DaC)
+
+1. **Atomic Code & Doc Co-Evolution:**
+   - Any PR that introduces a new feature module (`:feature:*`), alters API contracts, changes mock credentials, updates dependencies in `libs.versions.toml`, or modifies security invariants **MUST update the README in the exact same commit**.
+   - Reviewers must reject PRs where code changes are detached from their corresponding documentation updates.
+
+2. **Zero-Assumption Developer Onboarding:**
+   - A newly onboarded engineer must be able to clone the repository and run `./gradlew testMockDebugUnitTest` or launch the app in an emulator without asking a single question in Slack or email.
+   - All prerequisites (JDK 17 toolchain, Android SDK 36, environment variables, mock account credentials) must be explicitly copy-pasteable.
+
+3. **Progressive Disclosure & The "5-Second / 5-Minute" Rule:**
+   - **5 Seconds:** The top of the document must communicate project identity, current build health, SDK compatibility, and primary architectural paradigm via badges and a concise elevator pitch.
+   - **5 Minutes:** A developer can locate their specific domain of interest (e.g., FSM state machines, Room migration strategy, or Biometric Keystore flows) through a granular, synchronized Table of Contents.
+   - **Deep Dives:** Complex systems provide exhaustive mathematical, sequence, and component diagrams rather than superficial summaries.
+
+---
+
+#### B. The 8 Structural Best Practices for Technical Documentation
+
+##### 1. Visual Architecture First (Mermaid Diagrams & State Machines)
+Text-heavy descriptions of complex workflows lead to misinterpretations. Always prefer declarative **Mermaid diagrams**:
+- **Finite-State Machines:** Diagram all multi-step flows (`PaymentFsmState`, `OnboardingFlow`, `AppStatus`).
+- **Data Flow Pipelines:** Visualize Unidirectional Data Flow (UDF) from Room SQLite through `StateFlow` to Compose.
+- **Layer Boundaries:** Clearly show boundary isolation between `:app`, `:core:*`, and `:feature:*` modules.
+
+##### 2. Explicit HTML Anchors & Strict TOC Synchronization
+- Every major section and subsection must declare an explicit HTML anchor tag:
+  ```html
+  ## <a id="section-slug"></a>Section Title
+  ```
+- This ensures permalinks from GitHub, pull request comments, Jira tickets, and architectural decision records (ADRs) never break even if section titles are reformatted.
+- The Table of Contents at the top of the README must be kept strictly 1:1 with these anchors.
+
+##### 3. Grounded Code Snippets (No Synthetic Pseudocode)
+- Code snippets in the README must match actual code in the repository.
+- Avoid abstract or fictional examples (`class Foo`, `val x = 123`). Use real project classes (`TransferBook`, `LedgerConstants`, `AppStrings`, `PaymentFsmState`).
+- When referencing files in discussions, maintain relative GitHub markdown links: `[AppStrings.kt](core/designsystem/src/main/kotlin/com/ledger/personal/ui/theme/AppStrings.kt)`.
+
+##### 4. Tabular Decision Matrices (Trade-Off Documentation)
+Whenever an architectural choice or third-party dependency is introduced, document not just *what* was chosen, but *why* alternatives were rejected. A structured table must provide:
+| Decision / Dependency | Problem Solved | Why It Was Chosen | Alternatives Considered | Why Alternative Was Rejected |
+
+##### 5. Sensitive Data & Security Hygiene
+- **Never include production secrets, real private keys, live API tokens, or actual PAN/PII data** in README files or commit history.
+- Always use standardized mock fixtures from `MockValues.kt`:
+  - Phone: `MockValues.DEFAULT_PHONE` (`"9876543210"`)
+  - OTP: `MockValues.OTP` (`"123456"`)
+  - MPIN: `MockValues.MPIN` (`"1111"`)
+
+##### 6. Multilingual & Localization Standards
+- Document string externalization rules explicitly: all user-visible strings must reside in `strings.xml` and `values-hi/strings.xml`, mapped through `AppStrings`.
+- Never suggest hardcoding user-facing strings in UI documentation examples.
+
+##### 7. Copy-Pasteable Terminal Commands with Output Expectations
+- Format CLI commands in isolated, language-tagged markdown blocks (`bash`).
+- Provide comments indicating whether the command requires a running emulator or runs purely on the host JVM:
+  ```bash
+  # Pure JVM Unit Tests (Instant, no emulator required)
+  ./gradlew testMockDebugUnitTest :core:model:test
+
+  # Static Analysis & Formatting Gates
+  ./gradlew detekt ktlintCheck
+
+  # On-Device / Emulator Instrumented Integration Tests
+  ./gradlew connectedMockDebugAndroidTest
+  ```
+
+##### 8. Maintain a Single Source of Truth
+- Do not duplicate long configuration tables across multiple markdown files.
+- High-level overviews and cross-cutting architectural principles belong in `README.md`.
+- Deep, single-topic architectural justifications (e.g. `docs/LIBRARIES.md`) should be linked rather than copy-pasted verbatim, preventing multi-file documentation drift.
+
+---
+
+#### C. Standardized Architectural Blueprint for Documenting New Modules
+
+When contributing a new feature or core library module, contributors must append an architectural summary to `README.md` following this standardized blueprint:
+
+```markdown
+### `:module:name`
+- **Responsibility:** Single-sentence summary of the module's domain responsibility.
+- **Dependency Invariant:** Must depend only on `:core:*` (zero cross-feature dependencies).
+- **Public API Surface:** List of exported domain models, interfaces, or composables.
+- **Local Source of Truth:** Room DAO / DataStore keys owned by this module.
+- **Test Strategy:** Unit test coverage (`*Test.kt`) and mock fixtures (`*Mock.kt`).
+```
+
+---
+
+#### D. README Quality Checklist for Pull Request Reviewers
+
+Before approving any pull request that impacts project architecture or setup, reviewers must verify:
+
+- [ ] **TOC Alignment:** Did the author add or update corresponding anchors in the Table of Contents?
+- [ ] **Link Integrity:** Do all markdown file links resolve to real workspace files?
+- [ ] **Accurate Command Flags:** Are all Gradle tasks, build flavor names (`mockDebug`, `devDebug`, `stagingDebug`, `prodRelease`), and command flags completely accurate?
+- [ ] **Code Freshness:** Do README code snippets match the actual Kotlin 2.2.0 / Compose idioms used in the codebase?
+- [ ] **No Leaked PII or Credentials:** Are all displayed tokens, phone numbers, and keys drawn strictly from `MockValues`?
+
 
 
 

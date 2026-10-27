@@ -15,17 +15,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.feature.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
+import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** Steps in the onboarding flow. */
 private enum class OnboardStep { PHONE, OTP }
-
-private val steps = listOf("Phone", "Verify")
 
 /** Shows onboarding flow orchestrating phone entry and OTP verification. */
 @Composable
@@ -34,6 +34,10 @@ fun OnboardingFlow(
     onSendOtp: (phone: String) -> Unit = {},
     onFinish: (phone: String) -> Unit,
 ) {
+    val steps = listOf(
+        stringResource(AppStrings.STEP_PHONE),
+        stringResource(AppStrings.STEP_VERIFY),
+    )
     var phone by rememberSaveable { mutableStateOf("") }
     var editPhoneRequested by rememberSaveable { mutableStateOf(false) }
 

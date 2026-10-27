@@ -31,6 +31,7 @@ private enum class OnboardStep { PHONE, OTP }
 @Composable
 fun OnboardingFlow(
     otpState: OtpUiState = OtpUiState(),
+    resendCountdown: Int = otpState.resendCountdown,
     onSendOtp: (phone: String) -> Unit = {},
     onFinish: (phone: String) -> Unit,
 ) {
@@ -63,6 +64,7 @@ fun OnboardingFlow(
                 OnboardStep.OTP -> OtpStep(
                     phone = phone,
                     uiState = otpState,
+                    resendCountdown = resendCountdown,
                     onEdit = { editPhoneRequested = true },
                     onResend = { onSendOtp(phone) },
                     onVerified = { onFinish(phone) },

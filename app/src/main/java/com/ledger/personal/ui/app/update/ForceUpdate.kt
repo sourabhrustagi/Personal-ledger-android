@@ -3,6 +3,7 @@
 package com.ledger.personal.ui.app.update
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -39,25 +41,31 @@ data class ForceUpdateUiState(val versionName: String = "")
 fun ForceUpdateScreen(uiState: ForceUpdateUiState) {
     val context = LocalContext.current
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier.safeDrawingPadding().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Spacer(Modifier.height(48.dp))
-            IconBadge(Icons.Outlined.SystemUpdate, size = 72)
-            Text("Update required", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                "Version ${uiState.versionName} is no longer supported. Update LedgerOne to keep your account secure and keep paying.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
-            PrimaryButton(
-                "Update now",
-                onClick = { PlayStore.openStore(context) },
-                icon = Icons.Outlined.SystemUpdate,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Column(
+                Modifier
+                    .safeDrawingPadding()
+                    .padding(24.dp)
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Spacer(Modifier.height(48.dp))
+                IconBadge(Icons.Outlined.SystemUpdate, size = 72)
+                Text("Update required", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "Version ${uiState.versionName} is no longer supported. Update LedgerOne to keep your account secure and keep paying.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
+                PrimaryButton(
+                    "Update now",
+                    onClick = { PlayStore.openStore(context) },
+                    icon = Icons.Outlined.SystemUpdate,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

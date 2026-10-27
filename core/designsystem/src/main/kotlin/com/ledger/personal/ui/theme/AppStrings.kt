@@ -84,6 +84,16 @@ object AppStrings {
     @StringRes val TITLE_TRANSFER_UNCONFIRMED: Int = R.string.title_transfer_unconfirmed
     @StringRes val MESSAGE_TRANSFER_UNCONFIRMED: Int = R.string.message_transfer_unconfirmed
 
+    // Authentication & Onboarding
+    @StringRes val TITLE_ENTER_MOBILE: Int = R.string.title_enter_mobile
+    @StringRes val SUBTITLE_PHONE_VERIFICATION: Int = R.string.subtitle_phone_verification
+    @StringRes val LABEL_MOBILE_NUMBER: Int = R.string.label_mobile_number
+    @StringRes val PHONE_PREFIX: Int = R.string.phone_prefix
+    @StringRes val LABEL_MOBILE_NUMBER_HINT: Int = R.string.label_mobile_number_hint
+    @StringRes val LABEL_TERMS_AND_PRIVACY: Int = R.string.label_terms_and_privacy
+    @StringRes val ACTION_SEND_CODE: Int = R.string.action_send_code
+    @StringRes val ACTION_SENDING_CODE: Int = R.string.action_sending_code
+
     // Non-translatable technical currency tokens
     const val CURRENCY_INR: String = "INR"
     const val CURRENCY_USD: String = "USD"

@@ -59,8 +59,10 @@ private fun Onboard(
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val otpState by viewModel.otpState.collectAsStateWithLifecycle()
+    val resendCountdown by viewModel.resendCountdown.collectAsStateWithLifecycle()
     OnboardingFlow(
         otpState = otpState,
+        resendCountdown = resendCountdown,
         onSendOtp = viewModel::sendOtp,
         onFinish = { phone ->
             viewModel.completeOnboarding(phone, onOnboarded)

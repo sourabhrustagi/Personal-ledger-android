@@ -56,6 +56,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
     - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
   - [6. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
+  - [7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -947,6 +948,139 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
 | **`SavedStateHandle`** | `SavedStateRegistry` + ViewModel | **Yes** | **Yes** | **Yes** | ❌ No | Navigation parameters (`transactionId`), search criteria across process death |
 | **`Room Database`** | SQLite on Disk | **Yes** | **Yes** | **Yes** | **Yes** | Durable single source of truth: ledger transactions, sync states |
 | **`DataStore`** | Disk (`.preferences_pb`) | **Yes** | **Yes** | **Yes** | **Yes** | User preferences: theme mode, masked balance toggle, skipped app version |
+
+---
+
+### <a id="7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens"></a>7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens
+
+#### A. Architecture of Configuration Changes in Jetpack Compose
+When an Android device is rotated between portrait and landscape:
+1. **Activity Destruction & Recreation:** The Android operating system destroys the active `MainActivity` (`onDestroy`) and creates a fresh instance (`onCreate`) to load configuration-specific resources (such as display density, screen metrics, and `Orientation.LANDSCAPE`).
+2. **Composition Reset:** The top-level composition is torn down. Any state held in plain `remember { mutableStateOf(...) }` is destroyed and re-initialized to its default values.
+3. **Dual-Anchor Survival Model:** LedgerOne prevents all data loss and UX flickering during orientation changes by anchoring state across two resilient tiers:
+   - **`ViewModel` (`StateFlow`):** Anchored to the `ViewModelStoreOwner` on the JVM heap. Survives Activity destruction intact. Holds business logic, countdown timers, asynchronous coroutines, and reactive database observation pipelines.
+   - **`rememberSaveable` (`SavedStateRegistry`):** Anchored to the Android Activity `savedInstanceState` `Bundle`. Survives both orientation changes and system-initiated background process termination. Holds active user text inputs, confirmation dialog toggles, and wizard step indices.
+
+```mermaid
+flowchart TD
+    subgraph Event ["Device Event: Screen Rotation (Portrait ↔ Landscape)"]
+        Rot["User Rotates Phone / Tablet"]
+    end
+
+    subgraph OS ["Android OS Runtime"]
+        Destroy["Destroy Old Activity (onDestroy)"]
+        Create["Create New Activity (onCreate)"]
+    end
+
+    subgraph Lost ["❌ Non-Persistent (Destroyed)"]
+        Rem["remember { mutableStateOf(...) }\n• Ephemeral animation clocks\n• Un-hoisted temporary flags"]
+    end
+
+    subgraph Preserved ["✅ Preserved State (Zero Loss)"]
+        VM["ViewModel (StateFlow)\n• Survives in ViewModelStore on JVM Heap\n• OTP Resend Timers\n• Account Balances & Transactions\n• Transfer FSM & Stepper"]
+        RS["rememberSaveable (Bundle)\n• Survives via SavedStateRegistry\n• Active text field buffers\n• Dialog & sheet visibility\n• Camera scan completion flags"]
+        Scroll["rememberScrollState / rememberLazyListState\n• Saved via ScrollState.Saver\n• Restores exact pixel scroll position"]
+    end
+
+    Rot --> Destroy --> Create
+    Destroy -.->|Lost| Lost
+    Destroy -->|Retained on Heap| VM
+    Destroy -->|Serialized to Bundle| RS
+    Destroy -->|Saved to Bundle| Scroll
+    Create -->|Re-observes Flow| VM
+    Create -->|Restores Values| RS
+    Create -->|Restores Offset| Scroll
+```
+
+---
+
+#### B. Screen-by-Screen Rotation & Landscape Handling
+
+##### 1. Camera Scanner & QR Video Feed (`ScanScreen.kt` & `QrCamera.kt`)
+The camera screen allows users to scan UPI QR codes using CameraX and Google ML Kit.
+- **Landscape Viewport Sizing & Bounding:**
+  In landscape orientation, device width expands (e.g., 800dp+) while physical height drops severely (~360dp–412dp). An unconstrained `fillMaxWidth().aspectRatio(1f)` would force an 800dp tall viewfinder that pushes all controls and inputs completely offscreen.
+  LedgerOne wraps the `AndroidView(PreviewView)` inside a centered `Box(Modifier.fillMaxWidth())` with:
+  ```kotlin
+  modifier = Modifier
+      .heightIn(max = 280.dp)
+      .aspectRatio(1f, matchHeightConstraintsFirst = true)
+      .clip(MaterialTheme.shapes.medium)
+  ```
+  `matchHeightConstraintsFirst = true` enforces the 280dp vertical bound first, generating a centered 280×280dp square viewfinder in both portrait and landscape.
+- **CameraX Lifecycle & Sensor Re-Orientation:**
+  `bindQrScanner` binds the camera pipeline to `LocalLifecycleOwner.current`. Upon rotation, `DisposableEffect(owner)` gracefully terminates the single-threaded background analyzer pool. The newly composed Activity binds a fresh `PreviewView.surfaceProvider`, and ML Kit automatically re-aligns analysis to `proxy.imageInfo.rotationDegrees`.
+- **State Preservation Guarantees:**
+  - `done`: Stored in `rememberSaveable { mutableStateOf(false) }`. Once a valid UPI QR is decoded, rotating the device while transitioning to the payment screen will never trigger duplicate scans or re-execute callbacks.
+  - `cameraGranted`: Stored in `rememberSaveable`. Survives rotation without prompting the user with redundant system permission dialogs.
+  - `manual` text input & `invalid` error banner: Stored in `rememberSaveable`. Any pasted or typed UPI ID remains intact.
+  - Viewport Access: Wrapped in `FeatureScaffold` with `.verticalScroll(rememberScrollState())`, allowing full scrollable access to manual input and action buttons in landscape.
+
+##### 2. Onboarding & OTP Dispatch (`Onboarding.kt`, `PhoneStep.kt`, `OtpStep.kt`)
+Orchestrates mobile number entry, OTP verification, and new user onboarding.
+- **Timer StateFlow (`OnboardingViewModel`):**
+  The 30-second cooldown timer is managed by `OnboardingViewModel.resendCountdown: StateFlow<Int>` ticking in `viewModelScope`.
+  - **Survives Configuration Changes:** Rotating the phone keeps the timer ticking on the ViewModel without resetting back to 30.
+  - **Separation of Concerns:** `OtpStep.kt` strictly observes `resendCountdown` without embedding timer mutation logic.
+  - **Background Coroutine Cancellation:** Handled in `OnboardingViewModel.onCleared()`.
+- **Input Buffer Retention:**
+  - `phone` number input: Held in `rememberSaveable { mutableStateOf("") }` in `OnboardingFlow`.
+  - `code` OTP input: Held in `rememberSaveable { mutableStateOf("") }` in `OtpStep`.
+  - `editPhoneRequested` toggle: Held in `rememberSaveable { mutableStateOf(false) }`.
+- **Landscape IME Keyboard Safety:**
+  `OnboardingFlow` wraps all steps inside `Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)`. When the numeric keyboard appears in landscape (occupying 50%+ of screen height), the container compresses smoothly and allows full scrolling so the Verify button is never blocked.
+
+##### 3. Returning User Lock & PIN/OTP Unlock (`Login.kt` & `LoginViewModel.kt`)
+Secures the application whenever the app is backgrounded or locked.
+- **Timer StateFlow (`LoginViewModel`):**
+  `LoginViewModel.resendCountdown: StateFlow<Int>` exposes the countdown initialized to `AppConstants.OTP_RESEND_COOLDOWN_SECONDS`. Rotation does not reset the timer or cancel the tick job.
+- **Dialog & Validation Error Retention:**
+  - `confirmReset`: Stored in `rememberSaveable { mutableStateOf(false) }`. If a user opens the "Switch account?" alert dialog and rotates their screen, the confirmation dialog remains open.
+  - `wrong` & `checking`: Stored in `rememberSaveable`, preserving the "That code doesn't match" error banner across rotation.
+  - `code`: Stored in `rememberSaveable`, preserving the entered OTP digits.
+- **Landscape Scrollability:**
+  `OtpLoginScreen` attaches `Modifier.safeDrawingPadding().verticalScroll(rememberScrollState())` to its main `Column` and uses `Spacer(Modifier.height(16.dp))` rather than unbounded `Modifier.weight(1f)`, preventing `IllegalStateException` during vertical measurement in landscape mode.
+
+##### 4. Ledger Hubs & Dashboard (`LedgerHub.kt`, `BankingHub.kt`, `PayHub.kt`, `WalletHub.kt`)
+Central navigation hubs showing balances, category breakdowns, and transaction history.
+- **Durable ViewModel State:**
+  Hubs observe hot `StateFlow` streams exposed by `AppViewModel`, `TransactionListViewModel`, and `WalletViewModel`. Accounts, live ledger balances, and filtered transactions survive Activity recreation immediately from memory without re-querying the disk.
+- **Virtual List Scroll Position (`rememberLazyListState`):**
+  `TransactionListScreen` and `LedgerHistory` use `LazyColumn(state = rememberLazyListState())`. `LazyListState` implements a built-in `Saver` that serializes the first visible item index and scroll offset into the saved state bundle, restoring the user's exact reading position upon rotation.
+
+##### 5. Transaction Creation, Transfers & Split Bill (`CreateTransactionScreen`, `PayScreen`, `SplitBillScreen`)
+Critical financial input screens where data loss could cause user frustration or duplicate charges.
+- **Finite State Machine Retention (`PaymentFsm`):**
+  Money transfers use a state machine (`AMOUNT` → `REVIEW` → `STEP_UP` → `RECEIPT`) scoped to `WalletViewModel`. Rotating the phone while entering an MPIN or viewing a payment receipt maintains the exact step and transaction ID.
+- **Idempotency Key Protection:**
+  Every transfer generation creates an idempotency key held in the ViewModel. Device rotation never regenerates a new key, guaranteeing that retries or orientation changes will never result in duplicate debit transactions.
+- **Form Fields & Category Pickers:**
+  Amount text, selected category IDs, and note inputs are stored in `rememberSaveable`, ensuring zero loss of partially typed data during rotation.
+
+##### 6. Navigation Shell, Network Connectivity & System Banners (`LedgerNavHost.kt`, `LedgerOneApp.kt`)
+Top-level application container managing navigation backstacks and global alerts.
+- **Backstack Restoration:**
+  `rememberNavController()` delegates to `NavHostController.Saver`. Rotating the screen anywhere in the application preserves the full navigation backstack and current destination arguments.
+- **Network Retry & Banner State:**
+  - `retryCount`: Stored in `rememberSaveable { mutableIntStateOf(0) }` in `LedgerNavHost`.
+  - `connected`: Stored in `rememberSaveable { mutableStateOf(hasInternet(manager)) }` in `Link.kt`.
+  - `offlineDismissed`: Stored in `rememberSaveable { mutableStateOf(false) }`. Rotating the screen while an offline alert banner is dismissed will not cause the banner to abruptly re-appear.
+
+---
+
+#### C. Screen Rotation & Landscape State Preservation Matrix
+
+| Screen / Component | Landscape Viewport Adaptation | ViewModel State (`StateFlow`) | `rememberSaveable` (Bundle State) | Rotation & Landscape Guarantees |
+|---|---|---|---|---|
+| **QR Scanner (`ScanScreen` / `QrCamera`)** | Centered 280dp max-height constraint; scrollable via `FeatureScaffold` | N/A (Reactive scanner callback) | `done`, `cameraGranted`, `manual`, `invalid` | Viewfinder maintains 1:1 ratio without screen blowout; orientation auto-rotates ML Kit frames; no double-scan on rotation |
+| **Onboarding (`OnboardingFlow` / `OtpStep`)** | `Modifier.verticalScroll(rememberScrollState())` with IME safe insets | `OnboardingViewModel.resendCountdown`, `otpState` | `phone`, `code`, `error`, `editPhoneRequested` | Timer keeps ticking across rotation; phone number and OTP inputs preserved; inputs never trapped behind landscape keyboard |
+| **Returning Login (`OtpLoginScreen`)** | `Modifier.verticalScroll(rememberScrollState())` with fixed spacers | `LoginViewModel.resendCountdown` | `code`, `wrong`, `checking`, `confirmReset` | 30s resend timer survives rotation; account switch dialog stays open; validation error banner stays visible |
+| **Ledger Hub (`LedgerHub`)** | Responsive summary grid; vertical scrolling | `AppViewModel.session`, `TransactionListViewModel.pages` | Category filter selection, search query | Balance calculations and pagination caches retained in memory; list scroll offset preserved |
+| **Wallet & UPI Transfer (`WalletScreen` / `PayScreen`)** | Adaptive column scroll; keyboard-safe action buttons | `WalletViewModel.uiState` (`PaymentFsm`), balance, idempotency key | `amountText`, `recipientInput` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
+| **Add / Edit Transaction (`CreateTransactionScreen`)** | Scrollable form via `FeatureScaffold` | `TransactionFormViewModel.state` | Form input buffers, category picker dropdown | All entered amounts, notes, and selected category chips survive rotation |
+| **Navigation Shell (`LedgerNavHost`)** | `safeDrawingPadding()` around bottom navigation bar | `AppViewModel.session` | `retryCount`, `connected`, `offlineDismissed`, navigation backstack | Current screen destination and full backstack preserved; offline banner does not flicker |
+
+---
 
 ## <a id="jetpack-compose-effects--lifecycle-side-effect-handling"></a><a id="jetpack-compose-effects-lifecycle-side-effect-handling"></a>Jetpack Compose Effects & Lifecycle Side-Effect Handling
 

@@ -12,13 +12,6 @@ sealed interface Screen {
     @Serializable
     data class TransactionDetail(val transactionId: String) : Screen
 
-    /** Route to the create transaction screen. */
-    @Serializable
-    data object CreateTransaction : Screen
-
-    /** Route to the edit transaction screen. */
-    @Serializable
-    data class EditTransaction(val transactionId: String) : Screen
 
     /** Route to the ledger history screen. */
     @Serializable

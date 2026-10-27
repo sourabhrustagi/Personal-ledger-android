@@ -6,4 +6,5 @@ data class OtpUiState(
     val isOtpSent: Boolean = false,
     val sentMessage: String = "OTP sent",
     val errorMessage: String? = null,
+    val resendCountdown: Int = 0,
 )

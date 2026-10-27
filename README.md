@@ -57,6 +57,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
   - [6. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
   - [7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
+  - [8. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -1079,6 +1080,70 @@ Top-level application container managing navigation backstacks and global alerts
 | **Wallet & UPI Transfer (`WalletScreen` / `PayScreen`)** | Adaptive column scroll; keyboard-safe action buttons | `WalletViewModel.uiState` (`PaymentFsm`), balance, idempotency key | `amountText`, `recipientInput` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
 | **Add / Edit Transaction (`CreateTransactionScreen`)** | Scrollable form via `FeatureScaffold` | `TransactionFormViewModel.state` | Form input buffers, category picker dropdown | All entered amounts, notes, and selected category chips survive rotation |
 | **Navigation Shell (`LedgerNavHost`)** | `safeDrawingPadding()` around bottom navigation bar | `AppViewModel.session` | `retryCount`, `connected`, `offlineDismissed`, navigation backstack | Current screen destination and full backstack preserved; offline banner does not flicker |
+
+---
+
+### <a id="8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes"></a>8. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes
+
+#### A. Ergonomic Challenges on Expanded & Large Displays
+Tablets (e.g. Pixel Tablet, Samsung Galaxy Tab S, 10–13" foldables, and Chromebooks) operate with Window Size Classes characterized by widths $\ge 600\text{dp}$ (Medium) and $\ge 840\text{dp}$ (Expanded).
+
+On standard mobile devices ($\sim 360\text{--}412\text{dp}$ width), edge-to-edge inputs (`fillMaxWidth()`) naturally fill the viewport within comfortable thumb range. However, on large tablet displays, naive edge-to-edge rendering introduces severe usability and aesthetic flaws:
+1. **Unnatural Eye Tracking:** Text inputs, OTP digits, and buttons stretched across 1000dp+ force extreme horizontal head/eye movement.
+2. **Awkward Two-Handed Reaching:** Important action buttons ("Continue", "Confirm Payment", "Save") stretched across the screen edge require users to reposition their grip.
+3. **Bloated Visual Components:** Cards, banners, and modal dialogs lose their visual density and hierarchy when stretched beyond optimal reading limits (45–75 characters per line).
+
+```mermaid
+flowchart LR
+    subgraph Naive ["❌ Naive fillMaxWidth() on 10'' Tablet"]
+        direction TB
+        N1["[================ Text Field ================] (1000dp wide - hard to read)"]
+        N2["[================ Primary Action Button ===============] (Stretched to margins)"]
+    end
+
+    subgraph Adaptive ["✅ Centered Adaptive Bounding Box"]
+        direction TB
+        A1["Margins (Auto)"] --- A2["Centered Container\n(max = 600dp / 720dp / 840dp)\nErgonomic Thumb & Eye Zone"] --- A3["Margins (Auto)"]
+    end
+```
+
+---
+
+#### B. Centralized Adaptive Max-Width Bounding Architecture
+LedgerOne resolves large-screen ergonomics by wrapping every screen surface inside a centered horizontal alignment box (`Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter)` or `Alignment.Center` for modal overlays) and enforcing purpose-tuned maximum width constraints via `Modifier.fillMaxWidth().widthIn(max = BoundDp)`:
+
+1. **Dashboard & Feed Hubs (`840.dp`):**
+   - **Screens:** `HomeScreen.kt`, `TransactionListScreen.kt`.
+   - **Rationale:** Dashboards display balance cards, horizontal category chips, and multi-column transaction metadata. An 840dp boundary provides ample room for horizontal chips and rich card layouts while preventing infinite horizontal stretch on desktop-class tablet screens.
+2. **Feature Scaffolds & Banking Workflows (`720.dp`):**
+   - **Screens:** `FeatureScaffold.kt` (central scaffold powering `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen`), `CreateTransactionScreen.kt`, `EditTransactionScreen.kt`, and `TransactionDetailScreen.kt`.
+   - **Rationale:** Centrally bounding `FeatureScaffold` automatically guarantees that all current and future banking sub-features render within a comfortable 720dp reading column on tablets without requiring repetitive boilerplate on each sub-screen.
+3. **Authentication & Security Wizards (`600.dp`):**
+   - **Screens:** `OnboardingFlow` (`PhoneStep.kt`, `OtpStep.kt`, `ProfileStep.kt`), `OtpLoginScreen` (`Login.kt`).
+   - **Rationale:** Keeps OTP numeric pin boxes, mobile phone inputs, and resend cooldown timers tightly grouped in a comfortable, centered touch area suitable for one-handed or thumb typing.
+4. **System Enforcers & Update Blockers (`560.dp`):**
+   - **Screens:** `ForceUpdateScreen.kt`, `SoftUpdateDialog`.
+   - **Rationale:** Conforms to Material 3 dialog guidelines for large screens, ensuring critical version updates remain prominent, readable, and visually authoritative.
+5. **Connectivity & Offline States (`520.dp`):**
+   - **Screens:** `OfflineScreen.kt`.
+   - **Rationale:** Constrains the no-connection icon, status pills, and retry action buttons into a balanced floating card presentation.
+
+---
+
+#### C. Tablet & Large Screen Compatibility Matrix
+
+| Screen / Component | Tablet Max-Width Bound | Alignment Strategy | Responsive Behavior on Large Displays |
+|---|---|---|---|
+| **`HomeScreen`** | `840.dp` | `Alignment.TopCenter` | Balance overview cards and horizontal promotion carousels stay readable; cards don't overstretch |
+| **`TransactionListScreen`** | `840.dp` | `Alignment.TopCenter` | Paginated transaction rows remain compact; timestamps and amounts align within natural scanning span |
+| **`FeatureScaffold`** | `720.dp` | `Alignment.TopCenter` | Automatically bounds `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen` |
+| **`CreateTransactionScreen`** | `720.dp` | `Alignment.TopCenter` | Category chips, amount inputs, and save buttons remain grouped; scrollable in landscape/tablet multi-window |
+| **`EditTransactionScreen`** | `720.dp` | `Alignment.TopCenter` | Retains full form layout within 720dp; prevents sprawling text fields on 12-inch displays |
+| **`TransactionDetailScreen`** | `720.dp` | `Alignment.TopCenter` | Amount headline, category badge, and action buttons centered ergonomically |
+| **`OnboardingFlow`** | `600.dp` | `Alignment.TopCenter` | Phone entry, OTP verification, and name capture remain centered; keyboard-safe in split-screen |
+| **`OtpLoginScreen`** | `600.dp` | `Alignment.TopCenter` | MPIN / OTP pin pads tightly grouped in thumb-reach zone; reset dialog maintains tablet bounds |
+| **`ForceUpdateScreen`** | `560.dp` | `Alignment.TopCenter` | Centered modal presentation; prevents system warning messages from flattening across the screen |
+| **`OfflineScreen`** | `520.dp` | `Alignment.Center` | Floating card aesthetic; retry button and waiting indicator remain centered and accessible |
 
 ---
 

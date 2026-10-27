@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 
@@ -17,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 fun rememberConnected(refreshKey: Int = 0): Boolean {
     val context = LocalContext.current
     val manager = remember { context.getSystemService(ConnectivityManager::class.java) }
-    var connected by remember { mutableStateOf(hasInternet(manager)) }
+    var connected by rememberSaveable { mutableStateOf(hasInternet(manager)) }
     LaunchedEffect(refreshKey) {
         connected = hasInternet(manager)
     }

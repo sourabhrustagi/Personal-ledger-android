@@ -167,4 +167,41 @@ class AuthViewModelsTest {
         assertEquals("Network error", viewModel.otpState.value.errorMessage)
         assertEquals(0, viewModel.resendCountdown.value)
     }
+
+    @Test
+    fun loginViewModelInitialStateHasDefaultCountdown() {
+        val viewModel = LoginViewModel()
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(AppConstants.OTP_RESEND_COOLDOWN_SECONDS, viewModel.resendCountdown.value)
+    }
+
+    @Test
+    fun loginViewModelTimerTicksDown() = runTest {
+        val viewModel = LoginViewModel()
+        viewModel.startResendTimer(2)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(2, viewModel.resendCountdown.value)
+
+        advanceTimeBy(1000)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, viewModel.resendCountdown.value)
+
+        advanceTimeBy(1000)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(0, viewModel.resendCountdown.value)
+    }
+
+    @Test
+    fun loginViewModelVerifyOtpSuccessAndFailure() {
+        val viewModel = LoginViewModel()
+        var successResult: Boolean? = null
+        viewModel.verifyOtp(MockValues.OTP) { successResult = it }
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(true, successResult)
+
+        var failResult: Boolean? = null
+        viewModel.verifyOtp("000000") { failResult = it }
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(false, failResult)
+    }
 }

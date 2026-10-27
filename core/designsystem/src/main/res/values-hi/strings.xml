@@ -86,4 +86,15 @@
     <string name="label_terms_and_privacy">मैं सेवा की शर्तों और गोपनीयता नीति से सहमत हूँ।</string>
     <string name="action_send_code">कोड भेजें</string>
     <string name="action_sending_code">कोड भेजा जा रहा है…</string>
+    <string name="title_enter_code">कोड दर्ज करें</string>
+    <string name="subtitle_code_sent_to">+91 %1$s पर भेजा गया</string>
+    <string name="action_change_number">नंबर बदलें</string>
+    <string name="error_invalid_otp">वह कोड मेल नहीं खाता। एसएमएस जांचें और पुनः प्रयास करें।</string>
+    <string name="info_demo_otp">डेमो बिल्ड: कोड %1$s का उपयोग करें।</string>
+    <string name="label_resend_code_timer">%1$s में पुनः कोड भेजें</string>
+    <string name="action_resending_code">पुनः भेजा जा रहा है…</string>
+    <string name="action_resend_code">पुनः कोड भेजें</string>
+    <string name="action_verify">सत्यापित करें</string>
+    <string name="step_phone">फ़ोन</string>
+    <string name="step_verify">सत्यापित करें</string>
 </resources>

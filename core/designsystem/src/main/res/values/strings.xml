@@ -76,4 +76,14 @@
     <string name="action_check_status">Check status</string>
     <string name="title_transfer_unconfirmed">Transfer unconfirmed</string>
     <string name="message_transfer_unconfirmed">Connection lost while confirming. We saved your reference so you won\'t be charged twice. Tap Check status to verify.</string>
+
+    <!-- Authentication & Onboarding -->
+    <string name="title_enter_mobile">Enter your mobile number</string>
+    <string name="subtitle_phone_verification">We\'ll send a 6-digit verification code to verify your phone.</string>
+    <string name="label_mobile_number">Mobile number</string>
+    <string name="phone_prefix">"+91 "</string>
+    <string name="label_mobile_number_hint">10-digit mobile number</string>
+    <string name="label_terms_and_privacy">I agree to the Terms of Service and Privacy Policy.</string>
+    <string name="action_send_code">Send code</string>
+    <string name="action_sending_code">Sending code…</string>
 </resources>

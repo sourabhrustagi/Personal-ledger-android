@@ -76,4 +76,14 @@
     <string name="action_check_status">स्थिति जांचें</string>
     <string name="title_transfer_unconfirmed">लेनदेन अपुष्ट है</string>
     <string name="message_transfer_unconfirmed">पुष्टि के दौरान नेटवर्क संपर्क टूट गया। आपका संदर्भ सहेज लिया गया है ताकि दोबारा शुल्क न कटे। पुष्टि के लिए स्थिति जांचें पर टैप करें।</string>
+
+    <!-- Authentication & Onboarding -->
+    <string name="title_enter_mobile">अपना मोबाइल नंबर दर्ज करें</string>
+    <string name="subtitle_phone_verification">हम आपके फ़ोन को सत्यापित करने के लिए 6 अंकों का सत्यापन कोड भेजेंगे।</string>
+    <string name="label_mobile_number">मोबाइल नंबर</string>
+    <string name="phone_prefix">"+91 "</string>
+    <string name="label_mobile_number_hint">10 अंकों का मोबाइल नंबर</string>
+    <string name="label_terms_and_privacy">मैं सेवा की शर्तों और गोपनीयता नीति से सहमत हूँ।</string>
+    <string name="action_send_code">कोड भेजें</string>
+    <string name="action_sending_code">कोड भेजा जा रहा है…</string>
 </resources>

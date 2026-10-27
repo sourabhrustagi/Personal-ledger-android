@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
@@ -47,7 +49,8 @@ fun ForceUpdateScreen(uiState: ForceUpdateUiState) {
                     .safeDrawingPadding()
                     .padding(24.dp)
                     .fillMaxWidth()
-                    .widthIn(max = 560.dp),
+                    .widthIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {

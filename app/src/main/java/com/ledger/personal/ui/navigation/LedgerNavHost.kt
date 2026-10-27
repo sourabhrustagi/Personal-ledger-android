@@ -63,12 +63,8 @@ import com.ledger.personal.ui.app.scan.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
 import com.ledger.personal.ui.feature.WalletScreen
-import com.ledger.personal.ui.screens.create.CreateTransactionScreen
-import com.ledger.personal.ui.screens.create.CreateTransactionViewModel
 import com.ledger.personal.ui.screens.detail.TransactionDetailScreen
 import com.ledger.personal.ui.screens.detail.TransactionDetailViewModel
-import com.ledger.personal.ui.screens.edit.EditTransactionScreen
-import com.ledger.personal.ui.screens.edit.EditTransactionViewModel
 import com.ledger.personal.ui.screens.home.HomeScreen
 import com.ledger.personal.ui.screens.home.HomeViewModel
 import com.ledger.personal.ui.screens.list.TransactionListScreen
@@ -126,8 +122,6 @@ fun LedgerNavHost(
         activity.addOnNewIntentListener(listener)
         onDispose { activity.removeOnNewIntentListener(listener) }
     }
-    val categoriesReady by appViewModel.categoriesReady.collectAsStateWithLifecycle()
-    val categories = if (categoriesReady) prefs.categories else emptyList()
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
@@ -157,7 +151,7 @@ fun LedgerNavHost(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 tabRoutes(navController, prefs, flags, home)
-                ledgerRoutes(navController, categories, categoriesLoading = !categoriesReady)
+                ledgerRoutes(navController)
                 productRoutes(navController, offline)
                 payRoutes(navController)
             }
@@ -227,7 +221,6 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
             onRefresh = viewModel::refresh,
             onLoadMore = viewModel::loadNextPage,
             onTransactionClick = { nav.navigate(Screen.TransactionDetail(transactionId = it)) },
-            onCreateClick = { nav.navigate(Screen.CreateTransaction) },
             onProductsClick = { nav.popBackStack() },
             paging = viewModel.pages.collectAsLazyPagingItems(),
         )
@@ -235,7 +228,7 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
 }
 
 /** Ledger routes. */
-private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: List<String>, categoriesLoading: Boolean) {
+private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController) {
     listRoute(nav)
     composable<Screen.TransactionDetail>(deepLinks = appLinks<Screen.TransactionDetail>("transactions")) { backStackEntry ->
         val route = backStackEntry.toRoute<Screen.TransactionDetail>()
@@ -244,38 +237,7 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController, categories: Lis
         TransactionDetailScreen(
             uiState = state,
             onNavigateBack = { nav.popBackStack() },
-            onNavigateEdit = null,
             onRetry = { viewModel.loadTransaction(route.transactionId) },
-        )
-    }
-    composable<Screen.CreateTransaction> {
-        val viewModel: CreateTransactionViewModel = hiltViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
-        CreateTransactionScreen(
-            uiState = state,
-            onAmountChange = viewModel::onAmountChange,
-            onCategoryChange = viewModel::onCategoryChange,
-            onDescriptionChange = viewModel::onDescriptionChange,
-            onSubmit = viewModel::submit,
-            onNavigateBack = { nav.popBackStack() },
-            quickCategories = categories,
-            categoriesLoading = categoriesLoading,
-        )
-    }
-    composable<Screen.EditTransaction> { backStackEntry ->
-        val route = backStackEntry.toRoute<Screen.EditTransaction>()
-        val viewModel: EditTransactionViewModel = hiltViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
-        EditTransactionScreen(
-            uiState = state,
-            onAmountChange = viewModel::onAmountChange,
-            onCategoryChange = viewModel::onCategoryChange,
-            onDescriptionChange = viewModel::onDescriptionChange,
-            onSubmit = viewModel::submitPatch,
-            onNavigateBack = { nav.popBackStack() },
-            onRetry = { viewModel.loadInitial(route.transactionId) },
-            quickCategories = categories,
-            categoriesLoading = categoriesLoading,
         )
     }
 }

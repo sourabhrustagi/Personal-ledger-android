@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.screens.home
+package com.ledger.personal.feature.ledger.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

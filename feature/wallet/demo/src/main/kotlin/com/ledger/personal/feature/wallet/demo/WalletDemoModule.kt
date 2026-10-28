@@ -1,7 +1,7 @@
 package com.ledger.personal.feature.wallet.demo
 
 import com.ledger.personal.mock.MockSwitches
-import com.ledger.personal.ui.feature.PaymentRail
+import com.ledger.personal.feature.wallet.payment.PaymentRail
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

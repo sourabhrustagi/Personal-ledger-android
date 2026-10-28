@@ -47,7 +47,9 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 - [ViewModels](#view-models)
 - [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
   - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
+    - [Flutter vs. Android Compose: How the UI is Notified of State Changes](#flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes)
   - [2. `remember` vs `rememberSaveable`](#2-remember-vs-remembersaveable)
+    - [Why `rememberSaveable` is Critical at the Compose Level](#why-remembersaveable-is-critical-at-the-compose-level)
   - [3. Real-World Uses of `rememberSaveable`](#3-real-world-uses-of-remembersaveable-in-ledgerone)
   - [4. Screen & Business State: `ViewModel` + `StateFlow`](#4-screen--business-state-viewmodel--stateflow)
   - [5. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
@@ -65,13 +67,29 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [4. `rememberCoroutineScope` (Event-Driven Coroutines)](#4-remembercoroutinescope-event-driven-coroutines)
   - [5. `rememberUpdatedState` (Stable Callback References)](#5-rememberupdatedstate-stable-callback-references)
   - [6. `produceState` (Converting Async Sources to Compose State)](#6-producestate-converting-async-sources-to-compose-state)
-  - [7. `derivedStateOf` (Calculation Optimization)](#7-derivedstateof-calculation-optimization)
+  - [7. `derivedStateOf` (Calculation Optimization & Invalidation Dampening)](#7-derivedstateof-calculation-optimization--invalidation-dampening)
   - [Summary Comparison Matrix of Compose Effect Handlers](#summary-of-compose-effect-handlers)
+- [Jetpack Compose Performance & Recomposition Optimization Best Practices](#jetpack-compose-performance--recomposition-optimization-best-practices)
+  - [1. Use `remember` to Minimize Expensive Calculations](#1-use-remember-to-minimize-expensive-calculations)
+  - [2. Use Lazy Layout Keys and Content Types](#2-use-lazy-layout-keys-and-content-types)
+  - [3. Use `computedStateOf` or `derivedStateOf` to Limit Recompositions](#3-use-computedstateof-or-derivedstateof-to-limit-recompositions)
+    - [Deep-Dive: Mechanics of Prefetch Infinite Pagination](#deep-dive-mechanics-of-prefetch-infinite-pagination-in-ledgerone)
+  - [4. Defer Reads as Long as Possible (Layout & Draw Phase Optimization)](#4-defer-reads-as-long-as-possible-layout--draw-phase-optimization)
+  - [5. Avoid Backwards Writes & Infinite Recomposition Loops](#5-avoid-backwards-writes--infinite-recomposition-loops)
+  - [6. How to Measure & Profile Performance Metrics for Each Screen](#6-how-to-measure--profile-performance-metrics-for-each-screen)
+    - [A. Compose Layout Inspector (Live Recomposition & Skip Counts)](#a-compose-layout-inspector-live-recomposition--skip-counts)
+    - [B. Compose Compiler Metrics & Stability Reports (Skippable vs. Restartable)](#b-compose-compiler-metrics--stability-reports-skippable-vs-restartable)
+    - [C. Frame Rendering, Jank & 120fps Fluidity via `dumpsys gfxinfo`](#c-frame-rendering-jank--120fps-fluidity-via-adb-dumpsys-gfxinfo)
+    - [D. System Tracing & Android Studio CPU Profiler (Trace Sections)](#d-system-tracing--android-studio-cpu-profiler-trace-sections)
+    - [E. Memory Allocations, Heap Dumps & LeakCanary Diagnostics](#e-memory-allocations-heap-dumps--leakcanary-diagnostics)
+    - [F. Automated Macrobenchmark: Screen Startup (TTID/TTFD) & Frame Timing](#f-automated-macrobenchmark-screen-startup-ttidttfd--frame-timing)
+    - [Screen-by-Screen Performance Checklist & Target Thresholds](#screen-by-screen-performance-checklist--target-thresholds)
 - [Application Enums: Flow Steps & Operational Statuses](#application-enums-flow-steps--operational-statuses)
   - [Key Step & Status State Machines](#key-step--status-state-machines)
 - [Design System: ColorScheme, Semantic Colors & Theme Architecture](#design-system-colorscheme-semantic-colors--theme-architecture)
   - [1. Palette Foundation (`Color.kt`)](#1-palette-foundation-colorkt)
   - [2. Material 3 ColorSchemes: Light vs. Dark (`Theme.kt`)](#2-material-3-colorschemes-light-vs-dark-themekt)
+    - [Visual Hierarchy & Contrast: `onSurface` vs. `onSurfaceVariant`](#visual-hierarchy--contrast-onsurface-vs-onsurfacevariant)
   - [3. Domain Financial Colors: `LedgerTheme.colors`](#3-domain-financial-colors-ledgerthemecolors)
   - [4. Theme Modes & Dynamic Switching (`ThemeMode`)](#4-theme-modes--dynamic-switching-thememode)
   - [5. Design System Components (`:core:designsystem`)](#5-design-system-components-coredesignsystem)
@@ -708,6 +726,154 @@ To eliminate Garbage Collection churn and heap allocations caused by Java primit
 
 ---
 
+#### F. <a id="flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes"></a>Flutter vs. Android Compose: How the UI is Notified of State Changes
+
+Developers coming from **Flutter** are accustomed to imperatively notifying the framework when state changes using `notifyListeners()` (in `ChangeNotifier` / Provider / Riverpod) or `setState(() { ... })` in a `StatefulWidget`.
+
+In **Android Jetpack Compose**, the paradigm is fundamentally different: **there is no manual `notify()` method whatsoever.** Compose is built on a transparent, automatic **Snapshot State System**.
+
+```mermaid
+flowchart LR
+    subgraph Flutter ["Flutter (Imperative Notification)"]
+        F1["State Mutated in Controller"] --> F2["Developer calls notifyListeners()"]
+        F2 --> F3["Framework rebuilds entire Widget subtree"]
+    end
+
+    subgraph Compose ["Jetpack Compose (Automatic Snapshot Tracking)"]
+        C1["Composable reads State in Composition"] -.->|Auto-registered in Slot Table| C2["Snapshot State Tracking"]
+        C3["State Mutated (e.g. StateFlow.update)"] --> C2
+        C2 -->|Auto-schedules Recomposition| C4["Only the exact reading Composable re-runs"]
+    end
+```
+
+##### 1. Architectural Comparison: Flutter `notifyListeners()` vs. Compose Snapshot System
+
+| Dimension | Flutter (`ChangeNotifier` / `setState`) | Android Jetpack Compose (`Snapshot State`) |
+|---|---|---|
+| **Notification Trigger** | **Manual & Imperative:** Developer must explicitly call `notifyListeners()` or `setState()`. | **Automatic & Reactive:** The Compose runtime intercepts writes to `MutableState` and invalidates observers automatically. |
+| **Forgetting to Notify** | ❌ **Silent UI Bug:** If you update a variable but omit `notifyListeners()`, the UI will never update. | ✅ **Impossible to Forget:** Modifying a `MutableState` or emitting to a `StateFlow` automatically notifies Compose. |
+| **Invalidation Scope** | **Coarse-Grained:** `setState()` rebuilds the entire `build()` method of that `StatefulWidget`. `notifyListeners()` rebuilds the entire `Consumer` / `ListenableBuilder` subtree. | **Fine-Grained / Targeted:** Compose recomposes **only the smallest enclosing composable scope** that actually read the mutated property (skipping all unaffected siblings and parents). |
+| **ViewModel / Controller Bridge** | `class Controller extends ChangeNotifier` $\rightarrow$ calls `notifyListeners()`. | `class ViewModel` $\rightarrow$ exposes `StateFlow<UiState>` $\rightarrow$ observed via `collectAsStateWithLifecycle()`. |
+| **Local Screen State** | `setState(() { counter++; })` | `var counter by remember { mutableIntStateOf(0) }` $\rightarrow$ `counter++` |
+
+---
+
+##### 2. How Architectural State Notifies the UI: `ChangeNotifier` vs. `StateFlow`
+
+###### In Flutter (Imperative Push):
+In Flutter, your business controller extends `ChangeNotifier` and must manually invoke `notifyListeners()` whenever any property changes:
+```dart
+// Flutter: Controller
+class WalletController extends ChangeNotifier {
+  int _balance = 1000;
+  int get balance => _balance;
+
+  void deposit(int amount) {
+    _balance += amount;
+    notifyListeners(); // ⚠️ MANDATORY: If omitted, UI never updates!
+  }
+}
+
+// Flutter: Widget
+ListenableBuilder(
+  listenable: walletController,
+  builder: (context, child) {
+    return Text('Balance: ${walletController.balance}'); // Entire builder rebuilds
+  },
+)
+```
+
+###### In Android Jetpack Compose (Reactive Pull & Invalidation):
+In Android Compose, ViewModels expose immutable `StateFlow<T>`. When the ViewModel updates state, Compose's `collectAsStateWithLifecycle()` receives the emission and writes to an internal `MutableState`, which triggers automatic recomposition:
+```kotlin
+// Android Compose: ViewModel (No notify method needed!)
+@HiltViewModel
+class WalletViewModel @Inject constructor(...) : ViewModel() {
+    private val _uiState = MutableStateFlow(WalletUiState(balanceMinor = 1000_00L))
+    val uiState: StateFlow<WalletUiState> = _uiState.asStateFlow()
+
+    fun deposit(amountMinor: Long) {
+        // Atomic update; Compose snapshot system detects the mutation automatically
+        _uiState.update { it.copy(balanceMinor = it.balanceMinor + amountMinor) }
+        // ✅ No notifyListeners() or notify() call required!
+    }
+}
+
+// Android Compose: Screen Composable
+@Composable
+fun WalletScreen(viewModel: WalletViewModel = hiltViewModel()) {
+    // 1. Bridges StateFlow into Compose's snapshot state system
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 2. Compose records that Text() reads state.balanceMinor
+    //    When balanceMinor changes, ONLY this Text recomposes!
+    Text("Balance: ${formatMoney(state.balanceMinor)}")
+}
+```
+
+---
+
+##### 3. How Local UI State Notifies the UI: `setState` vs. `mutableStateOf`
+
+In Flutter:
+```dart
+// Flutter: setState marks the entire widget dirty
+void _incrementCounter() {
+  setState(() {
+    _counter++; // Re-runs the entire widget's build() method
+  });
+}
+```
+
+In Android Compose:
+```kotlin
+// Compose: Mutating the delegated property notifies the snapshot system
+var counter by remember { mutableIntStateOf(0) }
+
+Button(onClick = { counter++ }) { // Directly mutates snapshot state
+    Text("Count: $counter")       // Only the Text inside Button recomposes!
+}
+```
+
+---
+
+##### 4. The Critical In-Place Mutation Trap (Why Flutter Habits Break in Compose)
+
+In Flutter, you can mutate a collection in-place and call `notifyListeners()` to force a rebuild:
+```dart
+// Flutter: In-place mutation works because notifyListeners() forces the rebuild
+myList.add(newItem);
+notifyListeners(); // ✅ Flutter rebuilds the UI
+```
+
+In Compose, **this will completely fail to update the UI:**
+```kotlin
+// ❌ COMPOSE ANTI-PATTERN: Will NOT update the UI!
+val list by remember { mutableStateOf(mutableListOf<String>()) }
+
+Button(onClick = {
+    list.add("New Transaction") // ❌ In-place mutation! The list instance reference DID NOT CHANGE!
+    // Since there is no notify() method to force a rebuild,
+    // Compose compares oldList == newList, sees they are identical,
+    // and SKIPS recomposition! The user sees nothing!
+})
+```
+
+###### The Two Correct Ways to Notify Compose of Collection Changes:
+1. **Emit a New Immutable Copy (Standard LedgerOne Pattern):**
+   ```kotlin
+   // ✅ Emits a brand-new list instance; Compose detects the change via structural equality
+   _uiState.update { it.copy(transactions = it.transactions + newTransaction) }
+   ```
+2. **Use Snapshot-Aware Collections (`mutableStateListOf`):**
+   ```kotlin
+   // ✅ Compose-aware snapshot list; intercepts .add(), .remove(), etc. to trigger recomposition
+   val list = remember { mutableStateListOf<String>() }
+   Button(onClick = { list.add("New Transaction") }) // Automatically notifies Compose!
+   ```
+
+---
+
 ### <a id="2-remember-vs-remembersaveable"></a>2. `remember` vs `rememberSaveable`: Deep Architectural Comparison
 
 In Jetpack Compose, managing ephemeral UI state requires choosing the correct state retention mechanism. While both `remember` and `rememberSaveable` retain state during the composition lifecycle, their storage backends, lifetime scopes, and resilience under Android OS events are fundamentally different.
@@ -829,7 +995,52 @@ Compose's own navigation and scrolling state holders delegate directly to `remem
 
 ---
 
-#### E. Concrete Demonstration: What Happens During Device Rotation
+#### E. <a id="why-remembersaveable-is-critical-at-the-compose-level"></a>Why `rememberSaveable` is Critical at the Compose Level
+
+While `remember` caches state in memory across recompositions of an active composable, relying solely on `remember` creates critical data-loss vulnerabilities at the Compose layer. `rememberSaveable` is an **architectural necessity at the composable level** for the following reasons:
+
+##### 1. Composables Are Stateless Functions, Not Stateful Views
+In traditional Android XML layouts, widgets like `EditText` or `ScrollView` inherited state persistence through `View.BaseSavedState`, automatically saving their internal text or scroll offset across configuration changes (provided they had an `android:id`).
+In Jetpack Compose, composable functions are **ephemeral, stateless descriptions** that execute and write data into an in-memory **Slot Table**.
+- When an Activity recreates due to configuration change (orientation change, split-screen multi-window mode, system dark/light theme switch, dynamic locale change, or font scaling change), **the entire Composition and its Slot Table are completely discarded and rebuilt from scratch**.
+- If a composable uses plain `remember { mutableStateOf(...) }`, its state vanishes along with the Slot Table.
+- `rememberSaveable` bridges this fundamental gap by binding composable state directly to the Android OS `SavedStateRegistry` without requiring legacy View wrappers.
+
+##### 2. Compose Navigation & Backstack State Preservation (`SaveableStateHolder`)
+In modern Compose single-activity architectures using `NavHost`:
+- When navigating from Screen A (e.g., `TransactionListScreen`) to Screen B (`TransactionDetailScreen`), Screen A **completely leaves the composition**.
+- If Screen A used `remember`, every local state variable (active search query, selected filter chips, scroll offset, expanded cards) would be destroyed and garbage-collected.
+- `NavHost` internally utilizes `SaveableStateHolder` to save each backstack entry's state via `rememberSaveable`. When the user presses Back to return to Screen A, `SaveableStateHolder` supplies the saved bundle back to `rememberSaveable`, instantly restoring the user's exact screen context.
+
+##### 3. LazyLayout Item Virtualization & Slot Disposal
+In virtualized lists (`LazyColumn`, `LazyRow`, `LazyGrid`):
+- As rows scroll off-screen, Compose **disposes of their composition slots** to conserve memory.
+- When an item scrolls back into view, its composable function executes again as a brand-new composition.
+- Any row-level UI state (e.g. an expanded/collapsed transaction note, a selected checkbox, or an inline input) managed with plain `remember` is permanently reset when scrolled out of view.
+- `rememberSaveable(key = item.id)` ensures that virtualized item states survive slot recycling across scroll boundaries.
+
+##### 4. Preventing ViewModel Bloat (Encapsulated Ephemeral UI State)
+A common anti-pattern in Android development is hoisting every tiny visual state into a `ViewModel` simply to survive screen rotation.
+- Hoisting ephemeral flags (e.g., `isPasswordVisible`, `isDropdownExpanded`, `showConfirmDialog`, `activeTabIndex`) into the `ViewModel` pollutes domain and business logic with purely visual presentation details.
+- It introduces unnecessary boilerplate (`MutableStateFlow`, actions, intents) for state that no other screen or business use-case cares about.
+- `rememberSaveable` empowers composables to remain **clean, self-contained, and encapsulated**: a UI component can manage its own transient survival across configuration changes and process death independently, adhering strictly to the Single Responsibility Principle.
+
+##### 5. System Process Death Resilience
+When an Android device enters low memory states (e.g. when the user switches to a heavy camera or navigation app), the Android OS terminates background app processes.
+- Normal JVM memory, including `ViewModel` instances (unless explicitly configured with `SavedStateHandle`), is wiped clean.
+- When the user taps the app in Recents, Android restarts the process.
+- `rememberSaveable` values are persisted in the OS-level `Bundle` and restored during `onCreate(savedInstanceState)`, preventing form data loss and jarring blank states.
+
+##### 6. The Bedrock of Compose Foundation Components
+Compose's own core interactive components are architected directly upon `rememberSaveable`:
+- `rememberScrollState()` delegates to `rememberSaveable(saver = ScrollState.Saver)`.
+- `rememberLazyListState()` delegates to `rememberSaveable(saver = LazyListState.Saver)`.
+- `rememberModalBottomSheetState()` delegates to `rememberSaveable(saver = SheetState.Saver)`.
+Without `rememberSaveable` at the Compose level, every scrollable container and bottom sheet in the Android ecosystem would snap back to position 0 whenever the user rotates their phone.
+
+---
+
+#### F. Concrete Demonstration: What Happens During Device Rotation
 
 ##### Scenario 1: Using Plain `remember` (Incorrect for User Input)
 ```kotlin
@@ -867,7 +1078,7 @@ fun GoodAmountInput() {
 
 ---
 
-#### F. Decision Rule: When to Use `remember` vs `rememberSaveable` vs `ViewModel`
+#### G. Decision Rule: When to Use `remember` vs `rememberSaveable` vs `ViewModel`
 
 ```mermaid
 flowchart TD
@@ -1178,7 +1389,6 @@ Orchestrates mobile number entry, OTP verification, and new user onboarding.
 - **Input Buffer Retention:**
   - `phone` number input: Held in `rememberSaveable { mutableStateOf("") }` in `OnboardingFlow`.
   - `code` OTP input: Held in `rememberSaveable { mutableStateOf("") }` in `OtpStep`.
-  - `editPhoneRequested` toggle: Held in `rememberSaveable { mutableStateOf(false) }`.
 - **Landscape IME Keyboard Safety:**
   `OnboardingFlow` wraps all steps inside `Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)`. When the numeric keyboard appears in landscape (occupying 50%+ of screen height), the container compresses smoothly and allows full scrolling so the Verify button is never blocked.
 
@@ -1257,7 +1467,7 @@ Top-level application container managing navigation backstacks and global alerts
 | Screen / Component | Landscape Viewport Adaptation | ViewModel State (`StateFlow`) | `rememberSaveable` (Bundle State) | Rotation & Landscape Guarantees |
 |---|---|---|---|---|
 | **QR Scanner (`ScanScreen` / `QrCamera`)** | Centered 280dp max-height constraint; scrollable via `FeatureScaffold` | N/A (Reactive scanner callback) | `done`, `cameraGranted`, `manual`, `invalid` | Viewfinder maintains 1:1 ratio without blowout; orientation auto-rotates ML Kit frames; no double-scan on rotation |
-| **Onboarding (`OnboardingFlow` / `OtpStep`)** | `Modifier.verticalScroll(rememberScrollState())` with IME safe insets | `OnboardingViewModel.resendCountdown`, `otpState` | `phone`, `code`, `error`, `editPhoneRequested`, `consent` | Timer keeps ticking across rotation; phone number and OTP inputs preserved; inputs never trapped behind landscape keyboard |
+| **Onboarding (`OnboardingFlow` / `OtpStep`)** | `Modifier.verticalScroll(rememberScrollState())` with IME safe insets | `OnboardingViewModel.resendCountdown`, `otpState` | `phone`, `code`, `consent` | Timer keeps ticking across rotation; phone number and OTP inputs preserved; inputs never trapped behind landscape keyboard |
 | **Returning Login (`OtpLoginScreen`)** | `Modifier.verticalScroll(rememberScrollState())` with fixed spacers | `LoginViewModel.resendCountdown` | `code`, `wrong`, `checking`, `confirmReset` | 30s resend timer survives rotation; account switch dialog stays open; validation error banner stays visible |
 | **Dashboard (`HomeScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `HomeViewModel.uiState`, `AppViewModel.session` | Built-in `LazyListState` item/offset saver | Balance overview and promotion carousels stay readable; scroll position and reveal balance state survive rotation |
 | **Transaction Feed (`TransactionListScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `TransactionListViewModel.pages`, `uiState` | `rememberLazyListState()` scroll position | Exact reading offset preserved across rotation; paginated pages remain in memory without refetching |
@@ -1550,12 +1760,48 @@ if (activity != null) DisposableEffect(activity, navController) {
 
 ---
 
-### <a id="7-derivedstateof-calculation-optimization"></a>7. `derivedStateOf` (Calculation Optimization)
+### <a id="7-derivedstateof-calculation-optimization"></a><a id="7-derivedstateof-calculation-optimization--invalidation-dampening"></a>7. `derivedStateOf` (Calculation Optimization & Invalidation Dampening)
 
-`derivedStateOf` creates a Compose `State` derived from other Compose state objects, recomputing its value only when input boundaries change.
+`derivedStateOf` creates a Compose `State<T>` derived from one or more snapshot state objects. It acts as an **invalidation dampener (low-pass filter)**: even if the underlying snapshot states mutate continuously (such as scroll offsets changing on every single pixel during a drag or fling gesture), `derivedStateOf` only invalidates reading composable scopes when its *calculated output value* changes.
 
-- **When to use:** When state changes rapidly (such as `LazyListState.firstVisibleItemIndex` during scrolling), but the UI only needs to react when a specific condition is met (e.g. scroll offset passing a threshold).
-- **LedgerOne Example:** In `TransactionListScreen.kt`, `derivedStateOf` calculates `shouldLoadMore` by inspecting visible item indexes to determine when to trigger the next page load.
+#### Why It Is Essential (The High-Frequency Scroll Pitfall)
+Without `derivedStateOf`, observing high-velocity state directly in a composable causes recomposition on **every frame**:
+```kotlin
+// BAD: Recomposes on EVERY pixel change during scrolling!
+val isScrolled = listState.firstVisibleItemScrollOffset > 0
+```
+With `derivedStateOf`, the boolean state is cached and downstream readers only recompose when `isScrolled` flips between `true` and `false`:
+```kotlin
+// GOOD: Downstream scopes ONLY recompose when the boolean transitions between true and false
+val isScrolled by remember { derivedStateOf { listState.firstVisibleItemScrollOffset > 0 } }
+```
+
+#### Real-World Implementation in LedgerOne (`TransactionListScreen.kt`)
+In `TransactionListScreen`, we use `derivedStateOf` to power **prefetch-based infinite scrolling**:
+```kotlin
+val listState = rememberLazyListState()
+
+// 1. Detect when the user scrolls within 3 items of the list end
+val shouldLoadMore by remember {
+    derivedStateOf {
+        val totalItems = listState.layoutInfo.totalItemsCount
+        val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        totalItems > 0 && lastVisibleIndex >= totalItems - 3
+    }
+}
+
+// 2. Safely trigger pagination side-effect with debounce guards
+LaunchedEffect(shouldLoadMore) {
+    if (shouldLoadMore && !uiState.isLoadingNextPage && !uiState.isEndReached) {
+        onLoadMore()
+    }
+}
+```
+
+#### Key Rules for `derivedStateOf`
+- **Never pass snapshot states as `remember` keys:** Writing `remember(listState.layoutInfo) { derivedStateOf { ... } }` defeats the cache. It compares `layoutInfo` on every frame, re-allocates a new `DerivedState` instance, and causes the exact recompositions you intended to prevent.
+- **`derivedStateOf` vs `computedStateOf` (Compose Runtime 1.13+):** `derivedStateOf` caches calculation results across reads. In Compose Runtime 1.13+, `computedStateOf` re-evaluates without caching bookkeeping overhead and is preferred for lightweight boolean thresholds driven by scroll state.
+- **Do not use for non-snapshot properties:** If calculating a value from standard immutable Kotlin objects (e.g. `items.size > 0`), use a standard Kotlin getter `val hasItems: Boolean get() = items.isNotEmpty()` instead.
 
 ---
 
@@ -1570,6 +1816,551 @@ if (activity != null) DisposableEffect(activity, navController) {
 | **`rememberUpdatedState`** | No | No | Updates internal reference | Capturing latest callback in long-lived effects |
 | **`produceState`** | **Yes** | Cooperative cancellation | Key change / leaves composition | Bridging external async data into Compose `State<T>` |
 | **`derivedStateOf`** | No | No | Derived inputs change | Reducing recomposition frequency for high-velocity state |
+
+---
+
+## <a id="jetpack-compose-performance--recomposition-optimization-best-practices"></a><a id="jetpack-compose-performance-recomposition-optimization-best-practices"></a>Jetpack Compose Performance & Recomposition Optimization Best Practices
+
+In a declarative UI system like Jetpack Compose, composable functions can re-execute **as frequently as every single frame** (e.g., at 60Hz or 120Hz during smooth animations, scrolling gestures, or rapid user inputs). While Compose is designed for high throughput, sub-optimal state management, unkeyed lazy layouts, and un-deferred state reads can quickly degrade frame rates, introduce UI stutter (jank), trigger unnecessary garbage collection (GC) pressure, and even cause infinite recomposition loops.
+
+LedgerOne strictly implements five core Compose performance best practices across `:feature:ledger`, `:feature:wallet`, and `:core:designsystem`:
+
+---
+
+### <a id="1-use-remember-to-minimize-expensive-calculations"></a>1. Use `remember` to Minimize Expensive Calculations
+
+#### The Problem
+Composable functions are not one-time layout definitions; they re-run whenever any snapshot state they read changes. Performing CPU-intensive computations—such as parsing dates, constructing formatters, sorting lists, or calculating cryptographic hashes—directly within the composable body forces these operations to re-run on **every recomposition pass**, even if the underlying inputs have not changed.
+
+#### Best Practice Guidelines
+1. **Cache Heavy Calculations:** Use `remember(vararg keys) { ... }` to store results in the Compose slot table. The calculation executes only once on initial composition and is recomputed only if any of the specified `keys` fail an `equals()` check.
+2. **Always Supply Exact Keys:** Any external input referenced inside the `remember` block MUST be passed as a key; omitting keys causes stale data bugs when parameters update.
+3. **Avoid Large/Expensive Equals Keys:** Comparing a large collection with `.equals()` inside `remember(collection)` on every frame can be more computationally expensive than performing a lightweight derivation. In such cases, hoist the calculation to the ViewModel or compare stable primitives (e.g. `collection.size` or `collection.version`).
+4. **Prefer Hoisting to ViewModel:** If possible, sort or format data upstream in the ViewModel or repository off the Main thread using coroutines (`Dispatchers.Default`), providing pre-sorted, immutable UI models to composables.
+
+#### LedgerOne Implementations
+
+- **Date & Currency Formatting in `TransactionListItem` (`TransactionListScreen.kt`):**
+  Formatting epochs with `DateTimeFormatter` and converting minor units to formatted rupees (`toFormattedCurrency`) allocate formatters and strings. We wrap them in `remember`:
+  ```kotlin
+  @Composable
+  fun TransactionListItem(
+      transaction: Transaction,
+      onClick: () -> Unit,
+      modifier: Modifier = Modifier
+  ) {
+      // Caches string generation; only re-evaluates if timestampEpochMs changes
+      val formattedDateTime = remember(transaction.timestampEpochMs) {
+          transaction.timestampEpochMs.toFormattedDateTime()
+      }
+      // Caches localized currency calculation; re-evaluates only on amount/currency mutation
+      val formattedCurrency = remember(transaction.amountInCents, transaction.currency) {
+          transaction.amountInCents.toFormattedCurrency(transaction.currency)
+      }
+      
+      ListRow(
+          icon = categoryIcon(transaction.category),
+          title = transaction.description.ifBlank { transaction.category },
+          subtitle = "${transaction.category} · $formattedDateTime",
+          trailing = formattedCurrency,
+          onClick = onClick,
+      )
+  }
+  ```
+
+- **Localized Currency & Accessibility Strings in `MaskedAmount` (`MaskedAmount.kt`):**
+  ```kotlin
+  @Composable
+  fun MaskedAmount(
+      minor: Long,
+      revealed: Boolean,
+      onToggle: () -> Unit,
+      currency: String = "INR",
+      ...
+  ) {
+      val formattedAmount = remember(minor, currency) { formatMoney(minor, currency) }
+      val spoken = remember(minor, currency) { spokenAmount(minor, currency) }
+
+      Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+          Text(
+              text = if (revealed) formattedAmount else "₹ • • • • •",
+              modifier = Modifier.semantics {
+                  contentDescription = if (revealed) spoken else "Balance hidden"
+              },
+              ...
+          )
+          ...
+      }
+  }
+  ```
+
+- **Passbook History Caching in `LedgerHistoryScreen` (`LedgerHistoryScreen.kt`):**
+  ```kotlin
+  val formattedDate = remember(row.timestampEpochMs) { row.timestampEpochMs.toFormattedDateTime() }
+  val formattedAmount = remember(row.amountInCents, row.currency) {
+      row.amountInCents.toFormattedCurrency(row.currency)
+  }
+  ```
+
+---
+
+### <a id="2-use-lazy-layout-keys-and-content-types"></a>2. Use Lazy Layout Keys and Content Types
+
+#### The Problem
+Without explicit item keys, `LazyColumn`, `LazyRow`, and `LazyGrid` identify items solely by their positional index. If an item is inserted, deleted, or reordered (such as a new transaction arriving at the top of the passbook), Compose cannot distinguish between an item moving and an item's content changing. Consequently, Compose discards and recreates the composition slots for every item below the insertion point, causing severe scroll stutter and jank.
+
+#### Best Practice Guidelines
+1. **Provide Stable, Bundle-Saveable Keys:**
+   - Keys must be deterministic, unique across items, and saveable in an Android `Bundle` (e.g., `String`, `Long`, or `Int` identifiers like `transaction.id`).
+   - **Never** use list indexes or `hashCode()` as keys. Positional keys defeat the entire purpose of item identity during moves/deletions.
+2. **Always Specify `contentType` for Heterogeneous Lists:**
+   - Supply `contentType = { ... }` so Compose only recycles composition slots between items that share the exact same composable layout structure.
+   - For lists mixing headers, banners, list rows, and loading spinners, distinct `contentType` tokens prevent Compose from attempting to reuse a banner's slot hierarchy for a transaction item.
+3. **Use `itemsIndexed` Instead of `indexOf()`:**
+   - Never call `list.indexOf(item)` inside an `items` block, as doing so turns linear layout construction into an $O(N^2)$ scan. Use `itemsIndexed(items, key = { _, item -> item.id })` instead.
+4. **Prefer `Column` / `Row` with `forEach` for Small Bounded Collections:**
+   - For small, static collections (1 to 10 items, such as the 3 quick contacts in `WalletScreen.kt`), standard layout composables avoid the allocation and prefetching overhead of lazy virtualization.
+
+#### LedgerOne Implementations
+
+- **Paged Transaction List with `itemKey` & `itemContentType` (`TransactionListScreen.kt`):**
+  ```kotlin
+  LazyColumn(state = listState) {
+      // 1. Static error banner with dedicated key & contentType
+      if (uiState.errorMessage != null) {
+          item(key = "list-error", contentType = "error_banner") {
+              ErrorBanner(uiState.errorMessage)
+          }
+      }
+
+      // 2. Heterogeneous Paging 3 Items with stable itemKey and itemContentType
+      if (paging != null) {
+          items(
+              count = paging.itemCount,
+              key = paging.itemKey { it.id },
+              contentType = paging.itemContentType { "transaction_item" },
+          ) { index ->
+              val transaction = paging[index] ?: return@items
+              TransactionListItem(transaction = transaction, onClick = { ... })
+          }
+      }
+
+      // 3. Dynamic pagination spinner with dedicated key & contentType
+      if (uiState.isLoadingNextPage) {
+          item(key = "loading_more", contentType = "loading_spinner") {
+              CircularProgressIndicator()
+          }
+      }
+  }
+  ```
+
+- **Passbook Lazy History (`LedgerHistoryScreen.kt`):**
+  ```kotlin
+  LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      items(
+          count = pages.itemCount,
+          key = pages.itemKey { it.id },
+          contentType = pages.itemContentType { "passbook_row" },
+      ) { index ->
+          val row = pages[index] ?: return@items
+          ...
+      }
+  }
+  ```
+
+- **Horizontal Offers Carousel (`HomeScreen.kt`):**
+  ```kotlin
+  LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      items(
+          items = promotions,
+          key = { it.id },
+          contentType = { "promo_offer" },
+      ) { offer ->
+          PromoCard(offer = offer, onClick = { ... })
+      }
+  }
+  ```
+
+---
+
+### <a id="3-use-computedstateof-or-derivedstateof-to-limit-recompositions"></a>3. Use `computedStateOf` or `derivedStateOf` to Limit Recompositions
+
+#### The Problem
+When observing rapidly changing snapshot state (such as `LazyListState.firstVisibleItemScrollOffset` or `listState.layoutInfo` during a smooth fling gesture), reading the raw state directly inside a composable invalidates the parent recomposition scope on **every single pixel change**. If the UI only cares about a high-level boolean threshold (e.g., "has the user scrolled past item 5?"), hundreds of unnecessary recompositions occur every second.
+
+#### Best Practice Guidelines
+1. **Dampen Recomposition Frequencies:** Wrap high-frequency state calculations in `remember { derivedStateOf { ... } }` (or `remember { computedStateOf { ... } }` in Compose Runtime 1.13+). Recomposition of downstream observers is only triggered when the *derived result* changes value.
+2. **Never Pass Snapshot State Reads as `remember` Keys:**
+   ```kotlin
+   // INCORRECT: listState.firstVisibleItemIndex passed as a key recreates the DerivedState on every tick!
+   val showTopButton by remember(listState.firstVisibleItemIndex) {
+       derivedStateOf { listState.firstVisibleItemIndex > 0 }
+   }
+
+   // CORRECT: Snapshot state is read INSIDE the lambda, enabling Compose to track dependencies without reallocating
+   val showTopButton by remember {
+       derivedStateOf { listState.firstVisibleItemIndex > 0 }
+   }
+   ```
+3. **Use Plain Kotlin Getters for Trivial Non-State Calculations:** If a calculation reads regular Kotlin properties rather than Compose `State<T>`, a simple custom getter `val hasItems: Boolean get() = items.isNotEmpty()` is preferred over `derivedStateOf` to avoid allocation overhead.
+
+#### LedgerOne Implementations
+
+- **Scroll-Driven Infinite Pagination in `TransactionListScreen.kt`:**
+  Instead of continuously observing `listState.layoutInfo` in composition, `TransactionListScreen` derives a boolean flag that only fires when the user scrolls within 3 items of the list end:
+  ```kotlin
+  val listState = rememberLazyListState()
+
+  // Dampens high-frequency scroll state updates into a single boolean trigger
+  val shouldLoadMore by remember {
+      derivedStateOf {
+          val totalItems = listState.layoutInfo.totalItemsCount
+          val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+          totalItems > 0 && lastVisibleIndex >= totalItems - 3
+      }
+  }
+
+  // Trigger next page load only when shouldLoadMore transitions from false to true
+  LaunchedEffect(shouldLoadMore) {
+      if (shouldLoadMore && !uiState.isLoadingNextPage && !uiState.isEndReached) {
+          onLoadMore()
+      }
+  }
+  ```
+
+##### <a id="deep-dive-mechanics-of-prefetch-infinite-pagination-in-ledgerone"></a>Deep-Dive: Mechanics of Prefetch Infinite Pagination in LedgerOne
+
+1. **The Prefetch Threshold Formula (`lastVisibleIndex >= totalItems - 3`):**
+   - By calculating `lastVisibleIndex >= totalItems - 3`, LedgerOne requests the subsequent batch of transactions when the user is still **3 rows away** from reaching the bottom.
+   - This predictive prefetching hides network/database latency, delivering a seamless, uninterrupted infinite scrolling experience where the user never encounters a blank loading screen.
+
+2. **Recomposition Invalidation Dampening:**
+   - During a high-speed 500-pixel scroll or fling gesture, `listState.layoutInfo` is updated on **every display refresh frame** (up to 120 times per second on high-refresh-rate displays).
+   - If evaluated directly in composition, the parent composable would re-execute 120 times per second.
+   - `derivedStateOf` intercepts this high-frequency stream: it evaluates the calculation on each frame, compares the resulting boolean with the cached previous boolean, and **only invalidates the `LaunchedEffect` caller once**—at the exact instant `shouldLoadMore` transitions from `false` to `true`.
+
+3. **Multi-Tier Guard Protection Against Duplicate Requests:**
+   - `shouldLoadMore`: Signals that the scroll position is within the trigger zone.
+   - `!uiState.isLoadingNextPage`: Locks out redundant network fetches while an asynchronous request is already in-flight.
+   - `!uiState.isEndReached`: Stops further invocations once the backend/database confirms that the final page of transactions has been reached.
+
+4. **Why `derivedStateOf` Outperforms `snapshotFlow` for Synchronous Derivations:**
+   - An alternative approach sometimes seen is `snapshotFlow { ... }.collect { ... }` inside a `LaunchedEffect`.
+   - While valid for asynchronous debouncing, using `snapshotFlow` with `produceState` introduces coroutine context switching, channel buffer allocations, and async dispatch latency just to derive a synchronous boolean check.
+   - `derivedStateOf` operates directly within Compose's snapshot state system with zero coroutine overhead, ensuring immediate, frame-accurate synchronization with the layout.
+
+---
+
+### <a id="4-defer-reads-as-long-as-possible-layout--draw-phase-optimization"></a>4. Defer Reads as Long as Possible (Layout & Draw Phase Optimization)
+
+#### The Problem
+Jetpack Compose processes UI through three sequential phases:
+$$\text{Composition (What to show)} \longrightarrow \text{Layout (Where to place it)} \longrightarrow \text{Draw (How to render it)}$$
+
+When state is read during the **Composition** phase (e.g. passing a changing float to `Modifier.alpha(alpha)` or an integer to `Modifier.offset(x, y)`), any change forces Compose to re-execute the composable function and re-run all three phases. When state changes at 60Hz or 120Hz (such as continuous shimmer animations or scroll offsets), this causes frame drops.
+
+#### Best Practice Guidelines
+1. **Use Lambda Modifiers:** Replace static modifiers with their lambda equivalents:
+   - `Modifier.offset { IntOffset(x, y) }` instead of `Modifier.offset(x.dp, y.dp)` (skips Composition; runs in Layout phase).
+   - `Modifier.graphicsLayer { this.alpha = alphaProvider() }` or `Modifier.drawBehind { ... }` instead of `Modifier.alpha(...)` or `Modifier.background(...)` (skips Composition & Layout; runs directly in Draw phase).
+2. **Pass Lambdas Instead of Raw Values:** If a child composable only needs a changing value inside a modifier or layout block, pass a provider lambda `() -> Float` rather than the primitive value `Float`.
+
+#### LedgerOne Implementations
+
+- **Shimmer Animation in `Skeleton.kt`:**
+  In `Skeleton`, an infinite 900ms pulsing shimmer animation animates an alpha float between 0.35f and 0.8f. Reading this in composition would trigger recomposition every single frame:
+  ```kotlin
+  @Composable
+  fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
+      val reduced = rememberReducedMotion()
+      val alphaProvider: () -> Float = if (reduced) {
+          { 0.6f }
+      } else {
+          val transition = rememberInfiniteTransition(label = "shimmer")
+          val pulse = transition.animateFloat(
+              initialValue = 0.35f,
+              targetValue = 0.8f,
+              animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+              label = "pulse",
+          )
+          // Returns a lambda provider; does NOT read pulse.value during composition
+          val provider: () -> Float = { pulse.value }
+          provider
+      }
+
+      Box(
+          modifier
+              .height(height)
+              .clip(RoundedCornerShape(8.dp))
+              // Defers state read directly to the Draw phase!
+              // Composition and Layout phases are completely skipped on every animation frame.
+              .graphicsLayer { this.alpha = alphaProvider() }
+              .background(MaterialTheme.colorScheme.surfaceVariant),
+      )
+  }
+  ```
+
+---
+
+### <a id="5-avoid-backwards-writes--infinite-recomposition-loops"></a>5. Avoid Backwards Writes & Infinite Recomposition Loops
+
+#### The Problem
+Compose has a fundamental architectural assumption: **a composable function must never mutate snapshot state that has already been read in the current or parent composition scope.** 
+Mutating state during composition is known as a **backwards write**. When a composable writes to state during composition, Compose detects that the state has changed after being read, immediately invalidates the scope, and schedules another recomposition—resulting in an infinite CPU loop that freezes the UI and exhausts memory.
+
+```kotlin
+// DANGEROUS: Backwards write causing infinite recomposition loops
+@Composable
+fun BadCounter() {
+    var count by remember { mutableIntStateOf(0) }
+    Text("Count: $count") // State read
+    count++               // Backwards write! Triggers immediate recomposition loop
+}
+```
+
+#### Best Practice Guidelines
+1. **Never Mutate State During Composition:** State writes must strictly occur inside **event lambdas** (e.g. `Button(onClick = { ... })`, `onValueChange = { ... }`) or lifecycle-managed side-effect coroutines (e.g. `LaunchedEffect`).
+2. **Unidirectional Data Flow with ViewModels:** UI state is held in ViewModels as immutable `StateFlow<UiState>` instances. The UI only dispatches user intents via function calls (`viewModel.onAmount(...)`), and ViewModels update state atomically via `MutableStateFlow.update { it.copy(...) }`.
+3. **Immutability of UI State:** All UI state models (`TransactionListUiState`, `WalletUiState`, `HomeUiState`) are defined as `@Immutable` Kotlin data classes with read-only `val` properties.
+
+---
+
+### <a id="6-how-to-measure--profile-performance-metrics-for-each-screen"></a><a id="6-how-to-measure-profile-performance-metrics-for-each-screen"></a>6. How to Measure & Profile Performance Metrics for Each Screen
+
+To ensure the application maintains consistent 60fps / 120fps fluid scrolling, instant screen transitions, and minimal battery consumption, developers and QA engineers must systematically inspect performance metrics across every screen (`HomeScreen`, `TransactionListScreen`, `WalletScreen`, `ScanScreen`, `LedgerHistoryScreen`, and `TransactionDetailScreen`).
+
+The following six profiling methodologies provide a complete diagnostics toolkit for verifying performance metrics screen-by-screen:
+
+---
+
+#### <a id="a-compose-layout-inspector-live-recomposition--skip-counts"></a>A. Compose Layout Inspector (Live Recomposition & Skip Counts)
+
+The **Layout Inspector** in Android Studio connects directly to a running process on an emulator or physical device, providing real-time instrumentation of Compose recomposition behavior.
+
+##### How to Run It:
+1. Run the application in debug mode on a connected device (`./gradlew :app:installMockDebug`).
+2. Open Android Studio and navigate to **View > Tool Windows > Layout Inspector**.
+3. Select the running process: `com.ledger.personal.mock.debug`.
+4. In the Layout Inspector component tree header, click the eyeball icon and check **"Show Recomposition Counts"**.
+
+##### What to Measure:
+Two key integer counters appear beside every composable node in the tree:
+- **Recomposition Count (Blue badge):** Number of times the composable executed its body since monitoring began.
+- **Skip Count (Gray badge):** Number of times Compose successfully bypassed executing the composable because all input arguments remained unchanged and stable.
+
+##### Screen-by-Screen Inspection Targets:
+
+| Screen | User Interaction | Expected Performance Behavior | Red Flag If Observed |
+|---|---|---|---|
+| **`HomeScreen`** | Horizontally scrolling through the `promotions` carousel | Only the active `PromoCard` row items recompose. The parent `LazyColumn`, `SummaryCard`, and top toolbar **must have 0 recompositions** and increment skip count. | Entire `HomeScreen` recomposes during horizontal carousel gestures. |
+| **`HomeScreen`** | Toggling the balance eye icon | Only `MaskedAmount` recomposes. All other sections (`Note`, `Promotions`, `TopAppBar`) **must skip**. | Skeleton loaders or offline banners re-evaluating. |
+| **`TransactionListScreen`** | Flinging or dragging vertically down the list | Unchanged rows must have **0 recompositions** during scrolling. Composition slots must be cleanly recycled. | Recomposition counts spiking on visible rows as user scrolls past them. |
+| **`TransactionListScreen`** | Reaching bottom of list (pagination trigger) | `LoadingSpinner` appears at the footer. Only the newly fetched page rows compose. Existing rows **must not recompose**. | The entire list of already-rendered transactions recomposes from index 0. |
+| **`WalletScreen`** | Typing into `AmountField` or keypad | Only `AmountField` and the continue `PrimaryButton` recompose. The recipient input, contact picker, and `MockCatalog.contacts` rows **must be skipped**. | Contact list radio buttons recomposing on every keystroke. |
+| **`LedgerHistoryScreen`** | Scrolling passbook history | `ListRow` items must be completely reused via `contentType = "passbook_row"` and `key = pages.itemKey { it.id }`. | High recomposition count on `FeatureScaffold` or `SectionCard`. |
+
+---
+
+#### <a id="b-compose-compiler-metrics--stability-reports-skippable-vs-restartable"></a>B. Compose Compiler Metrics & Stability Reports (Skippable vs. Restartable)
+
+Compose Compiler Metrics statically analyze your code at compile time, outputting detailed reports on whether your composables can be skipped and whether your data classes are stable.
+
+##### How to Generate Compiler Reports:
+Run the Gradle release assembly task with the Compose compiler metric flags enabled:
+
+```bash
+./gradlew assembleRelease \
+  -Pandroidx.compose.compiler.plugins.kotlin.enableMetrics=true \
+  -Pandroidx.compose.compiler.plugins.kotlin.enableReports=true
+```
+
+Reports are automatically generated inside each module's build directory:
+- `<module>/build/compose_compiler/<variant>-classes.txt`
+- `<module>/build/compose_compiler/<variant>-composables.txt`
+- `<module>/build/compose_compiler/<variant>-composables.csv`
+- `<module>/build/compose_compiler/<variant>-module.json`
+
+##### What to Inspect in the Reports:
+
+1. **Composable Function Skippability (`*-composables.txt`):**
+   ```text
+   // GOLD STANDARD: Function can be completely skipped if arguments haven't changed
+   restartable skippable fun TransactionListItem(
+       stable transaction: Transaction,
+       stable onClick: Function0<Unit>,
+       stable modifier: Modifier? = @static Companion
+   )
+
+   // WARNING: Function can restart but CANNOT skip because it accepts an unstable argument
+   restartable fun UnoptimizedList(
+       unstable items: List<Transaction> // Standard java.util.List is inferred unstable by default
+   )
+   ```
+2. **Class Stability (`*-classes.txt`):**
+   - Look for `unstable class` annotations. A class is unstable if it has mutable `var` properties or fields with types unknown to the Compose compiler.
+   - All domain and UI state models in LedgerOne (`Transaction`, `WalletUiState`, `HomeUiState`) must evaluate to:
+     ```text
+     stable class Transaction {
+       stable val id: String
+       stable val amountInCents: Long
+       stable val currency: String
+       stable val category: String
+       stable val description: String
+       stable val timestampEpochMs: Long
+     }
+     ```
+
+---
+
+#### <a id="c-frame-rendering-jank--120fps-fluidity-via-adb-dumpsys-gfxinfo"></a>C. Frame Rendering, Jank & 120fps Fluidity via `dumpsys gfxinfo`
+
+Android's `dumpsys gfxinfo` command dumps the precise hardware rendering pipeline latency for every frame rendered on a screen, measuring the exact percentage of janky (dropped) frames.
+
+##### How to Profile Screen Rendering via Terminal:
+
+```bash
+# 1. Reset frame statistics before entering the target screen
+adb shell dumpsys gfxinfo com.ledger.personal.mock.debug reset
+
+# 2. Interact with the screen on your device:
+#    e.g. Scroll TransactionListScreen up and down for 5 seconds
+
+# 3. Dump the frame latency statistics and histogram
+adb shell dumpsys gfxinfo com.ledger.personal.mock.debug
+```
+
+##### Sample Output & Metrics to Evaluate:
+
+```text
+Graphics info for pid 12845 [com.ledger.personal.mock.debug]:
+
+Total frames rendered: 842
+Janky frames: 4 (0.47%)
+50th percentile: 6.2ms
+90th percentile: 8.1ms
+95th percentile: 9.4ms
+99th percentile: 12.8ms
+Number Missed Vsync: 1
+Number Slow UI thread: 3
+Number Slow bitmap uploads: 0
+Number Slow issue draw commands: 0
+```
+
+##### Target Pass/Fail Criteria:
+- **Janky frames percentage:** Must be strictly **$< 2.0\%$** across all test screens (LedgerOne targets $< 0.5\%$).
+- **90th Percentile Frame Time:**
+  - On **60Hz screens:** $\le 16.6\text{ms}$ budget.
+  - On **120Hz screens (ProMotion / Smooth Display):** $\le 8.3\text{ms}$ budget.
+- **On-Device Visual Inspection (HWUI Profiling):**
+  - In Android Developer Options, enable **"Profile HWUI rendering" $\rightarrow$ "On screen as bars"**.
+  - A horizontal green guide line represents the 16.6ms frame deadline (or 8.3ms for 120Hz).
+  - Vertical bars represent the render time per frame (Orange = Process, Red = Execute, Light Blue = Draw). If bars breach the green threshold line during scrolling, a frame was dropped.
+
+---
+
+#### <a id="d-system-tracing--android-studio-cpu-profiler-trace-sections"></a>D. System Tracing & Android Studio CPU Profiler (Trace Sections)
+
+System Tracing records kernel-level scheduling, CPU slice allocation, thread contention, and Compose composition passes with microsecond precision.
+
+##### How to Capture a System Trace:
+1. Open Android Studio -> **Profiler** tab (bottom bar).
+2. Click **Start New Profiling Session** on the target process.
+3. Select **CPU**, then choose **System Trace** and click **Record**.
+4. Perform the target screen action (e.g. navigate from `HomeScreen` to `WalletScreen`, or trigger biometric prompt in `WalletScreen`).
+5. Click **Stop** to inspect the trace timeline.
+
+##### What to Look For:
+- **`Choreographer#doFrame`:** Verify that main thread frame slices do not exceed 16.6ms (60Hz) or 8.3ms (120Hz).
+- **Compose Tracing Slices:** With `androidx.compose.runtime:runtime-tracing`, individual composables appear directly on the Main Thread track (e.g. `HomeScreen`, `SummaryCard`, `Skeleton`).
+- **Phase Separation:**
+  - Verify that `Skeleton` shimmer animations do not generate `Recompose` slices on `Main Thread`, but only run inside `Draw` slices.
+  - Verify that database operations (Room) and network requests (Retrofit) execute strictly on worker threads (`DefaultDispatcher-worker-*` or `IO`), never on `Main Thread`.
+
+---
+
+#### <a id="e-memory-allocations-heap-dumps--leakcanary-diagnostics"></a>E. Memory Allocations, Heap Dumps & LeakCanary Diagnostics
+
+Memory churn causes the Android garbage collector (GC) to trigger frequent Concurrent Mark-Sweep (CMS) pauses, producing noticeable micro-stutter during animations and scrolling.
+
+##### 1. Automatic Leak Detection via LeakCanary
+- LeakCanary is integrated into debug builds (`com.squareup.leakcanary:leakcanary-android`).
+- **Screen-by-Screen Test:**
+  1. Open a screen (e.g. `ScanScreen` or `TransactionDetailScreen`).
+  2. Press Back to return to `HomeScreen`.
+  3. Verify LeakCanary reports **0 retained references**. If a ViewModel, CoroutineScope, or Context is leaked, LeakCanary emits a notification with the exact reference retention path.
+
+##### 2. Live Allocation Tracking via Memory Profiler
+1. In Android Studio, open **Profiler > Memory**.
+2. Start **Record Allocations**.
+3. Scroll `TransactionListScreen` continuously for 10 seconds.
+4. Stop recording and filter allocations by package `com.ledger.personal`:
+   - Verify that date formatters (`DateTimeFormatter`), `DecimalFormat`, and currency calculation strings are **0 allocations per frame**, proving that `remember(key)` is successfully caching allocations.
+   - Verify that `LazyPagingItems` does not retain unbounded bitmap or list models when virtualized out of the viewport.
+
+---
+
+#### <a id="f-automated-macrobenchmark-screen-startup-ttidttfd--frame-timing"></a>F. Automated Macrobenchmark: Screen Startup (TTID/TTFD) & Frame Timing
+
+For automated CI/CD performance regression testing, AndroidX **Macrobenchmark** tests run on physical devices or cloud test labs against production release APKs with Compilation Mode set to `CompilationMode.Full` or `CompilationMode.Partial(BaselineProfile)`.
+
+##### Core Metrics Measured:
+1. **Time to Initial Display (TTID):** Milliseconds from intent launch to the first frame of the screen rendering (system UI Drawn).
+2. **Time to Full Display (TTFD):** Milliseconds until data is fully loaded and `reportFullyDrawn()` is invoked.
+3. **`FrameTimingMetric`:** Measures frame duration distribution, 95th percentile frame times, and total dropped frames during automated scroll interactions.
+
+##### Sample Benchmark Test Implementation:
+
+```kotlin
+@RunWith(AndroidJUnit4::class)
+class ScreenPerformanceBenchmark {
+    @get:Rule
+    val benchmarkRule = MacrobenchmarkRule()
+
+    @Test
+    fun transactionListScrollPerformance() = benchmarkRule.measureRepeated(
+        packageName = "com.ledger.personal",
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = CompilationMode.Full(),
+        iterations = 5,
+        startupMode = StartupMode.WARM
+    ) {
+        pressHome()
+        startActivityAndWait()
+
+        // Navigate to Transaction List
+        val txTab = device.findObject(By.text("Transactions"))
+        txTab.click()
+        device.waitForIdle()
+
+        // Fling down the list to measure scroll performance under load
+        val list = device.findObject(By.clazz("androidx.compose.ui.platform.ComposeView"))
+        list.setGestureMargin(device.displayWidth / 5)
+        list.fling(Direction.DOWN)
+        device.waitForIdle()
+    }
+}
+```
+
+---
+
+#### <a id="screen-by-screen-performance-checklist--target-thresholds"></a>Screen-by-Screen Performance Checklist & Target Thresholds
+
+Use this operational matrix to benchmark and certify each screen prior to staging and production distribution:
+
+| Screen | Primary Operational Flow | Key Performance Metric | Benchmark Target | Profiling Tool to Use |
+|---|---|---|---|---|
+| **`HomeScreen`** | Cold app launch & dashboard display | Time to Initial Display (TTID) | $\le 400\text{ms}$ | Macrobenchmark / Logcat (`Displayed`) |
+| **`HomeScreen`** | Promotional carousel fling & balance toggle | Recomposition count during scroll | 0 parent recompositions | Compose Layout Inspector |
+| **`HomeScreen`** | Shimmer loading skeleton pulse | Animation phase footprint | Draw phase only (`graphicsLayer`) | Android Studio CPU Profiler |
+| **`TransactionListScreen`** | Infinite scrolling through 500+ items | Janky Frame Rate ($>16.6\text{ms}$) | $< 1.0\%$ | `adb shell dumpsys gfxinfo` |
+| **`TransactionListScreen`** | Next page pagination boundary trigger | Number of triggers per boundary | Exactly 1 trigger (`derivedStateOf`) | Logcat / System Trace |
+| **`WalletScreen`** | P2P transfer keypad input | Keypress-to-render latency | $\le 16\text{ms}$ | CPU System Trace |
+| **`WalletScreen`** | Contact selection & step transitions | Memory leak on exit | 0 leaked activities/viewmodels | LeakCanary |
+| **`ScanScreen`** | CameraX preview & QR barcode decode | ML Kit scan latency per frame | $\le 30\text{ms}$ / frame | CameraX ImageAnalysis Profiling |
+| **`LedgerHistoryScreen`** | Orientation rotation (Portrait $\leftrightarrow$ Landscape) | Scroll position restoration latency | Instant ($\le 1$ frame) | `rememberLazyListState` Saver |
+| **`TransactionDetailScreen`** | Receipt PDF generation | Worker thread offload | Main thread blocks $= 0\text{ms}$ | StrictMode / CPU Profiler (`Dispatchers.IO`) |
+
+---
 
 ## <a id="application-enums-flow-steps--operational-statuses"></a><a id="application-enums-flow-steps-operational-statuses"></a>Application Enums: Flow Steps & Operational Statuses
 
@@ -1654,6 +2445,120 @@ LedgerOne configures distinct Material 3 color schemes for light and dark modes:
 | **`onError`** | `Color.White` (`#FFFFFF`) | `Red950` (`#450A0A`) | Text and icon labels drawn on `error` surfaces |
 | **`errorContainer`** | `Red100` (`#FEE2E2`) | `Red950` (`#450A0A`) | Error banner backgrounds, failed transaction badge pills |
 | **`onErrorContainer`** | `Red700` (`#B91C1C`) | `Red300` (`#FCA5A5`) | Error text and warning icon tint rendered inside `errorContainer` |
+
+---
+
+#### <a id="visual-hierarchy--contrast-onsurface-vs-onsurfacevariant"></a>Visual Hierarchy & Contrast: `onSurface` vs. `onSurfaceVariant`
+
+In Material Design 3, color roles prefixed with `on` specify the foreground color (text, icons, symbols) rendered atop matching surface containers (`surface` or `surfaceVariant`). The visual pairing of `onSurface` and `onSurfaceVariant` forms the cornerstone of LedgerOne's typography, information architecture, and UI legibility:
+
+```mermaid
+flowchart TD
+    subgraph SurfaceContainer ["Surface Container (Color.White / Slate900)"]
+        direction TB
+        High["onSurface (High Emphasis)\nInk (#0F172A) / Slate100 (#F1F5F9)\nPrimary titles, amounts, headings\nContrast > 12:1 (Exceeds WCAG AAA)"]
+        Med["onSurfaceVariant (Medium Emphasis)\nSlate700 (#334155) / Slate300 (#CBD5E1)\nTimestamps, subtitles, account tags\nContrast > 7:1 (Exceeds WCAG AA)"]
+    end
+```
+
+##### 1. The Core Functional Distinction
+- **`onSurface` (High-Emphasis Foreground):**
+  - **Color Values:** Resolves to `Ink` (`#0F172A`) in Light Theme and `Slate100` (`#F1F5F9`) in Dark Theme.
+  - **Purpose:** Used for primary content that must immediately capture user attention and provide maximum clarity.
+  - **Accessibility Contrast:** Exceeds 12:1 against light surfaces and 14:1 against dark surfaces, easily surpassing the WCAG AAA requirement (7:1) for standard text.
+  - **UI Applications:** Transaction titles and payees, ledger debit amounts, primary form input values, screen headings, and dialog titles.
+
+- **`onSurfaceVariant` (Medium-Emphasis Foreground):**
+  - **Color Values:** Resolves to `Slate700` (`#334155`) in Light Theme and `Slate300` (`#CBD5E1`) in Dark Theme.
+  - **Purpose:** Used for secondary or supporting metadata that complements primary content without competing for visual dominance.
+  - **Accessibility Contrast:** Exceeds 7:1 against light surfaces and 8:1 against dark surfaces, comfortably exceeding the WCAG AA requirement (4.5:1).
+  - **UI Applications:** Transaction timestamps, masked account numbers (`Savings •• 4821`), input placeholder hints, inactive/supporting icons, sync status subtitles, and empty state descriptions.
+
+##### 2. Why Material 3 Deprecates Opacity / Alpha Blending
+In legacy Material 2 architectures, developers typically simulated secondary emphasis by applying alpha transparency to the primary text color:
+```kotlin
+// Material 2 Pattern (DEPRECATED):
+Text(
+    text = timestamp,
+    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) // Avoid!
+)
+```
+LedgerOne adheres strictly to Material 3's precomputed, opaque semantic tokens rather than runtime alpha modifications:
+1. **GPU & Rendering Performance:** Alpha blending forces Android's Skia / RenderThread to allocate offscreen intermediate buffers to composite transparent layers over background surfaces. Opaque colors (`onSurfaceVariant`) eliminate alpha compositing passes, keeping scroll frame rates at a smooth 120 FPS in `LazyColumn`.
+2. **Deterministic Contrast Across Surfaces:** Transparent text (`copy(alpha = 0.6f)`) changes contrast unpredictably when placed over elevated, tinted, or gradient surfaces. Pre-calculated tokens guarantee predictable, compliant contrast under both light and dark themes.
+3. **Design System Consistency:** Eliminates arbitrary magic numbers (`0.6f`, `0.7f`, `0.38f`) scattered across UI composables, guaranteeing uniform visual hierarchy across all feature modules.
+
+##### 3. Side-by-Side Comparison Matrix
+
+| Attribute | `MaterialTheme.colorScheme.onSurface` | `MaterialTheme.colorScheme.onSurfaceVariant` |
+|---|---|---|
+| **Visual Emphasis Level** | **High Emphasis** (Dominant, sharp, immediate focal point) | **Medium / Subordinate Emphasis** (Supporting, softer tone) |
+| **Light Theme Hex** | `Ink` (`#0F172A`) | `Slate700` (`#334155`) |
+| **Dark Theme Hex** | `Slate100` (`#F1F5F9`) | `Slate300` (`#CBD5E1`) |
+| **WCAG Contrast Ratio** | `> 12:1` (Light) / `> 14:1` (Dark) — **WCAG AAA** | `> 7:1` (Light) / `> 8:1` (Dark) — **WCAG AA** |
+| **Typographic Roles** | `HeadlineMedium`, `TitleLarge`, `BodyLarge` | `LabelLarge`, `LabelSmall`, `BodySmall` |
+| **Key Use Cases in App** | • Transaction descriptions (`"Blue Tokai Coffee"`)<br>• Account balance numbers (`"₹1,24,500.00"`)<br>• Form field input values<br>• Dialog titles | • Transaction timestamps (`"28 Oct 2026, 01:15"`)<br>• Masked accounts (`"Savings •• 4821"`)<br>• Step helper labels (`"You are sending"`)<br>• Empty inbox icons & secondary messages |
+
+##### 4. Real-World Compose Implementation Examples in LedgerOne
+
+###### A. Transaction List Row (`TransactionListItem` in `TransactionListScreen.kt`)
+The transaction row clearly demonstrates the visual hierarchy between primary descriptions and secondary timestamps:
+```kotlin
+Column(modifier = Modifier.weight(1f)) {
+    // High-emphasis primary transaction description:
+    Text(
+        text = transaction.description,
+        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.onSurface // <--- High emphasis
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    // Medium-emphasis supporting timestamp metadata:
+    Text(
+        text = transaction.timestampEpochMs.toFormattedDateTime(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant // <--- Medium emphasis
+    )
+}
+```
+
+###### B. Account Balance Card (`HomeScreen.kt`)
+Balances use `onSurface` for the prominent balance figure, while the account identifier uses `onSurfaceVariant` to establish instant visual structure:
+```kotlin
+// Subtitle label: Medium emphasis
+Text(
+    text = "Savings •• 4821",
+    style = MaterialTheme.typography.labelLarge,
+    color = MaterialTheme.colorScheme.onSurfaceVariant
+)
+// Headline monetary value: High emphasis
+Text(
+    text = balanceFormatted,
+    style = MaterialTheme.typography.headlineMedium,
+    color = MaterialTheme.colorScheme.onSurface
+)
+```
+
+###### C. Empty State Illustration & Description (`EmptyState.kt`)
+In empty viewports, the icon and explanatory message use `onSurfaceVariant` so they don't distract or appear as active content:
+```kotlin
+Icon(
+    imageVector = Icons.Outlined.Inbox,
+    contentDescription = null,
+    modifier = Modifier.size(64.dp),
+    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+)
+Spacer(modifier = Modifier.height(16.dp))
+Text(
+    text = title,
+    style = MaterialTheme.typography.titleLarge,
+    color = MaterialTheme.colorScheme.onSurface // High emphasis
+)
+Text(
+    text = message,
+    style = MaterialTheme.typography.bodyMedium,
+    color = MaterialTheme.colorScheme.onSurfaceVariant // Medium emphasis
+)
+```
 
 ---
 
@@ -1754,27 +2659,29 @@ To maintain visual cohesion, eliminate duplicate UI code, and enforce the **Sing
 | **`ErrorState`** | `ErrorState.kt` | Standard error presentation card displaying an alert icon, error description, and a retry callback button. |
 | **`EmptyState`** | `EmptyState.kt` | Visual placeholder displayed when transaction lists or offer shelves have zero items. |
 
-#### B. Domain Financial & Security Components (`ui/feature/`)
+#### B. Domain Financial & Security Components (`ui/components/`)
 
 | Component | File | Purpose & Behavior |
 |---|---|---|
 | **`FeatureScaffold`** | `FeatureScaffold.kt` | The standard screen wrapper for all feature modules. Provides a consistent top bar, navigation icon, title, optional subtitle, trailing action slots, and optional integrated scroll container (`.verticalScroll(rememberScrollState())`). |
+| **`TextLink`** | `TextLink.kt` | Specialized inline text button for secondary navigation actions (e.g., "Forgot MPIN?", "Resend code"). |
+| **`PrimaryButton`** | `PrimaryButton.kt` | Filled primary call-to-action button with full-width container options and consistent rounded corners. |
 | **`MaskedAmount`** | `MaskedAmount.kt` | Financial privacy component. Masks sensitive account balances as `••••••` by default, revealing the real balance with smooth animated transition when the user taps the eye toggle. |
 | **`formatMoney` / `Money`** | `Money.kt` | Strict minor-unit money formatter with Indian grouping (`₹1,23,456.78`). Applies semantic color coding via `MoneyDirection` (Green for credit inflows, `onSurface` for debits, neutral slate for zero balance). |
 | **`AmountField`** | `AmountField.kt` | Dedicated financial amount input field with permanent currency symbol prefix (`₹`), numerical keypad trigger, and minor-unit conversion. |
+| **`NumericKeypad`** | `NumericKeypad.kt` | Secure on-screen 3x4 numeric keypad with haptic-ready keys and backspace button for PIN entry. |
 | **`OtpField`** | `OtpField.kt` | 6-box individual digit OTP entry with auto-advance, backspace handling, and focused box border highlighting. |
 | **`SyncIndicator`** | `SyncIndicator.kt` | Reactive cloud synchronization chip displaying `SYNCED` (green check), `SYNCING` (rotating blue indicator), `WAITING` (amber cloud off), or `FAILED` (red alert). |
 | **`StatusBanner`** | `StatusBanner.kt` | Semantic informational or alert banner tied to `BannerTone` (`INFO`, `SUCCESS`, `WARNING`, `ERROR`) with custom icon and optional title. |
-| **`StatusChip`** | `StatusChip.kt` | Compact semantic status badge used in transaction details and sync state indicators. |
 | **`OfflineBanner`** | `OfflineBanner.kt` | Sticky amber warning banner automatically displayed across screens when network connectivity is lost. |
 | **`HeroCard`** | `HeroCard.kt` | Prominent dashboard balance card with high-emphasis typography, masked balance toggle, and quick action buttons. |
 | **`SectionCard`** | `SectionCard.kt` | Rounded card container used to visually group related form fields, account details, or key-value summary rows. |
 | **`DetailRow`** | `DetailRow.kt` | Clean key-value label/value row with optional visual emphasis for monetary amounts and timestamps. |
 | **`ListRow`** | `ListRow.kt` | Standard list item with leading icon badge, title, subtitle, trailing amount, and chevron indicator. |
-| **`Timeline`** | `Timeline.kt` | Vertical step-by-step audit progression tracker. |
 | **`StepHeader`** | `StepHeader.kt` | Horizontal multi-step progress bar displaying active, completed, and upcoming wizard steps. |
 | **`Skeleton`** | `Skeleton.kt` | Shimmer animated placeholder loader preventing layout shift while fetching remote transaction lists or account data. |
 | **`ProtectedBadge`** | `ProtectedBadge.kt` | Security indicator badge confirming hardware Keystore / biometric authorization protection. |
+| **`Category`** | `Category.kt` | Visual category badge, chip selector, and icon mapper for transaction categories. |
 
 #### C. Component Architecture & Guidelines
 

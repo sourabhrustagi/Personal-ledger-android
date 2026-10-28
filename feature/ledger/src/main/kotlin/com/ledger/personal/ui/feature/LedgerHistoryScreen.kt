@@ -39,7 +39,6 @@ import androidx.paging.compose.itemKey
 fun LedgerHistoryScreen(
     onBack: (() -> Unit)? = null,
     title: String = stringResource(AppStrings.TITLE_PASSBOOK),
-    onOpenDetail: ((String) -> Unit)? = null,
     viewModel: LedgerHistoryViewModel = hiltViewModel(),
 ) {
     val pages = viewModel.pages.collectAsLazyPagingItems()
@@ -71,7 +70,6 @@ fun LedgerHistoryScreen(
                         subtitle = "${row.category} · $formattedDate",
                         trailing = formattedAmount,
                         trailingColor = MaterialTheme.colorScheme.onSurface,
-                        onClick = onOpenDetail?.let { { it(row.id) } },
                     )
                 }
             }

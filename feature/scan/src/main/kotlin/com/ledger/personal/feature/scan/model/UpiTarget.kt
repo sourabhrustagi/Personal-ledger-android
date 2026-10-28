@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.scan
+package com.ledger.personal.feature.scan.model
 
 import java.net.URLDecoder
 

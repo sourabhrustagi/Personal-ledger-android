@@ -21,10 +21,6 @@ sealed interface Screen {
     @Serializable
     data object Home : Screen
 
-    /** Route to the pay hub screen. */
-    @Serializable
-    data object PayHub : Screen
-
     /** Route to the passbook screen. */
     @Serializable
     data object Passbook : Screen
@@ -36,8 +32,4 @@ sealed interface Screen {
     /** Route to the pay to screen. */
     @Serializable
     data class PayTo(val handle: String, val amountMinor: Long) : Screen
-
-    /** Offers. [tab] selects a shelf key from the promotions API. Blank opens the first shelf. */
-    @Serializable
-    data class Promotions(val tab: String = "") : Screen
 }

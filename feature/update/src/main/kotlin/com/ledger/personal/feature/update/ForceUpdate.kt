@@ -1,6 +1,6 @@
 @file:Suppress("MatchingDeclarationName")
 
-package com.ledger.personal.ui.app.update
+package com.ledger.personal.feature.update
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

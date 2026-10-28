@@ -21,10 +21,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.ledger.personal.mock.MockValues
+import com.ledger.personal.ui.components.HubFlags
 import javax.inject.Inject
-
-/** Hub flags. */
-data class HubFlags(val offline: Boolean, val empty: Boolean, val reveal: Boolean, val onToggleReveal: () -> Unit)
 
 /** Session state. */
 data class SessionState(
@@ -36,7 +34,7 @@ data class SessionState(
 )
 
 /** Alias for backward compatibility. */
-typealias OtpUiState = com.ledger.personal.ui.app.auth.OtpUiState
+typealias OtpUiState = com.ledger.personal.feature.auth.OtpUiState
 
 /** True when the mock switch is on or the phone has no internet. */
 fun offlineNow(mockOffline: Boolean, connected: Boolean): Boolean = mockOffline || !connected

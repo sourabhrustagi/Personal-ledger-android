@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.ledger.personal.core.formatApiError
+import com.ledger.personal.core.formatOtpSuccessMessage
 import javax.inject.Inject
 
 /**
@@ -75,12 +77,15 @@ class OnboardingViewModel internal constructor(
             val result = sendOtpUseCase?.invoke(phone)
                 ?: Result.success(OtpResponse(message = "OTP sent"))
             val isSuccess = result.isSuccess
+            val serverMsg = result.getOrNull()?.message?.takeIf { it.isNotBlank() && it != "OTP sent" }
+            val sentMessage = serverMsg ?: formatOtpSuccessMessage(phone)
+            val errorMessage = result.exceptionOrNull()?.let { formatApiError(it) }
             mutableOtpState.update {
                 it.copy(
                     isSending = false,
                     isOtpSent = isSuccess,
-                    sentMessage = result.getOrNull()?.message?.ifBlank { "OTP sent" } ?: "OTP sent",
-                    errorMessage = result.exceptionOrNull()?.message,
+                    sentMessage = sentMessage,
+                    errorMessage = errorMessage,
                 )
             }
             if (isSuccess) {
@@ -105,23 +110,24 @@ class OnboardingViewModel internal constructor(
 
     /** Reacts to OTP code input changes from the UI. */
     fun onOtpCodeChanged(code: String) {
-        mutableOtpState.update { it.copy(otpCode = code, isOtpError = false) }
+        mutableOtpState.update { it.copy(otpCode = code, isOtpError = false, errorMessage = null) }
     }
 
     /** Triggered when the user clicks the Send Code button on PhoneStep. */
     fun onSendOtpClick(phone: String) {
-        mutableOtpState.update { it.copy(phone = phone, isOtpError = false) }
+        mutableOtpState.update { it.copy(phone = phone, isOtpError = false, errorMessage = null) }
         sendOtp(phone)
     }
 
     /** Triggered when the user clicks Change Number on OtpStep. Returns flow to PhoneStep. */
     fun onEditPhoneClick() {
-        mutableOtpState.update { it.copy(isOtpSent = false, isOtpError = false) }
+        mutableOtpState.update { it.copy(isOtpSent = false, isOtpError = false, errorMessage = null) }
     }
 
     /** Triggered when the user clicks Resend Code on OtpStep. */
     fun onResendOtpClick(phone: String) {
         if (!mutableOtpState.value.isSending) {
+            mutableOtpState.update { it.copy(errorMessage = null) }
             sendOtp(phone)
         }
     }
@@ -129,7 +135,7 @@ class OnboardingViewModel internal constructor(
     /** Triggered when the user clicks Verify button on OtpStep. */
     fun onVerifyOtpClick(code: String, phone: String, onFinished: () -> Unit = {}) {
         if (code == MockValues.OTP) {
-            mutableOtpState.update { it.copy(isOtpError = false) }
+            mutableOtpState.update { it.copy(isOtpError = false, errorMessage = null) }
             completeOnboarding(phone, onFinished)
         } else {
             mutableOtpState.update { it.copy(isOtpError = true) }
@@ -138,8 +144,8 @@ class OnboardingViewModel internal constructor(
 
     /** Clears OTP validation error when user begins typing new code. */
     fun dismissOtpError() {
-        if (mutableOtpState.value.isOtpError) {
-            mutableOtpState.update { it.copy(isOtpError = false) }
+        if (mutableOtpState.value.isOtpError || mutableOtpState.value.errorMessage != null) {
+            mutableOtpState.update { it.copy(isOtpError = false, errorMessage = null) }
         }
     }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -37,8 +38,6 @@ import com.ledger.personal.domain.sync.SyncPhase
 import com.ledger.personal.ui.components.MaskedAmount
 import com.ledger.personal.ui.components.OfflineBanner
 import com.ledger.personal.ui.components.SectionCard
-import com.ledger.personal.ui.components.SyncIndicator
-import com.ledger.personal.ui.components.SyncState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -63,10 +62,7 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(greeting(name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        SyncIndicator(state.sync.toUi(offline))
-                    }
+                    Text(greeting(name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 },
             )
         },
@@ -77,18 +73,27 @@ fun HomeScreen(
                 .padding(padding),
             contentAlignment = Alignment.TopCenter,
         ) {
-            LazyColumn(
-                Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 840.dp),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                if (offline) {
-                    item(key = "offline_banner", contentType = "banner") { OfflineBanner("a few minutes ago") }
+            if (state.loading || !state.layoutReady) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
                 }
-                item(key = "section_balance", contentType = "balance_summary") {
-                    SummaryCard(balanceMinor, revealBalance, onToggleReveal)
+            } else {
+                LazyColumn(
+                    Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 840.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    if (offline) {
+                        item(key = "offline_banner", contentType = "banner") { OfflineBanner("a few minutes ago") }
+                    }
+                    item(key = "section_balance", contentType = "balance_summary") {
+                        SummaryCard(balanceMinor, revealBalance, onToggleReveal)
+                    }
                 }
             }
         }
@@ -120,14 +125,6 @@ private fun greeting(name: String): String {
     return if (name.isBlank()) part else "$part, ${name.substringBefore(' ')}"
 }
 
-/** Converts this value to ui. */
-private fun SyncPhase.toUi(offline: Boolean): SyncState = when {
-    offline -> SyncState.WAITING
-    this == SyncPhase.RUNNING -> SyncState.SYNCING
-    this == SyncPhase.FAILED -> SyncState.FAILED
-    this == SyncPhase.ENQUEUED || this == SyncPhase.BLOCKED -> SyncState.WAITING
-    else -> SyncState.SYNCED
-}
 
 @Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark

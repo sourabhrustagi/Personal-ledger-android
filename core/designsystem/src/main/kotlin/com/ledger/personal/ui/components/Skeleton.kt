@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.ui.components
 
 import android.provider.Settings
 import androidx.compose.animation.core.RepeatMode
@@ -18,12 +18,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,15 +44,25 @@ fun rememberReducedMotion(): Boolean {
 @Composable
 fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
     val reduced = rememberReducedMotion()
-    val alpha = if (reduced) {
-        0.6f
+    val alphaProvider: () -> Float = if (reduced) {
+        { 0.6f }
     } else {
         val transition = rememberInfiniteTransition(label = "shimmer")
-        val pulse by transition.animateFloat(0.35f, 0.8f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "pulse")
-        pulse
+        val pulse = transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 0.8f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "pulse",
+        )
+        val provider: () -> Float = { pulse.value }
+        provider
     }
     Box(
-        modifier.height(height).clip(RoundedCornerShape(8.dp)).alpha(alpha).background(MaterialTheme.colorScheme.surfaceVariant),
+        modifier
+            .height(height)
+            .clip(RoundedCornerShape(8.dp))
+            .graphicsLayer { this.alpha = alphaProvider() }
+            .background(MaterialTheme.colorScheme.surfaceVariant),
     )
 }
 

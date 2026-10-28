@@ -96,7 +96,7 @@ fun LoadingOrEmpty(isLoading: Boolean, isEmpty: Boolean, errorMessage: String?, 
         isLoading -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        errorMessage != null -> StatusBanner(errorMessage, BannerTone.ERROR)
+        errorMessage != null -> StatusBanner(com.ledger.personal.core.formatApiError(errorMessage), BannerTone.ERROR, title = "Error")
         isEmpty -> EmptyState(Icons.Outlined.Inbox, "No $label yet", "When there is something to show, it will appear here.")
     }
 }

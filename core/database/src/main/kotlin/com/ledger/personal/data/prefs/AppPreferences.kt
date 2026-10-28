@@ -11,7 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.ledger.personal.data.security.PinSealer
 import com.ledger.personal.data.security.pinMatches
 import com.ledger.personal.data.security.sealPin
-import com.ledger.personal.ui.theme.ThemeMode
+import com.ledger.personal.domain.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

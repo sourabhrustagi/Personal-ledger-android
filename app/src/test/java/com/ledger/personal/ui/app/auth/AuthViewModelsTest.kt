@@ -204,4 +204,40 @@ class AuthViewModelsTest {
         testDispatcher.scheduler.runCurrent()
         assertEquals(false, failResult)
     }
+
+    @Test
+    fun onboardingViewModelClickHandlersUpdateState() = runTest {
+        val fakeRepo = object : OtpRepository {
+            override suspend fun sendOtp(phone: String): Result<OtpResponse> =
+                Result.success(OtpResponse(message = "OTP dispatched"))
+        }
+        val viewModel = OnboardingViewModel(sendOtpUseCase = SendOtpUseCase(fakeRepo))
+
+        viewModel.onSendOtpClick("9876543210")
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.otpState.value.isOtpSent)
+        assertEquals("9876543210", viewModel.otpState.value.phone)
+
+        // Test edit phone click resets isOtpSent to return to phone input step
+        viewModel.onEditPhoneClick()
+        assertFalse(viewModel.otpState.value.isOtpSent)
+
+        // Test verify OTP failure
+        var completed = false
+        viewModel.onVerifyOtpClick("999999", "9876543210") { completed = true }
+        testDispatcher.scheduler.runCurrent()
+        assertTrue(viewModel.otpState.value.isOtpError)
+        assertFalse(completed)
+
+        // Test dismiss error
+        viewModel.dismissOtpError()
+        assertFalse(viewModel.otpState.value.isOtpError)
+
+        // Test verify OTP success
+        viewModel.onVerifyOtpClick(MockValues.OTP, "9876543210") { completed = true }
+        testDispatcher.scheduler.runCurrent()
+        assertFalse(viewModel.otpState.value.isOtpError)
+        assertTrue(completed)
+    }
 }

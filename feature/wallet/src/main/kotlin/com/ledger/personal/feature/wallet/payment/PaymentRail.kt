@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet.payment
 
 /** Sends one payment. [post] records it on the ledger and must be called at most once per accepted attempt. */
 fun interface PaymentRail {

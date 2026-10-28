@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.scan
+package com.ledger.personal.feature.scan.ui
 
 import android.content.Context
 import androidx.annotation.OptIn

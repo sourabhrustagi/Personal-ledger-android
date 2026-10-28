@@ -45,9 +45,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.app.AppViewModel
@@ -57,7 +55,6 @@ import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
 import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
-import com.ledger.personal.feature.wallet.ui.WalletScreen
 import com.ledger.personal.feature.ledger.history.LedgerHistoryScreen
 import com.ledger.personal.feature.ledger.home.HomeScreen
 import com.ledger.personal.feature.ledger.home.HomeViewModel
@@ -144,7 +141,7 @@ fun LedgerNavHost(
             ) {
                 tabRoutes(navController, prefs, flags, home)
                 ledgerRoutes(navController)
-                productRoutes(navController, offline)
+                productRoutes(navController)
                 payRoutes(navController)
             }
 
@@ -216,12 +213,11 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController) {
 }
 
 /** Product routes. */
-private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boolean) {
+private fun NavGraphBuilder.productRoutes(nav: NavHostController) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.LedgerHistory> {
         LedgerHistoryScreen(onBack = back)
     }
-    composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
 }
 
 /** Pay & transfer routes. */
@@ -230,13 +226,9 @@ private fun NavGraphBuilder.payRoutes(
 ) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.Scan> {
-        ScanScreen(liveCamera = true, onBack = back) { target ->
-            nav.navigate(Screen.PayTo(target.vpa, target.amountMinor)) { popUpTo<Screen.Scan> { inclusive = true } }
+        ScanScreen(liveCamera = true, onBack = back) { _ ->
+            back()
         }
-    }
-    composable<Screen.PayTo>(deepLinks = appLinks<Screen.PayTo>("pay")) { entry ->
-        val route = entry.toRoute<Screen.PayTo>()
-        WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, prefillHandle = route.handle, prefillMinor = route.amountMinor)
     }
 }
 

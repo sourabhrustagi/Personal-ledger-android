@@ -1,12 +1,10 @@
-package com.ledger.personal.ui.app.hubs
+package com.ledger.personal.feature.hubs
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.usecase.GetPromotionsUseCase
-import com.ledger.personal.ui.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,7 +26,7 @@ class PromotionsViewModel @Inject constructor(
     getPromotionsUseCase: GetPromotionsUseCase,
     handle: SavedStateHandle,
 ) : ViewModel() {
-    private val requested = handle.toRoute<Screen.Promotions>().tab
+    private val requested = handle.get<String>("tab").orEmpty()
     private val picked = MutableStateFlow(requested)
     val shelves: StateFlow<List<PromoTab>> = getPromotionsUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

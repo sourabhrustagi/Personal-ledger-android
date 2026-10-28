@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet.payment
 
 /**
  * Finite State Machine modeling the payment lifecycle to guarantee idempotency,

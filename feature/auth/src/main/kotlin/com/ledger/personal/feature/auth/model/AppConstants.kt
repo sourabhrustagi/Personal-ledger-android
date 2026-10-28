@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.auth
+package com.ledger.personal.feature.auth.model
 
 /**
  * Global application constants for UI timings, limits, and authentication flows.

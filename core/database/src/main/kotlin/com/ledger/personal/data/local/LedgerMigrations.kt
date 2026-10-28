@@ -72,6 +72,18 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    /** Migrate to drop non-promotion tables so only promotions are cached in Room. */
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP TABLE IF EXISTS `transactions`")
+        db.execSQL("DROP TABLE IF EXISTS `kyc_drafts`")
+        db.execSQL("DROP TABLE IF EXISTS `assistant_messages`")
+        db.execSQL("DROP TABLE IF EXISTS `pos_forward`")
+        db.execSQL("DROP TABLE IF EXISTS `inspection_forms`")
+        db.execSQL("DROP TABLE IF EXISTS `inspection_photos`")
+    }
+}
+
 /** Inserts the promotion rows. Fresh databases and the 3 to 4 upgrade both use this. */
 fun SupportSQLiteDatabase.seedPromotions() {
     execSQL(
@@ -82,25 +94,4 @@ fun SupportSQLiteDatabase.seedPromotions() {
     )
 }
 
-/** Inserts initial dummy scan and pay transactions into the database. */
-fun SupportSQLiteDatabase.seedTransactions() {
-    val now = 1_760_200_000_000L
-    val seeds = listOf(
-        Triple("sp-1", 120_00L, "Chai Point · QR Pay"),
-        Triple("sp-2", 385_00L, "Starbucks · Scan & Pay"),
-        Triple("sp-3", 450_00L, "Swiggy Instamart · QR Pay"),
-        Triple("sp-4", 1_450_50L, "DMart Supermarket · Scan & Pay"),
-        Triple("sp-5", 312_00L, "Apollo Pharmacy · QR Pay"),
-        Triple("sp-6", 60_00L, "Metro Station · Scan & Pay"),
-        Triple("sp-7", 280_00L, "Blue Tokai Coffee · QR Pay"),
-        Triple("sp-8", 520_00L, "Corner Bookstore · Scan & Pay"),
-    )
-    seeds.forEachIndexed { i, (id, amount, desc) ->
-        val timestamp = now - ((i + 1) * 3_600_000L * 4)
-        execSQL(
-            "INSERT OR IGNORE INTO transactions (id, amount, currency, category, description, timestampEpochMs, syncState, updatedAtEpochMs) VALUES " +
-                "('tx-$id', $amount, 'INR', 'Scan & Pay', '$desc', $timestamp, 'SYNCED', $timestamp)",
-        )
-    }
-}
 

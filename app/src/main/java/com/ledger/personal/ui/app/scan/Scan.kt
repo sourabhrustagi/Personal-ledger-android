@@ -27,11 +27,11 @@ import androidx.core.content.ContextCompat
 import com.ledger.personal.core.upiPayload
 import com.ledger.personal.data.tools.UpiTarget
 import com.ledger.personal.data.tools.parseUpi
-import com.ledger.personal.ui.feature.BannerTone
-import com.ledger.personal.ui.feature.FeatureScaffold
-import com.ledger.personal.ui.feature.IconBadge
-import com.ledger.personal.ui.feature.PrimaryButton
-import com.ledger.personal.ui.feature.StatusBanner
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.FeatureScaffold
+import com.ledger.personal.ui.components.IconBadge
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
 /** UI state for the scan screen. */

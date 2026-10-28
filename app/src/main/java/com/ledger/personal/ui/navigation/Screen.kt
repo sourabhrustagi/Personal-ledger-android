@@ -13,10 +13,6 @@ sealed interface Screen {
     @Serializable
     data object LedgerHistory : Screen
 
-    /** Route to the wallet screen. */
-    @Serializable
-    data object Wallet : Screen
-
     /** Route to the home screen. */
     @Serializable
     data object Home : Screen
@@ -28,8 +24,4 @@ sealed interface Screen {
     /** Route to the scan screen. */
     @Serializable
     data object Scan : Screen
-
-    /** Route to the pay to screen. */
-    @Serializable
-    data class PayTo(val handle: String, val amountMinor: Long) : Screen
 }

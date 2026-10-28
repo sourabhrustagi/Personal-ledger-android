@@ -20,8 +20,18 @@
             <option value="$PROJECT_DIR$/core/testing" />
             <option value="$PROJECT_DIR$/core/ui" />
             <option value="$PROJECT_DIR$/feature" />
+            <option value="$PROJECT_DIR$/feature/auth" />
+            <option value="$PROJECT_DIR$/feature/auth/demo" />
+            <option value="$PROJECT_DIR$/feature/hubs" />
+            <option value="$PROJECT_DIR$/feature/hubs/demo" />
             <option value="$PROJECT_DIR$/feature/ledger" />
+            <option value="$PROJECT_DIR$/feature/ledger/demo" />
+            <option value="$PROJECT_DIR$/feature/scan" />
+            <option value="$PROJECT_DIR$/feature/scan/demo" />
+            <option value="$PROJECT_DIR$/feature/update" />
+            <option value="$PROJECT_DIR$/feature/update/demo" />
             <option value="$PROJECT_DIR$/feature/wallet" />
+            <option value="$PROJECT_DIR$/feature/wallet/demo" />
           </set>
         </option>
       </GradleProjectSettings>

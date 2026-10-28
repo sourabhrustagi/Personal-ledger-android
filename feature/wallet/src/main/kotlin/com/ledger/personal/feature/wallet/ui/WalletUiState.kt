@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet.ui
 
 /** Allowed values of transfer step. */
 enum class TransferStep(val title: String) {

@@ -24,4 +24,12 @@ sealed interface Screen {
     /** Route to the scan screen. */
     @Serializable
     data object Scan : Screen
+
+    /** Route to the promotions/offers tab screen. */
+    @Serializable
+    data object Promotions : Screen
+
+    /** Route to the account and security settings screen. */
+    @Serializable
+    data object Account : Screen
 }

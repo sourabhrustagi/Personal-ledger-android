@@ -13,7 +13,7 @@ import com.ledger.personal.domain.board.PromotionsBackend
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 
-private const val MOCK_API_DELAY_MS = 120_000L
+private const val MOCK_API_DELAY_MS = 2_000L
 
 /** Mock dashboard. The home screen draws these sections in this order and keeps no layout of its own. */
 class MockHomeBoard @Inject constructor() : HomeBoard {

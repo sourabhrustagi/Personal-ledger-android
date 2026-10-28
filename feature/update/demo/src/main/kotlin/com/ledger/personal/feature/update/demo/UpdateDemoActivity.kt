@@ -3,7 +3,7 @@ package com.ledger.personal.feature.update.demo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.ledger.personal.feature.update.ForceUpdateScreen
+import com.ledger.personal.feature.update.ui.ForceUpdateScreen
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import dagger.hilt.android.AndroidEntryPoint
 

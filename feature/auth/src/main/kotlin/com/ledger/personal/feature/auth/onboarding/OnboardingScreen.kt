@@ -1,4 +1,6 @@
-package com.ledger.personal.feature.auth
+package com.ledger.personal.feature.auth.onboarding
+
+import com.ledger.personal.feature.auth.model.OtpUiState
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

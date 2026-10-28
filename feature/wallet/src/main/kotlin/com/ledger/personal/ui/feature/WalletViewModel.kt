@@ -169,4 +169,54 @@ class WalletViewModel @Inject constructor(
 
     /** Posted count. */
     val postedCount: Int get() = book.size
+
+    /** Triggered when the user clicks a preset amount chip (e.g. ₹100, ₹500, ₹1,000). */
+    fun onPresetAmountClicked(rupees: Long) {
+        onAmount(rupees * 100)
+    }
+
+    /** Triggered when the user clicks a contact row or radio button in saved contacts. */
+    fun onSelectContactClicked(handle: String) {
+        onRecipient(handle)
+    }
+
+    /** Triggered when the user clicks the select from contacts action. */
+    fun onPickContactClicked(launchPicker: () -> Unit) {
+        launchPicker()
+    }
+
+    /** Triggered when the user clicks Continue to review the payment. */
+    fun onContinueClicked() {
+        review()
+    }
+
+    /** Triggered when the user clicks Check Status on unconfirmed / in-doubt payment. */
+    fun onCheckStatusClicked() {
+        reconcile()
+    }
+
+    /** Triggered when the user clicks Retry on failed / in-doubt payment. */
+    fun onRetryClicked() {
+        retry()
+    }
+
+    /** Triggered when the user clicks Edit details to return to the form step. */
+    fun onEditDetailsClicked() {
+        edit()
+    }
+
+    /** Triggered when the user clicks Done on the receipt screen. */
+    fun onDoneClicked(onDone: () -> Unit) {
+        onDone()
+    }
+
+    /** Triggered when the user clicks Send another payment on the receipt screen. */
+    fun onSendAnotherClicked() {
+        newTransfer()
+    }
+
+    /** Triggered when the user completes or triggers biometric authentication step-up. */
+    fun onStepUpAuthClicked(success: Boolean) {
+        onStepUp(success)
+    }
 }

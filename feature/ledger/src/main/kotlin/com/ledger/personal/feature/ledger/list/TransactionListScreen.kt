@@ -57,8 +57,8 @@ import com.ledger.personal.ui.components.LoadingState
 import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import com.ledger.personal.feature.ledger.util.toFormattedCurrency
-import com.ledger.personal.feature.ledger.util.toFormattedDateTime
+import com.ledger.personal.core.toFormattedCurrency
+import com.ledger.personal.core.toFormattedDateTime
 
 /** Shows the transaction list screen. */
 @OptIn(ExperimentalMaterial3Api::class)

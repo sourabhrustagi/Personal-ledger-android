@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import com.ledger.personal.feature.wallet.payment.PaymentRail
+import com.ledger.personal.core.formatApiError
 import android.os.Build
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -223,7 +224,9 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
             modifier = Modifier.fillMaxWidth(),
         )
     }
-    state.errorMessage?.takeIf { state.status != TransferStatus.INSUFFICIENT }?.let { StatusBanner(it, BannerTone.ERROR) }
+    state.errorMessage?.takeIf { state.status != TransferStatus.INSUFFICIENT }?.let {
+        StatusBanner(formatApiError(it), BannerTone.ERROR, title = "Validation Error")
+    }
     val continueLabel = stringResource(AppStrings.ACTION_CONTINUE)
     PrimaryButton(
         text = if (state.amountMinor > 0) "$continueLabel · ${formatMoney(state.amountMinor)}" else continueLabel,
@@ -274,7 +277,7 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
             }
         }
         TransferStatus.FAILED -> {
-            StatusBanner(state.errorMessage.orEmpty(), BannerTone.ERROR, title = "Payment not completed")
+            StatusBanner(formatApiError(state.errorMessage.orEmpty()), BannerTone.ERROR, title = "Payment Failed")
             PrimaryButton(
                 stringResource(AppStrings.ACTION_RETRY),
                 onClick = viewModel::onRetryClicked,
@@ -305,6 +308,7 @@ private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, viewModel:
         Text(formatMoney(state.postedMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text("to ${contact?.name ?: state.recipient}", style = MaterialTheme.typography.bodyLarge)
     }
+    StatusBanner("Payment of ${formatMoney(state.postedMinor)} sent successfully.", BannerTone.SUCCESS, title = "Payment Successful")
     SectionCard {
         DetailRow("Status", "Completed")
         DetailRow("Reference", state.idempotencyKey)

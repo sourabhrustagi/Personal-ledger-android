@@ -33,12 +33,12 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.core.AppConstants
 import com.ledger.personal.mock.MockValues
-import com.ledger.personal.ui.feature.BannerTone
-import com.ledger.personal.ui.feature.IconBadge
-import com.ledger.personal.ui.feature.OtpField
-import com.ledger.personal.ui.feature.PrimaryButton
-import com.ledger.personal.ui.feature.StatusBanner
-import com.ledger.personal.ui.feature.TextLink
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.IconBadge
+import com.ledger.personal.ui.components.OtpField
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.StatusBanner
+import com.ledger.personal.ui.components.TextLink
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 

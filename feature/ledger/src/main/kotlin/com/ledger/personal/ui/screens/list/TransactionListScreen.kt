@@ -64,7 +64,7 @@ fun TransactionListScreen(
     uiState: TransactionListUiState,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
-    onTransactionClick: (String) -> Unit,
+    onTransactionClick: ((String) -> Unit)? = null,
     onProductsClick: () -> Unit = {},
     paging: LazyPagingItems<Transaction>? = null,
 ) {
@@ -196,7 +196,7 @@ fun TransactionListScreen(
                                 val transaction = paging[index] ?: return@items
                                 TransactionListItem(
                                     transaction = transaction,
-                                    onClick = { onTransactionClick(transaction.id) },
+                                    onClick = onTransactionClick?.let { { it(transaction.id) } },
                                 )
                             }
                         } else {
@@ -207,7 +207,7 @@ fun TransactionListScreen(
                             ) { transaction ->
                                 TransactionListItem(
                                     transaction = transaction,
-                                    onClick = { onTransactionClick(transaction.id) },
+                                    onClick = onTransactionClick?.let { { it(transaction.id) } },
                                 )
                             }
                         }
@@ -238,7 +238,7 @@ fun TransactionListScreen(
 @Composable
 fun TransactionListItem(
     transaction: Transaction,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val formattedDateTime = remember(transaction.timestampEpochMs) {
@@ -251,7 +251,7 @@ fun TransactionListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -317,7 +317,7 @@ private fun previewTransaction() = Transaction(
 @Composable
 private fun TransactionListItemPreview() {
     PersonalLedgerTheme {
-        TransactionListItem(transaction = previewTransaction(), onClick = {})
+        TransactionListItem(transaction = previewTransaction())
     }
 }
 
@@ -330,7 +330,6 @@ private fun TransactionListLoadingPreview() {
             uiState = TransactionListUiState(isLoading = true),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {}
         )
     }
 }
@@ -344,7 +343,6 @@ private fun TransactionListEmptyPreview() {
             uiState = TransactionListUiState(isLoading = false),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {}
         )
     }
 }
@@ -358,7 +356,6 @@ private fun TransactionListErrorPreview() {
             uiState = TransactionListUiState(errorMessage = "Failed to load transactions."),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {}
         )
     }
 }
@@ -382,7 +379,6 @@ private fun TransactionListPopulatedPreview() {
             ),
             onRefresh = {},
             onLoadMore = {},
-            onTransactionClick = {}
         )
     }
 }

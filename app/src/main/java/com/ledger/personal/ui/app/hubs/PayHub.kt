@@ -34,25 +34,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.app.HubFlags
-import com.ledger.personal.ui.feature.FeatureScaffold
-import com.ledger.personal.ui.feature.ListRow
-import com.ledger.personal.ui.feature.PaymentsOfflineNotice
-import com.ledger.personal.ui.feature.PrimaryButton
-import com.ledger.personal.ui.feature.SectionCard
+import com.ledger.personal.ui.components.FeatureScaffold
+import com.ledger.personal.ui.components.ListRow
+import com.ledger.personal.ui.components.PaymentsOfflineNotice
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.navigation.Screen
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
-/** Shows pay hub. */
+/** Shows pay hub with all click interactions routed through [PayHubViewModel]. */
 @Composable
 fun PayHub(
     flags: HubFlags,
     onOpen: (Screen) -> Unit,
+    viewModel: PayHubViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    var recipientInput by rememberSaveable { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val recipientInput = uiState.recipientInput
 
     val contactPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -76,7 +80,7 @@ fun PayHub(
                             val number = if (numCol >= 0) cursor.getString(numCol) else null
                             val clean = number?.replace(Regex("[^0-9+]"), "")
                             if (!clean.isNullOrBlank()) {
-                                recipientInput = clean
+                                viewModel.onContactPicked(clean)
                             }
                         }
                     }
@@ -97,13 +101,13 @@ fun PayHub(
                 title = stringResource(AppStrings.ACTION_SCAN_QR),
                 subtitle = "Opens camera to scan QR and make payment",
                 iconTint = if (online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                onClick = { if (online) onOpen(Screen.Scan) },
+                onClick = { viewModel.onScanClicked(online) { onOpen(Screen.Scan) } },
             )
             PrimaryButton(
                 text = stringResource(AppStrings.ACTION_OPEN_CAMERA),
                 icon = Icons.Outlined.QrCodeScanner,
                 enabled = online,
-                onClick = { onOpen(Screen.Scan) },
+                onClick = { viewModel.onScanClicked(online) { onOpen(Screen.Scan) } },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -116,15 +120,17 @@ fun PayHub(
             )
             OutlinedTextField(
                 value = recipientInput,
-                onValueChange = { recipientInput = it },
+                onValueChange = viewModel::onRecipientChanged,
                 label = { Text(stringResource(AppStrings.LABEL_RECIPIENT)) },
                 placeholder = { Text(stringResource(AppStrings.LABEL_RECIPIENT_PLACEHOLDER)) },
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp),
                 trailingIcon = {
                     IconButton(onClick = {
-                        val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                        contactPicker.launch(intent)
+                        viewModel.onPickContactClicked {
+                            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                            contactPicker.launch(intent)
+                        }
                     }) {
                         Icon(Icons.Outlined.Contacts, contentDescription = "Select from contacts")
                     }
@@ -137,8 +143,10 @@ fun PayHub(
             ) {
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                        contactPicker.launch(intent)
+                        viewModel.onPickContactClicked {
+                            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                            contactPicker.launch(intent)
+                        }
                     },
                     modifier = Modifier.weight(1f),
                 ) {
@@ -149,7 +157,11 @@ fun PayHub(
                 PrimaryButton(
                     text = stringResource(AppStrings.ACTION_CONTINUE),
                     enabled = online && recipientInput.isNotBlank(),
-                    onClick = { onOpen(Screen.PayTo(recipientInput.trim(), 0L)) },
+                    onClick = {
+                        viewModel.onContinueClicked { recipient ->
+                            onOpen(Screen.PayTo(recipient, 0L))
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -167,7 +179,11 @@ fun PayHub(
                     title = contact.name,
                     subtitle = contact.handle,
                     iconTint = MaterialTheme.colorScheme.primary,
-                    onClick = { onOpen(Screen.PayTo(contact.handle, 0L)) },
+                    onClick = {
+                        viewModel.onSavedContactClicked(contact.handle) { handle ->
+                            onOpen(Screen.PayTo(handle, 0L))
+                        }
+                    },
                 )
             }
         }
@@ -175,12 +191,13 @@ fun PayHub(
 }
 
 private val previewFlags = HubFlags(offline = false, empty = false, reveal = true, onToggleReveal = {})
+private val previewPayHubViewModel = PayHubViewModel()
 
 @PreviewLightDark
 @Composable
 private fun PayHubPreview() {
     PersonalLedgerTheme {
-        PayHub(previewFlags, onOpen = {})
+        PayHub(previewFlags, onOpen = {}, viewModel = previewPayHubViewModel)
     }
 }
 
@@ -191,6 +208,7 @@ private fun PayHubOfflinePreview() {
         PayHub(
             HubFlags(offline = true, empty = false, reveal = true, onToggleReveal = {}),
             onOpen = {},
+            viewModel = previewPayHubViewModel,
         )
     }
 }

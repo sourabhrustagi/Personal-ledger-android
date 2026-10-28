@@ -56,17 +56,17 @@ import com.ledger.personal.ui.app.DemoViewModel
 import com.ledger.personal.ui.components.HubFlags
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
-import com.ledger.personal.feature.hubs.PayHub
-import com.ledger.personal.feature.hubs.PromotionsHub
-import com.ledger.personal.feature.hubs.PromotionsViewModel
-import com.ledger.personal.feature.scan.ScanScreen
+import com.ledger.personal.feature.hubs.pay.PayHub
+import com.ledger.personal.feature.hubs.offers.PromotionsHub
+import com.ledger.personal.feature.hubs.offers.PromotionsViewModel
+import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
-import com.ledger.personal.ui.feature.LedgerHistoryScreen
-import com.ledger.personal.ui.feature.WalletScreen
-import com.ledger.personal.ui.screens.home.HomeScreen
-import com.ledger.personal.ui.screens.home.HomeViewModel
-import com.ledger.personal.ui.screens.list.TransactionListScreen
-import com.ledger.personal.ui.screens.list.TransactionListViewModel
+import com.ledger.personal.feature.wallet.ui.WalletScreen
+import com.ledger.personal.feature.ledger.history.LedgerHistoryScreen
+import com.ledger.personal.feature.ledger.home.HomeScreen
+import com.ledger.personal.feature.ledger.home.HomeViewModel
+import com.ledger.personal.feature.ledger.list.TransactionListScreen
+import com.ledger.personal.feature.ledger.list.TransactionListViewModel
 
 /** Shows ledger nav host. */
 @Composable

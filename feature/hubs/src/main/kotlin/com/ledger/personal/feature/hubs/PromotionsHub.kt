@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.hubs
+package com.ledger.personal.feature.hubs
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocalOffer

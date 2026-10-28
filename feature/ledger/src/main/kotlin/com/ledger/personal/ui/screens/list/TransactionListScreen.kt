@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -170,7 +172,7 @@ fun TransactionListScreen(
                     ) {
                         val listError = uiState.errorMessage
                         if (listError != null) {
-                            item(key = "list-error") {
+                            item(key = "list-error", contentType = "error_banner") {
                                 Surface(
                                     color = MaterialTheme.colorScheme.errorContainer,
                                     shape = RoundedCornerShape(8.dp),
@@ -186,7 +188,11 @@ fun TransactionListScreen(
                             }
                         }
                         if (paging != null) {
-                            items(count = paging.itemCount) { index ->
+                            items(
+                                count = paging.itemCount,
+                                key = paging.itemKey { it.id },
+                                contentType = paging.itemContentType { "transaction_item" },
+                            ) { index ->
                                 val transaction = paging[index] ?: return@items
                                 TransactionListItem(
                                     transaction = transaction,
@@ -197,6 +203,7 @@ fun TransactionListScreen(
                             items(
                                 items = uiState.items,
                                 key = { it.id },
+                                contentType = { "transaction_item" },
                             ) { transaction ->
                                 TransactionListItem(
                                     transaction = transaction,
@@ -206,7 +213,7 @@ fun TransactionListScreen(
                         }
 
                         if (uiState.isLoadingNextPage) {
-                            item {
+                            item(key = "loading_more", contentType = "loading_spinner") {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -234,6 +241,13 @@ fun TransactionListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val formattedDateTime = remember(transaction.timestampEpochMs) {
+        transaction.timestampEpochMs.toFormattedDateTime()
+    }
+    val formattedCurrency = remember(transaction.amountInCents, transaction.currency) {
+        transaction.amountInCents.toFormattedCurrency(transaction.currency)
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -271,7 +285,7 @@ fun TransactionListItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = transaction.timestampEpochMs.toFormattedDateTime(),
+                    text = formattedDateTime,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -280,7 +294,7 @@ fun TransactionListItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Text(
-                text = transaction.amountInCents.toFormattedCurrency(transaction.currency),
+                text = formattedCurrency,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )

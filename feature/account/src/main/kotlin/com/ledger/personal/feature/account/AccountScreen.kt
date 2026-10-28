@@ -49,7 +49,7 @@ fun AccountScreen(
     phone: String,
     onLock: () -> Unit,
     onLogout: () -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
 ) {
     var showLogoutConfirm by rememberSaveable { mutableStateOf(false) }
 

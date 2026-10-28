@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -96,6 +97,7 @@ fun LedgerNavHost(
         "pay" -> Screen.Scan
         "passbook" -> Screen.Passbook
         "offers" -> Screen.Promotions
+        "account" -> Screen.Account
         else -> null
     }
     fun iconFor(id: String) = when (id) {
@@ -103,6 +105,7 @@ fun LedgerNavHost(
         "pay" -> Icons.Outlined.QrCodeScanner
         "passbook" -> Icons.AutoMirrored.Outlined.ReceiptLong
         "offers" -> Icons.Outlined.LocalOffer
+        "account" -> Icons.Outlined.Person
         else -> null
     }
     val bar = homeState.tabs.mapNotNull { tab ->
@@ -219,7 +222,7 @@ private fun NavGraphBuilder.productRoutes(
             phone = prefs.phone,
             onLock = appViewModel::lock,
             onLogout = appViewModel::logout,
-            onBack = back,
+            onBack = null,
         )
     }
 }

@@ -16,9 +16,6 @@ object AppStrings {
     @StringRes val TITLE_PAY: Int = R.string.title_pay
     @StringRes val TITLE_SCAN: Int = R.string.title_scan
     @StringRes val TITLE_WALLET: Int = R.string.title_wallet
-    @StringRes val TITLE_NEW_TRANSACTION: Int = R.string.title_new_transaction
-    @StringRes val TITLE_EDIT_TRANSACTION: Int = R.string.title_edit_transaction
-    @StringRes val TITLE_TRANSACTION_DETAILS: Int = R.string.title_transaction_details
 
     // Action Buttons
     @StringRes val ACTION_CONTINUE: Int = R.string.action_continue
@@ -32,9 +29,6 @@ object AppStrings {
     @StringRes val ACTION_SCAN_QR: Int = R.string.action_scan_qr
     @StringRes val ACTION_OPEN_CAMERA: Int = R.string.action_open_camera
     @StringRes val ACTION_BACK_TO_LIST: Int = R.string.action_back_to_list
-    @StringRes val ACTION_ADD_TRANSACTION: Int = R.string.action_add_transaction
-    @StringRes val ACTION_UPDATE_TRANSACTION: Int = R.string.action_update_transaction
-    @StringRes val ACTION_SAVING_CHANGES: Int = R.string.action_saving_changes
     @StringRes val ACTION_EDIT_DETAILS: Int = R.string.action_edit_details
     @StringRes val ACTION_SEND_ANOTHER: Int = R.string.action_send_another
 
@@ -58,13 +52,10 @@ object AppStrings {
     @StringRes val EMPTY_TRANSACTIONS_SUBTITLE: Int = R.string.empty_transactions_subtitle
     @StringRes val EMPTY_TRANSACTIONS_DEFAULT_TITLE: Int = R.string.empty_transactions_default_title
     @StringRes val EMPTY_TRANSACTIONS_DEFAULT_SUBTITLE: Int = R.string.empty_transactions_default_subtitle
-    @StringRes val EMPTY_TRANSACTION_NOT_FOUND: Int = R.string.empty_transaction_not_found
     @StringRes val EMPTY_PROMOTIONS: Int = R.string.empty_promotions
     @StringRes val EMPTY_TAB_CONTENT: Int = R.string.empty_tab_content
     @StringRes val NO_MATCHING_TRANSACTIONS: Int = R.string.no_matching_transactions
     @StringRes val LOADING_TRANSACTIONS: Int = R.string.loading_transactions
-    @StringRes val LOADING_TRANSACTION_DETAILS: Int = R.string.loading_transaction_details
-    @StringRes val LOADING_TRANSACTION_DATA: Int = R.string.loading_transaction_data
 
     // Section Titles
     @StringRes val SECTION_OFFERS: Int = R.string.section_offers

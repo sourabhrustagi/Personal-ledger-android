@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.hubs
+package com.ledger.personal.feature.hubs.pay
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

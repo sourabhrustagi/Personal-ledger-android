@@ -1,6 +1,7 @@
-@file:Suppress("MatchingDeclarationName")
+package com.ledger.personal.feature.auth.login
 
-package com.ledger.personal.feature.auth
+import com.ledger.personal.feature.auth.model.AppConstants
+import com.ledger.personal.feature.auth.model.OtpUiState
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

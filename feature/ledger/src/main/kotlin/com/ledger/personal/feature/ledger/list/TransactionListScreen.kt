@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.screens.list
+package com.ledger.personal.feature.ledger.list
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,8 +54,8 @@ import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import com.ledger.personal.util.toFormattedCurrency
-import com.ledger.personal.util.toFormattedDateTime
+import com.ledger.personal.feature.ledger.util.toFormattedCurrency
+import com.ledger.personal.feature.ledger.util.toFormattedDateTime
 
 /** Shows the transaction list screen. */
 @OptIn(ExperimentalMaterial3Api::class)

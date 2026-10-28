@@ -44,6 +44,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [2. Resilient Background Synchronization & Conflict Resolution](#2-resilient-background-synchronization--conflict-resolution)
   - [3. Build Flavor Dependency Injection](#3-build-flavor-dependency-injection)
   - [4. Multi-Layer Banking Security](#4-multi-layer-banking-security)
+  - [5. Current Architectural Limitations, Trade-offs & Flaws](#5-current-architectural-limitations-trade-offs--flaws)
 - [ViewModels](#view-models)
 - [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
   - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
@@ -599,16 +600,96 @@ Dagger Hilt dynamically binds repositories and network clients based on the acti
 - **Window Protection (`SecureWindow`):** Sensitive screens dynamically block screenshot capture and recent-app previews using Android's `FLAG_SECURE`.
 - **Inactivity Session Lock:** Background timer automatically locks the authenticated session after 30 seconds of inactivity to protect against unauthorized physical access.
 
+---
+
+### <a id="5-current-architectural-limitations-trade-offs--flaws"></a>5. Current Architectural Limitations, Trade-offs & Flaws
+
+While the codebase follows Clean Architecture and strict feature boundaries (`ModuleBoundaryTest`), an objective review of the current system reveals several architectural flaws, technical trade-offs, and areas of engineering debt:
+
+```mermaid
+graph TD
+    subgraph Flaws ["Key Architectural Flaws & Trade-offs"]
+        F1["1. Centralized NavHost in :app<br/>(Feature navigation couples through shell)"]
+        F2["2. Fat Core Modules<br/>(:core:database packages Room, DataStore & Sync)"]
+        F3["3. Runtime Flavor Conditionals<br/>(if-else in Hilt @Provides bloats release APK)"]
+        F4["4. In-Memory Mock vs. Room Divergence<br/>(Mock state doesn't exercise Room/Paging)"]
+        F5["5. StateFlow One-Off Event Anti-Pattern<br/>(Transient alerts/errors risk replay on rotation)"]
+        F6["6. Test Coroutine Dispatcher Boilerplate<br/>(Repeated setMain/resetMain across test classes)"]
+    end
+```
+
+#### A. Centralized Navigation Graph in `:app` (Leaky Module Autonomy)
+* **Current Flaw:** All navigation routes (`Screen.kt`) and the navigation graph (`LedgerNavHost.kt`) reside centrally in `:app`. Feature modules do not declare their own navigation sub-graphs or endpoints.
+* **Impact:** 
+  - When `:feature:hubs` or `:feature:ledger` needs to navigate to `:feature:scan` or `:feature:wallet`, it cannot do so directly (due to feature isolation rules). Instead, navigation actions must be bubbled all the way up through top-level callback lambdas to `:app`.
+  - Adding a new screen or changing route arguments requires modifying `:app`, preventing feature teams from working in complete independence.
+* **Recommended Remediation:** Adopt a **Navigation Provider / Entry Point** pattern (e.g. `FeatureNavigationApi` registered via Dagger multibindings) or URI/DeepLink-based contract navigation where each feature module owns and registers its own navigation sub-graph.
+
+#### B. Fat Core Modules (`:core:database` & `:core:network` Over-Aggregation)
+* **Current Flaw:** `:core:database` acts as a monolithic data container. It bundles:
+  1. Room SQLite database entities, DAOs, and database migrations.
+  2. DataStore user preferences (`DataStoreUserSettings`, `AppPreferences`).
+  3. Encryption vault (`PinVault`).
+  4. Repository implementations (`OfflineTransactionRepository`, `OfflinePromotionRepository`).
+  5. WorkManager synchronization background worker (`TransactionSyncWorker`, `WorkManagerSyncCoordinator`).
+* **Impact:** Any feature module that only needs to read a key-value setting or observe domain entities is forced to transitively pull in Room, SQLite, and WorkManager dependencies, increasing compilation overhead and invalidating Gradle build cache on unrelated changes.
+* **Recommended Remediation:** Decompose `:core:database` into finer-grained single-responsibility core modules:
+  - `:core:database` (pure Room entities, DAOs, migrations).
+  - `:core:datastore` (DataStore, `AppPreferences`, `UserSettings`).
+  - `:core:sync` (WorkManager sync workers and coordinators).
+
+#### C. Runtime Flavor Conditionals in Dependency Injection (APK Bloat)
+* **Current Flaw:** `RepositoryModule` and `TeamModule` determine whether to provide mock or live implementations using runtime conditionals:
+  ```kotlin
+  // Anti-pattern: runtime check in Hilt provider
+  @Provides
+  @Singleton
+  fun home(mock: MockHomeBoard, live: RetrofitHomeBoard): HomeBoard =
+      if (BuildConfig.FLAVOR == "mock") mock else live
+  ```
+* **Impact:** 
+  - Both `MockHomeBoard` (with all its seeded JSON strings and demo fixtures) and `RetrofitHomeBoard` are compiled into the production binary.
+  - ProGuard/R8 cannot strip mock test fixtures because the code references them at runtime, unnecessarily inflating the production APK size and exposing test fixtures in production binaries.
+* **Recommended Remediation:** Move flavor-specific Hilt modules into flavor-specific source sets (`app/src/mock/kotlin` and `app/src/prod/kotlin`), using `@InstallIn(SingletonComponent::class)` to bind the correct backend at compile time with zero runtime branching.
+
+#### D. State Divergence: In-Memory Mock vs. Persistent Room Source of Truth
+* **Current Flaw:** `MockTransactionRepository` stores mock transactions in an in-memory `ConcurrentHashMap<String, Transaction>`, whereas production `OfflineTransactionRepository` queries Room SQLite tables.
+* **Impact:** 
+  - Running feature demo apps in the mock environment bypasses Room SQLite indexes, Room migrations, and SQLite transaction locking semantics.
+  - Process death or activity recreation in mock flavor does not accurately test how the app recovers offline state from persistent disk.
+* **Recommended Remediation:** Back the mock repository with a pre-populated in-memory Room database (`Room.inMemoryDatabaseBuilder(...)`) populated with seed entities on creation. This ensures that mock environments exercise the exact same DAO and Paging 3 queries as production.
+
+#### E. Handling One-Off UI Side Effects in `StateFlow` (Event Replay Risk)
+* **Current Flaw:** Some ViewModels manage transient events (error messages, step advancement flags, and biometric prompts) directly as properties in persistent `StateFlow<UiState>` models (e.g. `val errorMessage: String?`, `val isOtpSent: Boolean`).
+* **Impact:**
+  - If a user triggers an error message and then rotates the device from portrait to landscape, Compose re-subscribes via `collectAsStateWithLifecycle()`, and `StateFlow` immediately re-emits its last cached state. Unless explicitly cleared with an explicit "dismiss" intent, the error banner or navigation event re-triggers unintentionally.
+* **Recommended Remediation:** Separate persistent state from transient side effects:
+  - Use `StateFlow<UiState>` exclusively for **persistent UI state** (form text, loading spinners, item lists).
+  - Use buffered single-consumer channels (`Channel<UiEvent>(Channel.BUFFERED).receiveAsFlow()`) for **one-off UI side effects** (showing Toasts, opening bottom sheets, or navigation transitions).
+
+#### F. Test Coroutine Dispatcher Boilerplate & Test Quality
+* **Current Flaw:** Feature unit tests manually set up and tear down `Dispatchers.setMain` and `Dispatchers.resetMain` inside `@Before` and `@After` methods across multiple test classes. Furthermore, some tests verify default parameter values of data classes (`OtpUiState()`) rather than behavior.
+* **Impact:**
+  - Boilerplate is duplicated across feature modules. If a test throws an unhandled exception before `tearDown()` completes, the main dispatcher leak can cause subsequent unrelated unit tests to fail unpredictably.
+  - Testing default constructor values of data classes produces brittle tests that don't validate actual business logic.
+* **Recommended Remediation:** 
+  - Standardize on a centralized `MainDispatcherRule : TestWatcher` in `:core:testing`.
+  - Refocus tests on behavior verification (triggering ViewModel intents and asserting resulting `StateFlow` state transitions).
+
+---
+
 ## <a id="view-models"></a>View models
 
 Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back stack or the Activity lifecycle. State is exposed as read-only `StateFlow`s, and all asynchronous work runs structured in `viewModelScope`.
 
 | Module | ViewModel | Responsibility |
+| :--- | :--- | :--- |
 | `:app` | `AppViewModel` | Top-level app shell lifecycle, version/update evaluation, session lock state, and category availability (adhering to SRP) |
-| `:app` | `OnboardingViewModel` | User onboarding registration, phone input verification, and SMS OTP dispatch |
-| `:app` | `LoginViewModel` | Locked screen OTP verification, session unlock authorization, and device account reset |
 | `:app` | `DemoViewModel` | Mock environment switches and connection status for testing |
-| `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
+| `:feature:auth` | `OnboardingViewModel` | User onboarding registration, phone input verification, and SMS OTP dispatch |
+| `:feature:auth` | `LoginViewModel` | Locked screen OTP verification, session unlock authorization, and device account reset |
+| `:feature:hubs` | `PayHubViewModel` | Hub shortcuts, scan triggers, and payment action dispatches |
+| `:feature:hubs` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `GetPagedTransactionsUseCase` |

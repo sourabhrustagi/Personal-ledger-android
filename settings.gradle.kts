@@ -34,8 +34,6 @@ include(
     ":feature:auth:demo",
     ":feature:scan",
     ":feature:scan:demo",
-    ":feature:hubs",
-    ":feature:hubs:demo",
     ":feature:update",
     ":feature:update:demo",
 )

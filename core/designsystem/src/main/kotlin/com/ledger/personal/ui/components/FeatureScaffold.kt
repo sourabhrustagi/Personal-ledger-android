@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

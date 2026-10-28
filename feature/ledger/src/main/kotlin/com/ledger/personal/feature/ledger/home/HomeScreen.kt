@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +46,7 @@ import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
+import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.flow.Flow
@@ -78,6 +80,7 @@ fun HomeScreen(
     revealBalance: Boolean,
     offline: Boolean,
     onToggleReveal: () -> Unit,
+    onScanClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -126,6 +129,21 @@ fun HomeScreen(
                             HomeSection.Balance -> {
                                 item(key = "section_balance_$index", contentType = "balance_summary") {
                                     SummaryCard(balanceMinor, revealBalance, onToggleReveal)
+                                }
+                                item(key = "section_scan_and_pay_$index", contentType = "scan_and_pay") {
+                                    SectionCard(title = stringResource(AppStrings.SECTION_SCAN_AND_PAY)) {
+                                        Text(
+                                            "Pay anyone instantly using UPI QR code or phone number.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        PrimaryButton(
+                                            text = stringResource(AppStrings.ACTION_SCAN_QR),
+                                            icon = Icons.Outlined.QrCodeScanner,
+                                            onClick = onScanClick,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
                                 }
                                 if (state.promotions.isNotEmpty()) {
                                     item(key = "section_promotions_$index", contentType = "promotions_carousel") {

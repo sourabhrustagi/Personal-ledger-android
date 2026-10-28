@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.auth
+package com.ledger.personal.feature.auth
 
 /** OTP request and verification state. */
 data class OtpUiState(

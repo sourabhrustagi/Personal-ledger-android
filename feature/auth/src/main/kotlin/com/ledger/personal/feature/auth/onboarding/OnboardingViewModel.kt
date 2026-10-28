@@ -1,5 +1,7 @@
-package com.ledger.personal.feature.auth
+package com.ledger.personal.feature.auth.onboarding
 
+import com.ledger.personal.feature.auth.model.AppConstants
+import com.ledger.personal.feature.auth.model.OtpUiState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.data.prefs.AppPreferences

@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.ui.components
 
 import com.ledger.personal.ui.theme.AppStrings
 import java.math.BigDecimal

@@ -69,6 +69,9 @@ class LoginViewModel internal constructor(
             return
         }
         viewModelScope.launch {
+            if (session != null) {
+                delay(VERIFY_DELAY_MS)
+            }
             val result = session?.begin() ?: Result.success(com.ledger.personal.domain.session.SessionResponse("test_token"))
             onResult(result.isSuccess)
         }
@@ -91,5 +94,6 @@ class LoginViewModel internal constructor(
 
     companion object {
         private const val ONE_SECOND_MS: Long = 1_000L
+        private const val VERIFY_DELAY_MS: Long = 1_500L
     }
 }

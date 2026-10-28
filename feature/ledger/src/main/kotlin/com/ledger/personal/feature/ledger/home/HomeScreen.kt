@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.screens.home
+package com.ledger.personal.feature.ledger.home
 
 import android.content.ActivityNotFoundException
 import android.content.Intent

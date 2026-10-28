@@ -1,7 +1,7 @@
-@file:Suppress("MatchingDeclarationName")
+package com.ledger.personal.feature.scan.ui
 
-package com.ledger.personal.feature.scan
-
+import com.ledger.personal.feature.scan.model.UpiTarget
+import com.ledger.personal.feature.scan.model.parseUpi
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult

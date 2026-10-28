@@ -1,4 +1,4 @@
-package com.ledger.personal.util
+package com.ledger.personal.feature.ledger.util
 
 import com.ledger.personal.core.LedgerConstants
 import java.text.NumberFormat

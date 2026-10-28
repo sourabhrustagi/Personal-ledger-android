@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -110,18 +111,29 @@ fun OtpLoginScreen(
                     TextLink("Resend code", onResend)
                 }
                 Spacer(Modifier.height(16.dp))
-                PrimaryButton(
-                    "Verify and sign in",
-                    onClick = {
-                        checking = true
-                        onVerifyOtp(code) { ok ->
-                            checking = false
-                            wrong = !ok
-                        }
-                    },
-                    enabled = code.length == AppConstants.OTP_CODE_LENGTH && !checking,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (checking) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    PrimaryButton(
+                        "Verify and sign in",
+                        onClick = {
+                            checking = true
+                            onVerifyOtp(code) { ok ->
+                                checking = false
+                                wrong = !ok
+                            }
+                        },
+                        enabled = code.length == AppConstants.OTP_CODE_LENGTH,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 TextLink("Sign in with another number", { confirmReset = true })
             }
         }

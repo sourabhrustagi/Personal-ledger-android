@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.ledger.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

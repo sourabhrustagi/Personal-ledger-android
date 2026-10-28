@@ -115,8 +115,7 @@ object MockResponses {
           "tabs": [
             {"id": "home", "title": "Home"},
             {"id": "pay", "title": "Pay"},
-            {"id": "passbook", "title": "Passbook"},
-            {"id": "offers", "title": "Offers"}
+            {"id": "passbook", "title": "Passbook"}
           ],
           "sections": [
             {

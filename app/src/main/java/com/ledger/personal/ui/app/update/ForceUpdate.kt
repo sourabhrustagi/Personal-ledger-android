@@ -30,10 +30,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import com.ledger.personal.ui.feature.BannerTone
-import com.ledger.personal.ui.feature.IconBadge
-import com.ledger.personal.ui.feature.PrimaryButton
-import com.ledger.personal.ui.feature.StatusBanner
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.IconBadge
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.StatusBanner
 
 /** UI state for the force update screen. */
 data class ForceUpdateUiState(val versionName: String = "")

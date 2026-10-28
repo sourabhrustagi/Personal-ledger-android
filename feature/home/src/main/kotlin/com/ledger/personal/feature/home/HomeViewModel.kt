@@ -48,7 +48,7 @@ data class HomeUiState(
     val sync: SyncPhase = SyncPhase.IDLE,
     val pendingDelete: Transaction? = null,
     val total: Int = 0,
-    val tabs: List<HomeTab> = emptyList(),
+    val tabs: List<HomeTab> = essentialTabs,
     val sections: List<HomeSection> = emptyList(),
     val layoutReady: Boolean = false,
     val layoutMessage: String? = null,
@@ -60,8 +60,14 @@ private const val RECENT_LIMIT = LedgerConstants.DEFAULT_RECENT_LIMIT
 /** Balance stays on screen when the dashboard cannot be loaded. */
 private val essentialHome = listOf(HomeSection.Balance)
 
-/** Home stays reachable when the dashboard cannot be loaded. */
-private val essentialTabs = listOf(HomeTab("home", "Home"))
+/** Home and main product tabs stay reachable when the dashboard cannot be loaded. */
+private val essentialTabs = listOf(
+    HomeTab("home", "Home"),
+    HomeTab("pay", "Pay"),
+    HomeTab("passbook", "Passbook"),
+    HomeTab("offers", "Offers"),
+    HomeTab("account", "Account"),
+)
 
 private val PreviewPromotionsBackend = PromotionsBackend { Result.success(emptyList()) }
 
@@ -88,7 +94,7 @@ class HomeViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val category = MutableStateFlow<String?>(null)
     private val pending = MutableStateFlow<Transaction?>(null)
-    private val tabs = MutableStateFlow<List<HomeTab>>(emptyList())
+    private val tabs = MutableStateFlow<List<HomeTab>>(essentialTabs)
     private val sections = MutableStateFlow<List<HomeSection>>(emptyList())
     private val promotions = MutableStateFlow<List<PromoOffer>>(emptyList())
     private val layoutMessage = MutableStateFlow<String?>(null)
@@ -140,7 +146,7 @@ class HomeViewModel @Inject constructor(
                 (q.isBlank() || it.description.contains(q, true) || it.category.contains(q, true))
         }
         HomeUiState(
-            loading = false,
+            loading = !boardState.ready,
             query = q,
             category = cat,
             categories = all.map { it.category }.distinct().sorted(),

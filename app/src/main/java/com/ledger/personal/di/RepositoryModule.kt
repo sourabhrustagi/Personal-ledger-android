@@ -8,6 +8,7 @@ import com.ledger.personal.data.remote.api.RetrofitPromotionsBackend
 import com.ledger.personal.data.repository.MockTransactionRepository
 import com.ledger.personal.data.repository.TransactionsRepository
 import com.ledger.personal.domain.repository.TransactionRemote
+import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.ConflictInbox
 import com.ledger.personal.data.security.BindingServer
 import com.ledger.personal.data.security.DeviceBindingRetrofitApi
@@ -60,6 +61,14 @@ object RepositoryModule {
         mockRepository: MockTransactionRepository,
         transactionsRepository: TransactionsRepository,
     ): TransactionRemote = if (BuildConfig.FLAVOR == "mock") mockRepository else transactionsRepository
+
+    /** Supplies transaction repository. */
+    @Provides
+    @Singleton
+    fun provideTransactionRepository(
+        mockRepository: MockTransactionRepository,
+    ): TransactionRepository = mockRepository
+
 
     /** Supplies conflict inbox. */
     @Provides

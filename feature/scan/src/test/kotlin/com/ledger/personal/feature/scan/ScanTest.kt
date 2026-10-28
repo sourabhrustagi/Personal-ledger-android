@@ -1,5 +1,8 @@
 package com.ledger.personal.feature.scan
 
+import com.ledger.personal.feature.scan.model.UpiTarget
+import com.ledger.personal.feature.scan.model.parseUpi
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

@@ -34,7 +34,7 @@ data class SessionState(
 )
 
 /** Alias for backward compatibility. */
-typealias OtpUiState = com.ledger.personal.feature.auth.OtpUiState
+typealias OtpUiState = com.ledger.personal.feature.auth.model.OtpUiState
 
 /** True when the mock switch is on or the phone has no internet. */
 fun offlineNow(mockOffline: Boolean, connected: Boolean): Boolean = mockOffline || !connected

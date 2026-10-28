@@ -1,5 +1,8 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet
 
+import com.ledger.personal.feature.wallet.ui.TransferStatus
+import com.ledger.personal.feature.wallet.ui.TransferStep
+import com.ledger.personal.feature.wallet.ui.WalletViewModel
 import com.ledger.personal.mock.MockCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +18,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class FeatureViewModelsTest {
+class WalletViewModelTest {
     private val dispatcher = StandardTestDispatcher()
 
     @Before

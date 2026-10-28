@@ -1,7 +1,6 @@
 package com.ledger.personal.data.sync
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ExistingWorkPolicy
@@ -12,14 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.work.testing.WorkManagerTestInitHelper
-import com.ledger.personal.data.local.LedgerDatabase
-import com.ledger.personal.data.repository.MockTransactionRepository
-import com.ledger.personal.mock.MockSwitches
-import com.ledger.personal.data.repository.OfflineTransactionRepository
 import com.ledger.personal.domain.settings.UserSettings
-import com.ledger.personal.domain.sync.ConflictInbox
-import com.ledger.personal.domain.sync.SyncCoordinator
-import com.ledger.personal.domain.sync.SyncPhase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -34,21 +26,14 @@ class TransactionSyncWorkerTest {
 
     @Test
     fun workerRunsOnAnyConnection() {
-        MockSwitches.flakyPayments.value = false
-        MockSwitches.nextRolls.clear()
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val database = Room.inMemoryDatabaseBuilder(context, LedgerDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
-        val repository = OfflineTransactionRepository(
-            dao = database.transactionDao(),
-            remote = MockTransactionRepository(),
-            conflicts = ConflictInbox(null),
-            syncCoordinator = object : SyncCoordinator {
-                override fun enqueue() = Unit
-                override fun observe(): Flow<SyncPhase> = flowOf(SyncPhase.IDLE)
-            },
-        )
+        var recordedSyncTime: Long? = null
+        val fakeSettings = object : UserSettings {
+            override val lastSyncEpochMs: Flow<Long?> = flowOf(null)
+            override suspend fun recordSync(epochMs: Long) {
+                recordedSyncTime = epochMs
+            }
+        }
         val config = androidx.work.Configuration.Builder()
             .setWorkerFactory(object : WorkerFactory() {
                 override fun createWorker(
@@ -58,11 +43,7 @@ class TransactionSyncWorkerTest {
                 ): ListenableWorker = TransactionSyncWorker(
                     appContext,
                     workerParameters,
-                    repository,
-                    object : UserSettings {
-                        override val lastSyncEpochMs: Flow<Long?> = flowOf(null)
-                        override suspend fun recordSync(epochMs: Long) = Unit
-                    },
+                    fakeSettings,
                 )
             })
             .build()
@@ -82,9 +63,14 @@ class TransactionSyncWorkerTest {
         assertEquals(WorkInfo.State.ENQUEUED, queued.state)
 
         runBlocking {
-            assertTrue(repository.sync().isSuccess)
-            assertEquals(25, database.transactionDao().allVisible().size)
+            val workerFactory = config.workerFactory
+            val worker = androidx.work.testing.TestListenableWorkerBuilder<TransactionSyncWorker>(context)
+                .setWorkerFactory(workerFactory)
+                .build()
+            val result = worker.doWork()
+            assertTrue(result is ListenableWorker.Result.Success)
+            assertTrue(recordedSyncTime != null)
         }
-        database.close()
     }
 }
+

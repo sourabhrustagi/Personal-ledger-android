@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,15 +54,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.sync.SyncPhase
-import com.ledger.personal.ui.feature.BannerTone
-import com.ledger.personal.ui.feature.IconBadge
-import com.ledger.personal.ui.feature.MaskedAmount
-import com.ledger.personal.ui.feature.OfflineBanner
-import com.ledger.personal.ui.feature.SectionCard
-import com.ledger.personal.ui.feature.SkeletonRows
-import com.ledger.personal.ui.feature.StatusBanner
-import com.ledger.personal.ui.feature.SyncIndicator
-import com.ledger.personal.ui.feature.SyncState
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.IconBadge
+import com.ledger.personal.ui.components.MaskedAmount
+import com.ledger.personal.ui.components.OfflineBanner
+import com.ledger.personal.ui.components.SectionCard
+import com.ledger.personal.ui.components.SkeletonRows
+import com.ledger.personal.ui.components.StatusBanner
+import com.ledger.personal.ui.components.SyncIndicator
+import com.ledger.personal.ui.components.SyncState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -109,52 +110,66 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-            if (offline) item { OfflineBanner("a few minutes ago") }
-            if (!state.layoutReady) {
-                item { SkeletonRows() }
-            } else {
-                state.layoutMessage?.let { message -> item { StatusBanner(message, BannerTone.WARNING, title = "Home layout") } }
-                state.sections.forEach { section ->
-                    when (section) {
-                        HomeSection.Balance -> {
-                            item { SummaryCard(balanceMinor, revealBalance, onToggleReveal) }
-                            if (state.promotions.isNotEmpty()) {
-                                item {
-                                    PromotionsHorizontalSection(
-                                        promotions = state.promotions,
-                                        onOfferClick = { offer ->
-                                            val query = Uri.encode(offer.pitch)
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$query"))
-                                            try {
-                                                context.startActivity(intent)
-                                            } catch (_: ActivityNotFoundException) {
-                                                // Ignore if browser not found
-                                            }
-                                        },
-                                    )
+                if (offline) {
+                    item(key = "offline_banner", contentType = "banner") { OfflineBanner("a few minutes ago") }
+                }
+                if (!state.layoutReady) {
+                    item(key = "skeleton_rows", contentType = "skeleton") { SkeletonRows() }
+                } else {
+                    state.layoutMessage?.let { message ->
+                        item(key = "layout_message", contentType = "banner") {
+                            StatusBanner(message, BannerTone.WARNING, title = "Home layout")
+                        }
+                    }
+                    state.sections.forEachIndexed { index, section ->
+                        when (section) {
+                            HomeSection.Balance -> {
+                                item(key = "section_balance_$index", contentType = "balance_summary") {
+                                    SummaryCard(balanceMinor, revealBalance, onToggleReveal)
+                                }
+                                if (state.promotions.isNotEmpty()) {
+                                    item(key = "section_promotions_$index", contentType = "promotions_carousel") {
+                                        PromotionsHorizontalSection(
+                                            promotions = state.promotions,
+                                            onOfferClick = { offer ->
+                                                val query = Uri.encode(offer.pitch)
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$query"))
+                                                try {
+                                                    context.startActivity(intent)
+                                                } catch (_: ActivityNotFoundException) {
+                                                    // Ignore if browser not found
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
                             }
+                            is HomeSection.Note -> item(
+                                key = "section_note_${section.title}_$index",
+                                contentType = "note_card",
+                            ) {
+                                SectionCard(title = section.title.ifBlank { null }) { Text(section.body) }
+                            }
+                            is HomeSection.Shortcuts, is HomeSection.Activity -> Unit
                         }
-                        is HomeSection.Note -> item {
-                            SectionCard(title = section.title.ifBlank { null }) { Text(section.body) }
-                        }
-                        is HomeSection.Shortcuts, is HomeSection.Activity -> Unit
                     }
                 }
             }
         }
     }
 }
-}
 
 /** Shows summary card with current account balance. */
 @Composable
 private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Unit) {
+    val asOfTime = remember {
+        Instant.now().atZone(ZoneId.systemDefault()).format(timeFormat)
+    }
     SectionCard {
         Text("Savings •• 4821", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         MaskedAmount(balanceMinor, reveal, onToggle)
         Text(
-            "Available balance · as of ${Instant.now().atZone(ZoneId.systemDefault()).format(timeFormat)}",
+            "Available balance · as of $asOfTime",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -170,7 +185,11 @@ private fun PromotionsHorizontalSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(AppStrings.SECTION_OFFERS), style = MaterialTheme.typography.titleSmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(promotions, key = { it.id }) { offer ->
+            items(
+                items = promotions,
+                key = { it.id },
+                contentType = { "promo_offer" },
+            ) { offer ->
                 androidx.compose.material3.Surface(
                     onClick = { onOfferClick(offer) },
                     shape = MaterialTheme.shapes.medium,

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -56,9 +55,6 @@ import com.ledger.personal.ui.app.DemoViewModel
 import com.ledger.personal.ui.components.HubFlags
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
-import com.ledger.personal.feature.hubs.pay.PayHub
-import com.ledger.personal.feature.hubs.offers.PromotionsHub
-import com.ledger.personal.feature.hubs.offers.PromotionsViewModel
 import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
 import com.ledger.personal.feature.wallet.ui.WalletScreen
@@ -97,16 +93,14 @@ fun LedgerNavHost(
     val homeState by home.uiState.collectAsStateWithLifecycle()
     fun routeFor(id: String): Screen? = when (id) {
         "home" -> Screen.Home
-        "pay" -> Screen.PayHub
+        "pay" -> Screen.Scan
         "passbook" -> Screen.Passbook
-        "offers" -> Screen.Promotions()
         else -> null
     }
     fun iconFor(id: String) = when (id) {
         "home" -> Icons.Outlined.Home
         "pay" -> Icons.Outlined.QrCodeScanner
         "passbook" -> Icons.AutoMirrored.Outlined.ReceiptLong
-        "offers" -> Icons.Outlined.LocalOffer
         else -> null
     }
     val bar = homeState.tabs.mapNotNull { tab ->
@@ -189,14 +183,8 @@ private fun NavGraphBuilder.tabRoutes(
             revealBalance = flags.reveal,
             offline = flags.offline,
             onToggleReveal = flags.onToggleReveal,
-            viewModel = home,
-        )
-    }
-    composable<Screen.PayHub> {
-        PayHub(
-            flags = flags,
             onScanClick = { nav.navigate(Screen.Scan) },
-            onPayTo = { recipient, amount -> nav.navigate(Screen.PayTo(recipient, amount)) },
+            viewModel = home,
         )
     }
     composable<Screen.Passbook> {
@@ -204,11 +192,6 @@ private fun NavGraphBuilder.tabRoutes(
             onBack = null,
             title = "Passbook",
         )
-    }
-    composable<Screen.Promotions>(deepLinks = promotionLinks()) {
-        val offers: PromotionsViewModel = hiltViewModel()
-        val uiState by offers.uiState.collectAsStateWithLifecycle()
-        PromotionsHub(uiState, offers::select)
     }
 }
 

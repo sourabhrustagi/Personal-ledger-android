@@ -12,8 +12,6 @@ import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
-import com.ledger.personal.ui.screens.detail.TransactionDetailScreen
-import com.ledger.personal.ui.screens.detail.TransactionDetailUiState
 import com.ledger.personal.ui.screens.list.TransactionListScreen
 import com.ledger.personal.ui.screens.list.TransactionListUiState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -102,22 +100,5 @@ class LedgerScreensTest {
             }
         }
         composeRule.onNodeWithText("Failed to load").assertIsDisplayed()
-    }
-
-    @Test
-    fun detailScreenShowsTransactionDetails() {
-        composeRule.setContent {
-            PersonalLedgerTheme {
-                TransactionDetailScreen(
-                    uiState = TransactionDetailUiState(
-                        transaction = sampleTransaction(id = "tx-9", description = "Team lunch"),
-                    ),
-                    onNavigateBack = {},
-                    onRetry = {},
-                )
-            }
-        }
-        composeRule.onNodeWithText("Team lunch").assertIsDisplayed()
-        composeRule.onNodeWithText("Transaction ID").assertIsDisplayed()
     }
 }

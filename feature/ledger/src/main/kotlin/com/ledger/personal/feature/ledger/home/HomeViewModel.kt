@@ -23,6 +23,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import com.ledger.personal.core.LedgerConstants
+import com.ledger.personal.core.formatApiError
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import com.ledger.personal.domain.usecase.GetTransactionsUseCase
@@ -100,8 +101,8 @@ class HomeViewModel @Inject constructor(
                     tabs.value = it.tabs
                     sections.value = it.sections
                 },
-                onFailure = {
-                    layoutMessage.value = "The home layout couldn't load."
+                onFailure = { error ->
+                    layoutMessage.value = formatApiError(error)
                     tabs.value = essentialTabs
                     sections.value = essentialHome
                 },

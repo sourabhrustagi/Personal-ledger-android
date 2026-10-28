@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.hubs
+package com.ledger.personal.feature.hubs
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -1,12 +1,19 @@
 package com.ledger.personal.feature.history
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -25,7 +32,6 @@ import com.ledger.personal.domain.usecase.GetPagedTransactionsUseCase
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.FeatureScaffold
 import com.ledger.personal.ui.components.ListRow
-import com.ledger.personal.ui.components.LoadingOrEmpty
 import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.components.categoryIcon
 import com.ledger.personal.ui.theme.AppStrings
@@ -41,35 +47,61 @@ fun LedgerHistoryScreen(
     viewModel: LedgerHistoryViewModel = hiltViewModel(),
 ) {
     val pages = viewModel.pages.collectAsLazyPagingItems()
-    FeatureScaffold(title, onBack, subtitle = "Everything saved on this device", scrollable = false) {
-        val loading = pages.loadState.refresh is LoadState.Loading
-        LoadingOrEmpty(loading && pages.itemCount == 0, isEmpty = false, errorMessage = null, label = "transactions")
-        if (pages.itemCount == 0 && !loading) {
+    val isInitialLoading = pages.loadState.refresh is LoadState.Loading && pages.itemCount == 0
+    FeatureScaffold(
+        title = title,
+        onBack = onBack,
+        subtitle = "Everything saved on this device",
+        scrollable = false,
+    ) {
+        if (isInitialLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (pages.itemCount == 0) {
             EmptyState(
                 Icons.AutoMirrored.Outlined.ReceiptLong,
                 stringResource(AppStrings.EMPTY_TRANSACTIONS_TITLE),
-                stringResource(AppStrings.EMPTY_TRANSACTIONS_SUBTITLE)
+                stringResource(AppStrings.EMPTY_TRANSACTIONS_SUBTITLE),
             )
-        }
-        SectionCard(Modifier.weight(1f, fill = false)) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(
-                    count = pages.itemCount,
-                    key = pages.itemKey { it.id },
-                    contentType = pages.itemContentType { "passbook_row" },
-                ) { index ->
-                    val row = pages[index] ?: return@items
-                    val formattedDate = remember(row.timestampEpochMs) { row.timestampEpochMs.toFormattedDateTime() }
-                    val formattedAmount = remember(row.amountInCents, row.currency) {
-                        row.amountInCents.toFormattedCurrency(row.currency)
+        } else {
+            SectionCard(Modifier.weight(1f, fill = false)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    items(
+                        count = pages.itemCount,
+                        key = pages.itemKey { it.id },
+                        contentType = pages.itemContentType { "passbook_row" },
+                    ) { index ->
+                        val row = pages[index] ?: return@items
+                        val formattedDate = remember(row.timestampEpochMs) { row.timestampEpochMs.toFormattedDateTime() }
+                        val formattedAmount = remember(row.amountInCents, row.currency) {
+                            row.amountInCents.toFormattedCurrency(row.currency)
+                        }
+                        ListRow(
+                            icon = categoryIcon(row.category),
+                            title = row.description.ifBlank { row.category },
+                            subtitle = "${row.category} · $formattedDate",
+                            trailing = formattedAmount,
+                            trailingColor = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
-                    ListRow(
-                        icon = categoryIcon(row.category),
-                        title = row.description.ifBlank { row.category },
-                        subtitle = "${row.category} · $formattedDate",
-                        trailing = formattedAmount,
-                        trailingColor = MaterialTheme.colorScheme.onSurface,
-                    )
+                    if (pages.loadState.append is LoadState.Loading) {
+                        item(key = "append_loading") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
+                    }
                 }
             }
         }

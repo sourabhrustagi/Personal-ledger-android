@@ -62,7 +62,7 @@ fun PhoneStep(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     if (errorMessage != null) {
-        StatusBanner(errorMessage, BannerTone.ERROR)
+        StatusBanner(errorMessage, BannerTone.ERROR, title = "Verification Failed")
     }
     OutlinedTextField(
         value = phone,
@@ -73,7 +73,13 @@ fun PhoneStep(
         },
         label = { Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER)) },
         prefix = { Text(stringResource(AppStrings.PHONE_PREFIX)) },
-        supportingText = { Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER_HINT)) },
+        supportingText = {
+            if (errorMessage != null) {
+                Text(errorMessage, color = MaterialTheme.colorScheme.error)
+            } else {
+                Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER_HINT))
+            }
+        },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true,
         isError = errorMessage != null,

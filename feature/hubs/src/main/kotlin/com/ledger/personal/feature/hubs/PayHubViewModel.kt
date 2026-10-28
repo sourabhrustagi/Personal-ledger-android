@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.hubs
+package com.ledger.personal.feature.hubs
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel

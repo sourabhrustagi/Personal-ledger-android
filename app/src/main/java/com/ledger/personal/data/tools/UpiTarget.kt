@@ -16,7 +16,7 @@ fun parseUpi(raw: String): UpiTarget? {
             if (key.isEmpty()) null else key.lowercase() to URLDecoder.decode(pair.substringAfter("="), "UTF-8")
         }.toMap()
         val vpa = params["pa"]?.takeIf { it.contains('@') } ?: return null
-        val amount = params["am"]?.let { com.ledger.personal.ui.feature.parseMinor(it) } ?: 0L
+        val amount = params["am"]?.let { com.ledger.personal.ui.components.parseMinor(it) } ?: 0L
         return UpiTarget(vpa, params["pn"], amount)
     }
     if (vpaRegex.matches(text)) {

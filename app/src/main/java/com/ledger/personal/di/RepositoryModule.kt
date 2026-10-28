@@ -24,7 +24,7 @@ import com.ledger.personal.mock.MockPaymentsBackend
 import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.mock.SwitchConditions
-import com.ledger.personal.ui.feature.PaymentRail
+import com.ledger.personal.feature.wallet.payment.PaymentRail
 import java.io.File
 import java.io.IOException
 import dagger.Binds

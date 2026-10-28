@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.update
+package com.ledger.personal.feature.update
 
 import android.content.ActivityNotFoundException
 import android.content.Context

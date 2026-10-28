@@ -1,6 +1,5 @@
-package com.ledger.personal.ui.app.auth
+package com.ledger.personal.feature.auth
 
-import com.ledger.personal.core.AppConstants
 import com.ledger.personal.domain.session.OtpRepository
 import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.domain.usecase.SendOtpUseCase

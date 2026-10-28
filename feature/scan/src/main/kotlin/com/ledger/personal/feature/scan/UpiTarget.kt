@@ -1,4 +1,4 @@
-package com.ledger.personal.data.tools
+package com.ledger.personal.feature.scan
 
 import java.net.URLDecoder
 

@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.auth
+package com.ledger.personal.feature.auth.login
 
 import android.content.Context
 import android.os.Build

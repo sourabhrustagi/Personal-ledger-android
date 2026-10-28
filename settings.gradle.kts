@@ -26,8 +26,6 @@ include(
     ":core:ui",
     ":core:testing",
     ":core:mock",
-    ":feature:ledger",
-    ":feature:ledger:demo",
     ":feature:home",
     ":feature:home:demo",
     ":feature:account",

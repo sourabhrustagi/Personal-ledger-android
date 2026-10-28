@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
-import com.ledger.personal.ui.feature.DetailRow
+import com.ledger.personal.ui.components.DetailRow
 import com.ledger.personal.ui.components.LoadingState
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme

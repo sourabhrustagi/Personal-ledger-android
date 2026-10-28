@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.screens.list
+package com.ledger.personal.feature.ledger.list
 
 import com.ledger.personal.domain.model.Transaction
 

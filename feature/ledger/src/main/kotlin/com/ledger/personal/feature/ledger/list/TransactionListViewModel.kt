@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.ledger.personal.core.formatApiError
 import javax.inject.Inject
 
 /** State and actions for the transaction list screen. */
@@ -65,7 +66,7 @@ class TransactionListViewModel @Inject constructor(
             isLoading = false,
             isRefreshing = isRefreshing,
             isEndReached = true,
-            errorMessage = error ?: itemsResult.exceptionOrNull()?.message,
+            errorMessage = error ?: itemsResult.exceptionOrNull()?.let(::formatApiError),
             syncStatus = phase.label,
         )
     }.stateIn(
@@ -85,12 +86,12 @@ class TransactionListViewModel @Inject constructor(
             errorMessageFlow.value = null
             try {
                 refreshTransactionsUseCase().onFailure { error ->
-                    errorMessageFlow.value = error.localizedMessage ?: "Failed to refresh"
+                    errorMessageFlow.value = formatApiError(error)
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                errorMessageFlow.value = e.localizedMessage ?: "Failed to refresh"
+                errorMessageFlow.value = formatApiError(e)
             }
         }
     }

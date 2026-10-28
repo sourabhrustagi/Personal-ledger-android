@@ -63,10 +63,13 @@ private fun Onboard(
     OnboardingFlow(
         otpState = otpState,
         resendCountdown = resendCountdown,
-        onSendOtp = viewModel::sendOtp,
-        onFinish = { phone ->
-            viewModel.completeOnboarding(phone, onOnboarded)
+        onSendOtpClick = viewModel::onSendOtpClick,
+        onEditPhoneClick = viewModel::onEditPhoneClick,
+        onResendOtpClick = viewModel::onResendOtpClick,
+        onVerifyOtpClick = { code, phone ->
+            viewModel.onVerifyOtpClick(code, phone, onOnboarded)
         },
+        onDismissError = viewModel::dismissOtpError,
     )
 }
 

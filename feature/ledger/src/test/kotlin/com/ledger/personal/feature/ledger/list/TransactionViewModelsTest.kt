@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.screens.viewmodel
+package com.ledger.personal.feature.ledger.list
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.paging.testing.asSnapshot
@@ -9,7 +9,6 @@ import com.ledger.personal.testing.MockSyncCoordinator
 import com.ledger.personal.testing.MockUserSettings
 import com.ledger.personal.testing.ScriptedTransactionRepository
 import com.ledger.personal.testing.sampleTransaction
-import com.ledger.personal.ui.screens.list.TransactionListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

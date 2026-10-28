@@ -63,8 +63,6 @@ import com.ledger.personal.ui.app.scan.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
 import com.ledger.personal.ui.feature.WalletScreen
-import com.ledger.personal.ui.screens.detail.TransactionDetailScreen
-import com.ledger.personal.ui.screens.detail.TransactionDetailViewModel
 import com.ledger.personal.ui.screens.home.HomeScreen
 import com.ledger.personal.ui.screens.home.HomeViewModel
 import com.ledger.personal.ui.screens.list.TransactionListScreen
@@ -201,7 +199,6 @@ private fun NavGraphBuilder.tabRoutes(
         LedgerHistoryScreen(
             onBack = null,
             title = "Passbook",
-            onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
         )
     }
     composable<Screen.Promotions>(deepLinks = promotionLinks()) {
@@ -220,7 +217,6 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
             uiState = state,
             onRefresh = viewModel::refresh,
             onLoadMore = viewModel::loadNextPage,
-            onTransactionClick = { nav.navigate(Screen.TransactionDetail(transactionId = it)) },
             onProductsClick = { nav.popBackStack() },
             paging = viewModel.pages.collectAsLazyPagingItems(),
         )
@@ -230,26 +226,13 @@ private fun NavGraphBuilder.listRoute(nav: NavHostController) {
 /** Ledger routes. */
 private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController) {
     listRoute(nav)
-    composable<Screen.TransactionDetail>(deepLinks = appLinks<Screen.TransactionDetail>("transactions")) { backStackEntry ->
-        val route = backStackEntry.toRoute<Screen.TransactionDetail>()
-        val viewModel: TransactionDetailViewModel = hiltViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
-        TransactionDetailScreen(
-            uiState = state,
-            onNavigateBack = { nav.popBackStack() },
-            onRetry = { viewModel.loadTransaction(route.transactionId) },
-        )
-    }
 }
 
 /** Product routes. */
 private fun NavGraphBuilder.productRoutes(nav: NavHostController, offline: Boolean) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.LedgerHistory> {
-        LedgerHistoryScreen(
-            onBack = back,
-            onOpenDetail = { nav.navigate(Screen.TransactionDetail(it)) },
-        )
+        LedgerHistoryScreen(onBack = back)
     }
     composable<Screen.Wallet> { WalletScreen(onBack = back, debugStepUp = BuildConfig.DEBUG, offline = offline) }
 }

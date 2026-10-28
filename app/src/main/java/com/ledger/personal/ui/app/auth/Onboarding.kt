@@ -22,8 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.app.OtpUiState
-import com.ledger.personal.ui.feature.StepHeader
+import com.ledger.personal.ui.components.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
@@ -36,17 +37,19 @@ private enum class OnboardStep { PHONE, OTP }
 fun OnboardingFlow(
     otpState: OtpUiState = OtpUiState(),
     resendCountdown: Int = otpState.resendCountdown,
-    onSendOtp: (phone: String) -> Unit = {},
-    onFinish: (phone: String) -> Unit,
+    onSendOtpClick: (phone: String) -> Unit = {},
+    onEditPhoneClick: () -> Unit = {},
+    onResendOtpClick: (phone: String) -> Unit = {},
+    onVerifyOtpClick: (code: String, phone: String) -> Unit = { _, _ -> },
+    onDismissError: () -> Unit = {},
 ) {
     val steps = listOf(
         stringResource(AppStrings.STEP_PHONE),
         stringResource(AppStrings.STEP_VERIFY),
     )
-    var phone by rememberSaveable { mutableStateOf("") }
-    var editPhoneRequested by rememberSaveable { mutableStateOf(false) }
+    var phone by rememberSaveable { mutableStateOf(otpState.phone) }
 
-    val step = if (otpState.isOtpSent && !editPhoneRequested) OnboardStep.OTP else OnboardStep.PHONE
+    val step = if (otpState.isOtpSent) OnboardStep.OTP else OnboardStep.PHONE
 
     SecureWindow()
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -69,24 +72,40 @@ fun OnboardingFlow(
                         phone = phone,
                         onPhone = { phone = it },
                         uiState = otpState,
-                        onSendClick = {
-                            editPhoneRequested = false
-                            onSendOtp(phone)
-                        },
+                        onSendClick = { onSendOtpClick(phone) },
                     )
                     OnboardStep.OTP -> OtpStep(
                         phone = phone,
                         uiState = otpState,
                         resendCountdown = resendCountdown,
-                        onEdit = { editPhoneRequested = true },
-                        onResend = { onSendOtp(phone) },
-                        onVerified = { onFinish(phone) },
+                        onEdit = onEditPhoneClick,
+                        onResend = { onResendOtpClick(phone) },
+                        onVerifyClick = { code -> onVerifyOtpClick(code, phone) },
+                        onDismissError = onDismissError,
                     )
                 }
             }
         }
     }
 }
+
+/** Backward-compatible overload for legacy callers and previews. */
+@Composable
+fun OnboardingFlow(
+    otpState: OtpUiState = OtpUiState(),
+    resendCountdown: Int = otpState.resendCountdown,
+    onSendOtp: (phone: String) -> Unit = {},
+    onFinish: (phone: String) -> Unit,
+) = OnboardingFlow(
+    otpState = otpState,
+    resendCountdown = resendCountdown,
+    onSendOtpClick = onSendOtp,
+    onEditPhoneClick = {},
+    onResendOtpClick = onSendOtp,
+    onVerifyOtpClick = { code, phone ->
+        if (code == MockValues.OTP) onFinish(phone)
+    },
+)
 
 @PreviewLightDark
 @Composable

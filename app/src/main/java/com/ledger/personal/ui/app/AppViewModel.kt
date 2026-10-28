@@ -130,6 +130,15 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    /** Clears user preferences and session, logging out the user to onboarding. */
+    fun logout() {
+        viewModelScope.launch {
+            store.reset()
+            sessionManager.end()
+            mutableSession.value = SessionState()
+        }
+    }
+
     /** Resets the local session state (e.g. after full sign-out). */
     fun resetSession() {
         mutableSession.value = SessionState()

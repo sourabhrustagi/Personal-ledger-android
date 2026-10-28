@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.hubs
+package com.ledger.personal.feature.hubs
 
 import android.app.Activity
 import android.content.Intent
@@ -37,13 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.mock.MockCatalog
-import com.ledger.personal.ui.app.HubFlags
 import com.ledger.personal.ui.components.FeatureScaffold
+import com.ledger.personal.ui.components.HubFlags
 import com.ledger.personal.ui.components.ListRow
 import com.ledger.personal.ui.components.PaymentsOfflineNotice
 import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.SectionCard
-import com.ledger.personal.ui.navigation.Screen
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
@@ -51,7 +50,8 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 @Composable
 fun PayHub(
     flags: HubFlags,
-    onOpen: (Screen) -> Unit,
+    onScanClick: () -> Unit,
+    onPayTo: (recipient: String, amount: Long) -> Unit,
     viewModel: PayHubViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -101,13 +101,13 @@ fun PayHub(
                 title = stringResource(AppStrings.ACTION_SCAN_QR),
                 subtitle = "Opens camera to scan QR and make payment",
                 iconTint = if (online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                onClick = { viewModel.onScanClicked(online) { onOpen(Screen.Scan) } },
+                onClick = { viewModel.onScanClicked(online) { onScanClick() } },
             )
             PrimaryButton(
                 text = stringResource(AppStrings.ACTION_OPEN_CAMERA),
                 icon = Icons.Outlined.QrCodeScanner,
                 enabled = online,
-                onClick = { viewModel.onScanClicked(online) { onOpen(Screen.Scan) } },
+                onClick = { viewModel.onScanClicked(online) { onScanClick() } },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -159,7 +159,7 @@ fun PayHub(
                     enabled = online && recipientInput.isNotBlank(),
                     onClick = {
                         viewModel.onContinueClicked { recipient ->
-                            onOpen(Screen.PayTo(recipient, 0L))
+                            onPayTo(recipient, 0L)
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -181,7 +181,7 @@ fun PayHub(
                     iconTint = MaterialTheme.colorScheme.primary,
                     onClick = {
                         viewModel.onSavedContactClicked(contact.handle) { handle ->
-                            onOpen(Screen.PayTo(handle, 0L))
+                            onPayTo(handle, 0L)
                         }
                     },
                 )
@@ -197,7 +197,7 @@ private val previewPayHubViewModel = PayHubViewModel()
 @Composable
 private fun PayHubPreview() {
     PersonalLedgerTheme {
-        PayHub(previewFlags, onOpen = {}, viewModel = previewPayHubViewModel)
+        PayHub(previewFlags, onScanClick = {}, onPayTo = { _, _ -> }, viewModel = previewPayHubViewModel)
     }
 }
 
@@ -207,7 +207,8 @@ private fun PayHubOfflinePreview() {
     PersonalLedgerTheme {
         PayHub(
             HubFlags(offline = true, empty = false, reveal = true, onToggleReveal = {}),
-            onOpen = {},
+            onScanClick = {},
+            onPayTo = { _, _ -> },
             viewModel = previewPayHubViewModel,
         )
     }

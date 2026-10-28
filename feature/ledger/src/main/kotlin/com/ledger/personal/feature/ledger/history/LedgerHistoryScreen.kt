@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.ledger.history
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,8 +25,8 @@ import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.components.categoryIcon
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
-import com.ledger.personal.util.toFormattedCurrency
-import com.ledger.personal.util.toFormattedDateTime
+import com.ledger.personal.feature.ledger.util.toFormattedCurrency
+import com.ledger.personal.feature.ledger.util.toFormattedDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 

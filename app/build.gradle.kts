@@ -141,7 +141,6 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:mock"))
     implementation(project(":feature:ledger"))
-    implementation(project(":feature:wallet"))
     implementation(project(":feature:auth"))
     implementation(project(":feature:scan"))
     implementation(project(":feature:update"))

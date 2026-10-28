@@ -118,7 +118,7 @@ fun HomeScreen(
                 } else {
                     state.layoutMessage?.let { message ->
                         item(key = "layout_message", contentType = "banner") {
-                            StatusBanner(message, BannerTone.WARNING, title = "Home layout")
+                            StatusBanner(message, BannerTone.WARNING, title = "Dashboard Notice")
                         }
                     }
                     state.sections.forEachIndexed { index, section ->

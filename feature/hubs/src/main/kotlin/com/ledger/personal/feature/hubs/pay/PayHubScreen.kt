@@ -1,4 +1,4 @@
-package com.ledger.personal.feature.hubs
+package com.ledger.personal.feature.hubs.pay
 
 import android.app.Activity
 import android.content.Intent

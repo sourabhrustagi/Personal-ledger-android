@@ -140,7 +140,6 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:mock"))
-    implementation(project(":feature:ledger"))
     implementation(project(":feature:home"))
     implementation(project(":feature:account"))
     implementation(project(":feature:history"))

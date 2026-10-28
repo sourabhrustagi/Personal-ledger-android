@@ -1,7 +1,6 @@
-package com.ledger.personal.ui.screens
+package com.ledger.personal.feature.ledger.list
 
 import com.ledger.personal.testing.sampleTransaction
-import com.ledger.personal.ui.screens.list.TransactionListUiState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

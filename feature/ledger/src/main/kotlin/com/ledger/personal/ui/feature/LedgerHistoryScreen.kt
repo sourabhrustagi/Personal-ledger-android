@@ -17,12 +17,22 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.usecase.GetPagedTransactionsUseCase
+import com.ledger.personal.ui.components.EmptyState
+import com.ledger.personal.ui.components.FeatureScaffold
+import com.ledger.personal.ui.components.ListRow
+import com.ledger.personal.ui.components.LoadingOrEmpty
+import com.ledger.personal.ui.components.SectionCard
+import com.ledger.personal.ui.components.categoryIcon
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.util.toFormattedCurrency
 import com.ledger.personal.util.toFormattedDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+
+import androidx.compose.runtime.remember
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 
 /** Shows the passbook / ledger history screen. */
 @Composable
@@ -45,13 +55,21 @@ fun LedgerHistoryScreen(
         }
         SectionCard(Modifier.weight(1f, fill = false)) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(pages.itemCount) { index ->
+                items(
+                    count = pages.itemCount,
+                    key = pages.itemKey { it.id },
+                    contentType = pages.itemContentType { "passbook_row" },
+                ) { index ->
                     val row = pages[index] ?: return@items
+                    val formattedDate = remember(row.timestampEpochMs) { row.timestampEpochMs.toFormattedDateTime() }
+                    val formattedAmount = remember(row.amountInCents, row.currency) {
+                        row.amountInCents.toFormattedCurrency(row.currency)
+                    }
                     ListRow(
                         icon = categoryIcon(row.category),
                         title = row.description.ifBlank { row.category },
-                        subtitle = "${row.category} · ${row.timestampEpochMs.toFormattedDateTime()}",
-                        trailing = row.amountInCents.toFormattedCurrency(row.currency),
+                        subtitle = "${row.category} · $formattedDate",
+                        trailing = formattedAmount,
                         trailingColor = MaterialTheme.colorScheme.onSurface,
                         onClick = onOpenDetail?.let { { it(row.id) } },
                     )

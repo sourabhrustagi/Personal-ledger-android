@@ -44,7 +44,11 @@ fun PromotionsScreen(
     val shelves = uiState.shelves
     val selected = uiState.selected
 
-    FeatureScaffold(stringResource(AppStrings.TITLE_OFFERS), onBack = null) {
+    FeatureScaffold(
+        title = stringResource(AppStrings.TITLE_OFFERS),
+        onBack = null,
+        scrollable = false,
+    ) {
         if (shelves.isEmpty()) {
             Text(
                 text = stringResource(AppStrings.EMPTY_PROMOTIONS),
@@ -76,7 +80,7 @@ fun PromotionsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .weight(1f),
                 ) {
                     items(items = offers, key = { it.id }) { offer ->
                         PromotionCard(
@@ -96,6 +100,7 @@ fun PromotionsScreen(
             }
         }
     }
+
 }
 
 /** Individual promotion offer card. */

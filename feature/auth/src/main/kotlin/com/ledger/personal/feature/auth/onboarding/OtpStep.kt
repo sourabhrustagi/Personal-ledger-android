@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -94,12 +97,23 @@ fun OtpStep(
             },
         )
     }
-    PrimaryButton(
-        text = stringResource(AppStrings.ACTION_VERIFY),
-        onClick = { onVerifyClick(code) },
-        enabled = code.length == AppConstants.OTP_CODE_LENGTH,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    if (uiState.isVerifying) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        PrimaryButton(
+            text = stringResource(AppStrings.ACTION_VERIFY),
+            onClick = { onVerifyClick(code) },
+            enabled = code.length == AppConstants.OTP_CODE_LENGTH,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 /** Backward-compatible overload for legacy callers and previews. */

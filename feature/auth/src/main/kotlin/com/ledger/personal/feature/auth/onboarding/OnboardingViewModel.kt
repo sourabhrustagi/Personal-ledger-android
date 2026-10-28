@@ -97,8 +97,13 @@ class OnboardingViewModel internal constructor(
     /** Finishes onboarding with mobile number, opens a session, and notifies on completion. */
     fun completeOnboarding(phone: String, onFinished: () -> Unit = {}) {
         viewModelScope.launch {
+            mutableOtpState.update { it.copy(isVerifying = true) }
+            if (session != null || store != null) {
+                delay(VERIFY_DELAY_MS)
+            }
             store?.completeOnboarding(phone)
             session?.begin()
+            mutableOtpState.update { it.copy(isVerifying = false) }
             onFinished()
         }
     }
@@ -135,10 +140,10 @@ class OnboardingViewModel internal constructor(
     /** Triggered when the user clicks Verify button on OtpStep. */
     fun onVerifyOtpClick(code: String, phone: String, onFinished: () -> Unit = {}) {
         if (code == MockValues.OTP) {
-            mutableOtpState.update { it.copy(isOtpError = false, errorMessage = null) }
+            mutableOtpState.update { it.copy(isOtpError = false, errorMessage = null, isVerifying = true) }
             completeOnboarding(phone, onFinished)
         } else {
-            mutableOtpState.update { it.copy(isOtpError = true) }
+            mutableOtpState.update { it.copy(isOtpError = true, isVerifying = false) }
         }
     }
 
@@ -158,5 +163,6 @@ class OnboardingViewModel internal constructor(
         /** Cooldown duration in seconds before OTP resend is permitted. */
         const val RESEND_SECONDS: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS
         private const val ONE_SECOND_MS: Long = 1_000L
+        private const val VERIFY_DELAY_MS: Long = 1_500L
     }
 }

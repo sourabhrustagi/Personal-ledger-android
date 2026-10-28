@@ -356,13 +356,6 @@ flowchart TD
     ScanFlow -->|QR Decoded| PayToRoute["Screen.PayTo(vpa, amount)"]
     PayToRoute --> WalletPrefill
 
-    %% Passbook & List to Detail Flow
-    TabPassbook -->|Tap Transaction Item| TxDetail["TransactionDetailScreen<br/>(Metadata, Legs, Status)"]
-    TxList -->|Tap Transaction Item| TxDetail
-
-    %% Transaction Detail Sub-Flows
-    TxDetail -->|Delete Action| DeleteDialog["Delete Confirmation Dialog"]
-
     %% Wallet Multi-Step Wizard
     subgraph WalletWizard ["Wallet Transfer Wizard (WalletScreen)"]
         direction LR
@@ -398,9 +391,9 @@ flowchart TD
 
 ### <a id="transactions--double-entry-ledger"></a><a id="transactions-double-entry-ledger"></a>Transactions & Double-Entry Ledger
 
-| Transactions Stream | Transaction Details & Legs | New Transaction | Edit Transaction |
-| --- | --- | --- | --- |
-| <img src="docs/images/transactions.png" width="200" alt="Transactions"> | <img src="docs/images/transaction.png" width="200" alt="Transaction"> | <img src="docs/images/new-transaction.png" width="200" alt="New transaction"> | <img src="docs/images/edit-transaction.png" width="200" alt="Edit transaction"> |
+| Transactions Stream |
+| --- |
+| <img src="docs/images/transactions.png" width="200" alt="Transactions"> |
 
 ## <a id="project-layout"></a>Project layout
 
@@ -618,7 +611,6 @@ Screens bind to state-holding Jetpack `ViewModel`s scoped to the navigation back
 | `:app` | `PromotionsViewModel` | Marketing promotional tabs and offer banners |
 | `:feature:ledger` | `HomeViewModel` | Dashboard balances, recent transactions, pull-to-refresh sync, and dynamic layout tabs |
 | `:feature:ledger` | `TransactionListViewModel` | Searchable, category-filtered, paginated transaction history via Paging 3 |
-| `:feature:ledger` | `TransactionDetailViewModel` | Single transaction inspection, metadata loading, and retry |
 | `:feature:ledger` | `LedgerHistoryViewModel` | Reactive audit log stream observing `GetPagedTransactionsUseCase` |
 | `:feature:wallet` | `WalletViewModel` | P2P wallet transfers, step-up authentication, idempotency (`TransferBook`), and retry |
 
@@ -1008,7 +1000,7 @@ In Jetpack Compose, composable functions are **ephemeral, stateless descriptions
 
 ##### 2. Compose Navigation & Backstack State Preservation (`SaveableStateHolder`)
 In modern Compose single-activity architectures using `NavHost`:
-- When navigating from Screen A (e.g., `TransactionListScreen`) to Screen B (`TransactionDetailScreen`), Screen A **completely leaves the composition**.
+- When navigating from Screen A (e.g., `TransactionListScreen`) to Screen B (`WalletScreen`), Screen A **completely leaves the composition**.
 - If Screen A used `remember`, every local state variable (active search query, selected filter chips, scroll offset, expanded cards) would be destroyed and garbage-collected.
 - `NavHost` internally utilizes `SaveableStateHolder` to save each backstack entry's state via `rememberSaveable`. When the user presses Back to return to Screen A, `SaveableStateHolder` supplies the saved bundle back to `rememberSaveable`, instantly restoring the user's exact screen context.
 
@@ -1118,9 +1110,9 @@ Prevents multi-step flows from resetting back to the very first step upon device
 
 #### C. Bottom Sheet & Dialog Visibility Toggles
 Ensures that open modals and confirmation dialogs remain open during configuration changes.
-- **Transaction delete confirmation dialog (`TransactionDetailScreen.kt`):**
+- **Account reset confirmation dialog (`Login.kt`):**
   ```kotlin
-  var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+  var showResetDialog by rememberSaveable { mutableStateOf(false) }
   ```
 
 #### D. Authentication Resend Countdown Timers
@@ -1160,16 +1152,6 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
   ```kotlin
   modifier = (if (scrollable) base.verticalScroll(rememberScrollState()) else base)
   ```
-- **Transaction detail and audit workflows (`TransactionDetailScreen.kt`):**
-  ```kotlin
-  Column(
-      modifier = Modifier
-          .fillMaxSize()
-          .verticalScroll(rememberScrollState())
-          .padding(16.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
-  )
-  ```
 - **Onboarding and authentication wizards (`Onboarding.kt`, `PhoneStep.kt`, `OtpStep.kt`):**
   ```kotlin
   Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp)
@@ -1182,7 +1164,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
 - **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
 - **Atomic State Updates:** Mutations apply atomically using `MutableStateFlow.update { it.copy(...) }`, eliminating race conditions between concurrent coroutines.
-- **`SavedStateHandle` for Process Death:** Navigation arguments (e.g. `transactionId` in `TransactionDetailViewModel.kt`) are retrieved from `SavedStateHandle`, ensuring the screen can re-fetch its data even after Android kills the process in the background.
+- **`SavedStateHandle` for Process Death:** Navigation arguments are retrieved from `SavedStateHandle`, ensuring the screen can re-fetch its data even after Android kills the process in the background.
 
 ---
 
@@ -1412,14 +1394,7 @@ Central overview and transaction history feeds.
 - **Landscape Viewport Sizing:**
   Both screens wrap their lazy lists inside `Box(contentAlignment = Alignment.TopCenter)` with `Modifier.fillMaxWidth().widthIn(max = 840.dp)`. This prevents horizontal blowout on wide landscape displays while allowing smooth vertical scrolling.
 
-##### 5. Transaction Inspection & Detail Workflow (`TransactionDetailScreen`)
-Critical transaction audit and inspection screen.
-- **Detail View & Action Retention:**
-  `TransactionDetailScreen` observes `TransactionDetailViewModel.uiState`. The selected transaction entity, audit metadata, and deletion confirmation dialog states remain loaded during orientation changes.
-- **Landscape Scrollability:**
-  Wraps transaction detail content inside `Modifier.verticalScroll(rememberScrollState())` inside a centered `widthIn(max = 720.dp)` column. This guarantees that on low-height landscape displays (360dp–400dp) or when multi-window is used, all transaction metadata and the "Delete Transaction" action button remain fully accessible via vertical scrolling.
-
-##### 6. Money Transfers & Payments (`WalletScreen.kt`)
+##### 5. Money Transfers & Payments (`WalletScreen.kt`)
 Instant UPI transfer flow with multi-step validation.
 - **Finite State Machine Retention (`TransferStep`):**
   Money transfers use a state machine (`FORM` → `REVIEW` → `RECEIPT`) driven by `WalletViewModel.uiState`. Rotating the device while reviewing transfer details or viewing a payment receipt maintains the exact step and payment reference.
@@ -1430,7 +1405,7 @@ Instant UPI transfer flow with multi-step validation.
 - **Landscape Layout:**
   Wrapped in `FeatureScaffold` with `.verticalScroll(rememberScrollState())`, ensuring full access to contact lists and the transfer action button on landscape displays.
 
-##### 7. Payment Hubs & Promotions (`PayHub.kt` & `PromotionsHub.kt`)
+##### 6. Payment Hubs & Promotions (`PayHub.kt` & `PromotionsHub.kt`)
 Quick pay shortcuts and promotional partner offers.
 - **Recipient Input Retention:**
   `PayHub` stores `recipientInput` in `rememberSaveable { mutableStateOf("") }`, ensuring entered UPI IDs survive rotation.
@@ -1439,19 +1414,19 @@ Quick pay shortcuts and promotional partner offers.
 - **Scroll Safe:**
   Both hubs use `FeatureScaffold`, which provides standard landscape vertical scrolling and max-width bounding.
 
-##### 8. App Upgrade & Version Blockers (`ForceUpdate.kt`)
+##### 7. App Upgrade & Version Blockers (`ForceUpdate.kt`)
 System-enforced update block screens and soft update dialogs.
 - **Landscape Safety:**
   `ForceUpdateScreen` applies `.safeDrawingPadding().verticalScroll(rememberScrollState())` to its centered column, guaranteeing that the "Update now" button is always reachable on short landscape screens.
 - **Dialog Preservation:**
   `SoftUpdateDialog` uses Material 3 `AlertDialog`, which automatically retains dismissal/confirmation state during configuration changes.
 
-##### 9. Offline Connectivity Screen (`OfflineScreen.kt`)
+##### 8. Offline Connectivity Screen (`OfflineScreen.kt`)
 Global overlay displayed when network connectivity is lost.
 - **Landscape Scrolling:**
   The centered column applies `Modifier.verticalScroll(rememberScrollState())`, preventing the 96dp error icon, status indicators, and "Retry" / "Continue offline" buttons from being clipped on low-height landscape screens.
 
-##### 10. Navigation Shell, Network Connectivity & System Banners (`LedgerNavHost.kt`, `LedgerOneApp.kt`)
+##### 9. Navigation Shell, Network Connectivity & System Banners (`LedgerNavHost.kt`, `LedgerOneApp.kt`)
 Top-level application container managing navigation backstacks and global alerts.
 - **Backstack Restoration:**
   `rememberNavController()` delegates to `NavHostController.Saver`. Rotating the screen anywhere in the application preserves the full navigation backstack and current destination arguments.
@@ -1471,7 +1446,6 @@ Top-level application container managing navigation backstacks and global alerts
 | **Returning Login (`OtpLoginScreen`)** | `Modifier.verticalScroll(rememberScrollState())` with fixed spacers | `LoginViewModel.resendCountdown` | `code`, `wrong`, `checking`, `confirmReset` | 30s resend timer survives rotation; account switch dialog stays open; validation error banner stays visible |
 | **Dashboard (`HomeScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `HomeViewModel.uiState`, `AppViewModel.session` | Built-in `LazyListState` item/offset saver | Balance overview and promotion carousels stay readable; scroll position and reveal balance state survive rotation |
 | **Transaction Feed (`TransactionListScreen`)** | `LazyColumn` inside `Box(TopCenter)` with `840.dp` max width | `TransactionListViewModel.pages`, `uiState` | `rememberLazyListState()` scroll position | Exact reading offset preserved across rotation; paginated pages remain in memory without refetching |
-| **Transaction Detail (`TransactionDetailScreen`)** | Centered `720.dp` column with `.verticalScroll(rememberScrollState())` | `TransactionDetailViewModel.uiState` | Selected transaction entity | Full transaction details and action buttons remain scrollable and intact on rotation |
 | **UPI Transfer (`WalletScreen`)** | Centered `720.dp` column via `FeatureScaffold` with vertical scroll | `WalletViewModel.uiState` (`TransferStep`), balance, idempotency key | `amountText` | Exact payment stepper stage preserved; zero risk of duplicate transfer charges on rotation |
 | **Payment Hub (`PayHub`)** | Responsive grid via `FeatureScaffold` | N/A (Catalog & intents) | `recipientInput` | Typed UPI handle preserved across rotation; contact picker result handled gracefully |
 | **Promotions Hub (`PromotionsHub`)** | `PrimaryScrollableTabRow` via `FeatureScaffold` | `PromotionsViewModel.shelves`, `selected` | Tab index selection | Active promo tab and loaded promotional cards survive rotation |
@@ -1514,7 +1488,7 @@ LedgerOne resolves large-screen ergonomics by wrapping every screen surface insi
    - **Screens:** `HomeScreen.kt`, `TransactionListScreen.kt`.
    - **Rationale:** Dashboards display balance cards, horizontal category chips, and multi-column transaction metadata. An 840dp boundary provides ample room for horizontal chips and rich card layouts while preventing infinite horizontal stretch on desktop-class tablet screens.
 2. **Feature Scaffolds & Banking Workflows (`720.dp`):**
-   - **Screens:** `FeatureScaffold.kt` (central scaffold powering `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen`) and `TransactionDetailScreen.kt`.
+   - **Screens:** `FeatureScaffold.kt` (central scaffold powering `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen`).
    - **Rationale:** Centrally bounding `FeatureScaffold` automatically guarantees that all current and future banking sub-features render within a comfortable 720dp reading column on tablets without requiring repetitive boilerplate on each sub-screen.
 3. **Authentication & Security Wizards (`600.dp`):**
    - **Screens:** `OnboardingFlow` (`PhoneStep.kt`, `OtpStep.kt`, `ProfileStep.kt`), `OtpLoginScreen` (`Login.kt`).
@@ -1535,7 +1509,6 @@ LedgerOne resolves large-screen ergonomics by wrapping every screen surface insi
 | **`HomeScreen`** | `840.dp` | `Alignment.TopCenter` | Balance overview cards and horizontal promotion carousels stay readable; cards don't overstretch |
 | **`TransactionListScreen`** | `840.dp` | `Alignment.TopCenter` | Paginated transaction rows remain compact; timestamps and amounts align within natural scanning span |
 | **`FeatureScaffold`** | `720.dp` | `Alignment.TopCenter` | Automatically bounds `WalletScreen`, `PayHub`, `PromotionsHub`, `ScanScreen`, and `LedgerHistoryScreen` |
-| **`TransactionDetailScreen`** | `720.dp` | `Alignment.TopCenter` | Amount headline, category badge, and action buttons centered ergonomically |
 | **`OnboardingFlow`** | `600.dp` | `Alignment.TopCenter` | Phone entry, OTP verification, and name capture remain centered; keyboard-safe in split-screen |
 | **`OtpLoginScreen`** | `600.dp` | `Alignment.TopCenter` | MPIN / OTP pin pads tightly grouped in thumb-reach zone; reset dialog maintains tablet bounds |
 | **`ForceUpdateScreen`** | `560.dp` | `Alignment.TopCenter` | Centered modal presentation; prevents system warning messages from flattening across the screen |
@@ -2127,7 +2100,7 @@ fun BadCounter() {
 
 ### <a id="6-how-to-measure--profile-performance-metrics-for-each-screen"></a><a id="6-how-to-measure-profile-performance-metrics-for-each-screen"></a>6. How to Measure & Profile Performance Metrics for Each Screen
 
-To ensure the application maintains consistent 60fps / 120fps fluid scrolling, instant screen transitions, and minimal battery consumption, developers and QA engineers must systematically inspect performance metrics across every screen (`HomeScreen`, `TransactionListScreen`, `WalletScreen`, `ScanScreen`, `LedgerHistoryScreen`, and `TransactionDetailScreen`).
+To ensure the application maintains consistent 60fps / 120fps fluid scrolling, instant screen transitions, and minimal battery consumption, developers and QA engineers must systematically inspect performance metrics across every screen (`HomeScreen`, `TransactionListScreen`, `WalletScreen`, `ScanScreen`, and `LedgerHistoryScreen`).
 
 The following six profiling methodologies provide a complete diagnostics toolkit for verifying performance metrics screen-by-screen:
 
@@ -2285,7 +2258,7 @@ Memory churn causes the Android garbage collector (GC) to trigger frequent Concu
 ##### 1. Automatic Leak Detection via LeakCanary
 - LeakCanary is integrated into debug builds (`com.squareup.leakcanary:leakcanary-android`).
 - **Screen-by-Screen Test:**
-  1. Open a screen (e.g. `ScanScreen` or `TransactionDetailScreen`).
+  1. Open a screen (e.g. `ScanScreen` or `WalletScreen`).
   2. Press Back to return to `HomeScreen`.
   3. Verify LeakCanary reports **0 retained references**. If a ViewModel, CoroutineScope, or Context is leaked, LeakCanary emits a notification with the exact reference retention path.
 
@@ -2358,7 +2331,6 @@ Use this operational matrix to benchmark and certify each screen prior to stagin
 | **`WalletScreen`** | Contact selection & step transitions | Memory leak on exit | 0 leaked activities/viewmodels | LeakCanary |
 | **`ScanScreen`** | CameraX preview & QR barcode decode | ML Kit scan latency per frame | $\le 30\text{ms}$ / frame | CameraX ImageAnalysis Profiling |
 | **`LedgerHistoryScreen`** | Orientation rotation (Portrait $\leftrightarrow$ Landscape) | Scroll position restoration latency | Instant ($\le 1$ frame) | `rememberLazyListState` Saver |
-| **`TransactionDetailScreen`** | Receipt PDF generation | Worker thread offload | Main thread blocks $= 0\text{ms}$ | StrictMode / CPU Profiler (`Dispatchers.IO`) |
 
 ---
 
@@ -3843,10 +3815,10 @@ The following battle-tested engineering playbook details how to execute an incre
    - Build standalone Compose atom components (`LedgerOneButton`, `LedgerOneCard`, `LedgerOneTextField`, `LedgerOneText`).
    - Use `ComposeView` inside existing XML layouts to host these new Compose atoms alongside legacy views, establishing visual parity early.
 3. **Phase 2: Screen-by-Screen Top-Down Container Migration:**
-   - Instead of migrating individual items inside complex XML `RecyclerView` lists (which risks composition thrashing), migrate entire independent leaves/screens (e.g., Transaction Details, Profile, Settings, KYC Document Viewer).
+   - Instead of migrating individual items inside complex XML `RecyclerView` lists (which risks composition thrashing), migrate entire independent leaves/screens (e.g., Wallet, Profile, Settings, KYC Document Viewer).
    - Convert the Fragment or Activity to host a single root `ComposeView`:
      ```kotlin
-     class TransactionDetailFragment : Fragment() {
+     class WalletFragment : Fragment() {
          override fun onCreateView(
              inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
          ): View = ComposeView(requireContext()).apply {
@@ -3854,7 +3826,7 @@ The following battle-tested engineering playbook details how to execute an incre
              setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
              setContent {
                  LedgerTheme {
-                     TransactionDetailScreen(viewModel = viewModel)
+                     WalletScreen(onBack = { findNavController().popBackStack() })
                  }
              }
          }

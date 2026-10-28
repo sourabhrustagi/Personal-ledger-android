@@ -53,13 +53,13 @@ import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockCatalog
 import com.ledger.personal.ui.app.AppViewModel
 import com.ledger.personal.ui.app.DemoViewModel
-import com.ledger.personal.ui.app.HubFlags
+import com.ledger.personal.ui.components.HubFlags
 import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
-import com.ledger.personal.ui.app.hubs.PayHub
-import com.ledger.personal.ui.app.hubs.PromotionsHub
-import com.ledger.personal.ui.app.hubs.PromotionsViewModel
-import com.ledger.personal.ui.app.scan.ScanScreen
+import com.ledger.personal.feature.hubs.PayHub
+import com.ledger.personal.feature.hubs.PromotionsHub
+import com.ledger.personal.feature.hubs.PromotionsViewModel
+import com.ledger.personal.feature.scan.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
 import com.ledger.personal.ui.feature.LedgerHistoryScreen
 import com.ledger.personal.ui.feature.WalletScreen
@@ -193,7 +193,11 @@ private fun NavGraphBuilder.tabRoutes(
         )
     }
     composable<Screen.PayHub> {
-        PayHub(flags, nav::navigate)
+        PayHub(
+            flags = flags,
+            onScanClick = { nav.navigate(Screen.Scan) },
+            onPayTo = { recipient, amount -> nav.navigate(Screen.PayTo(recipient, amount)) },
+        )
     }
     composable<Screen.Passbook> {
         LedgerHistoryScreen(

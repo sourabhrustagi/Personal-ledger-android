@@ -21,11 +21,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ledger.personal.mock.MockCatalog
-import com.ledger.personal.ui.feature.LedgerHistoryScreen
-import com.ledger.personal.ui.screens.home.HomeScreen
-import com.ledger.personal.ui.screens.home.HomeViewModel
-import com.ledger.personal.ui.screens.list.TransactionListScreen
-import com.ledger.personal.ui.screens.list.TransactionListViewModel
+import com.ledger.personal.feature.ledger.history.LedgerHistoryScreen
+import com.ledger.personal.feature.ledger.home.HomeScreen
+import com.ledger.personal.feature.ledger.home.HomeViewModel
+import com.ledger.personal.feature.ledger.list.TransactionListScreen
+import com.ledger.personal.feature.ledger.list.TransactionListViewModel
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import dagger.hilt.android.AndroidEntryPoint
 

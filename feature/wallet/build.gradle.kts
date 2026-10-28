@@ -49,4 +49,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(project(":core:mock"))
     implementation(libs.androidx.biometric)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(project(":core:testing"))
 }

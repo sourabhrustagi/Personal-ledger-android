@@ -49,6 +49,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ledger.personal.ui.components.AmountField
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.DetailRow
+import com.ledger.personal.ui.components.FeatureScaffold
+import com.ledger.personal.ui.components.HeroCard
+import com.ledger.personal.ui.components.IconBadge
+import com.ledger.personal.ui.components.ListRow
+import com.ledger.personal.ui.components.NumericKeypad
+import com.ledger.personal.ui.components.PaymentsOfflineNotice
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.ProtectedBadge
+import com.ledger.personal.ui.components.SectionCard
+import com.ledger.personal.ui.components.StatusBanner
+import com.ledger.personal.ui.components.formatMoney
+import com.ledger.personal.ui.components.parseMinor
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import androidx.core.content.ContextCompat
@@ -80,7 +95,7 @@ fun WalletScreen(
         when (state.step) {
             TransferStep.FORM -> TransferForm(state, viewModel, offline)
             TransferStep.REVIEW -> if (offline) TransferForm(state, viewModel, true) else TransferReview(state, debugStepUp, viewModel)
-            TransferStep.RECEIPT -> TransferReceipt(state, onDone = onBack, onSendAnother = viewModel::newTransfer)
+            TransferStep.RECEIPT -> TransferReceipt(state, onDone = onBack, viewModel = viewModel)
         }
     }
 }
@@ -136,8 +151,10 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
             shape = RoundedCornerShape(8.dp),
             trailingIcon = {
                 IconButton(onClick = {
-                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                    contactPicker.launch(intent)
+                    viewModel.onPickContactClicked {
+                        val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                        contactPicker.launch(intent)
+                    }
                 }) {
                     Icon(Icons.Outlined.Contacts, contentDescription = "Select from contacts")
                 }
@@ -146,8 +163,10 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
         )
         OutlinedButton(
             onClick = {
-                val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                contactPicker.launch(intent)
+                viewModel.onPickContactClicked {
+                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                    contactPicker.launch(intent)
+                }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -167,9 +186,9 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
                     title = contact.name,
                     subtitle = contact.handle,
                     modifier = Modifier.weight(1f),
-                    onClick = { viewModel.onRecipient(contact.handle) },
+                    onClick = { viewModel.onSelectContactClicked(contact.handle) },
                 )
-                RadioButton(selected = state.recipient == contact.handle, onClick = { viewModel.onRecipient(contact.handle) })
+                RadioButton(selected = state.recipient == contact.handle, onClick = { viewModel.onSelectContactClicked(contact.handle) })
             }
         }
     }
@@ -188,7 +207,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
                 AssistChip(
                     onClick = {
                         amountText = rupees.toString()
-                        viewModel.onAmount(rupees * 100)
+                        viewModel.onPresetAmountClicked(rupees)
                     },
                     label = { Text("₹$rupees") },
                 )
@@ -207,7 +226,7 @@ private fun TransferForm(state: WalletUiState, viewModel: WalletViewModel, offli
     val continueLabel = stringResource(AppStrings.ACTION_CONTINUE)
     PrimaryButton(
         text = if (state.amountMinor > 0) "$continueLabel · ${formatMoney(state.amountMinor)}" else continueLabel,
-        onClick = viewModel::review,
+        onClick = viewModel::onContinueClicked,
         enabled = !offline && state.recipient.isNotBlank() && state.amountMinor > 0,
     )
 }
@@ -242,11 +261,11 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
             )
             PrimaryButton(
                 stringResource(AppStrings.ACTION_CHECK_STATUS),
-                onClick = viewModel::reconcile,
+                onClick = viewModel::onCheckStatusClicked,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedButton(
-                onClick = viewModel::retry,
+                onClick = viewModel::onRetryClicked,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -257,21 +276,46 @@ private fun TransferReview(state: WalletUiState, debugStepUp: Boolean, viewModel
             StatusBanner(state.errorMessage.orEmpty(), BannerTone.ERROR, title = "Payment not completed")
             PrimaryButton(
                 stringResource(AppStrings.ACTION_RETRY),
-                onClick = viewModel::retry,
+                onClick = viewModel::onRetryClicked,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         else -> {
             StatusBanner("We'll ask for your fingerprint or screen lock before sending.", BannerTone.INFO)
-            StepUpButton(debugStepUp) { viewModel.onStepUp(it) }
+            StepUpButton(debugStepUp, viewModel::onStepUpAuthClicked)
         }
     }
     if (state.status != TransferStatus.PENDING) {
-        TextButton(onClick = viewModel::edit, modifier = Modifier.fillMaxWidth()) { Text(stringResource(AppStrings.ACTION_EDIT_DETAILS)) }
+        TextButton(onClick = viewModel::onEditDetailsClicked, modifier = Modifier.fillMaxWidth()) { Text(stringResource(AppStrings.ACTION_EDIT_DETAILS)) }
     }
 }
 
 /** Shows transfer receipt. */
+@Composable
+private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, viewModel: WalletViewModel) {
+    val contact = MockCatalog.contacts.firstOrNull { it.handle == state.recipient }
+    Column(
+        Modifier.fillMaxWidth().padding(top = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        IconBadge(Icons.Outlined.CheckCircle, size = 88)
+        Text(stringResource(AppStrings.LABEL_MONEY_SENT), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(formatMoney(state.postedMinor), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+        Text("to ${contact?.name ?: state.recipient}", style = MaterialTheme.typography.bodyLarge)
+    }
+    SectionCard {
+        DetailRow("Status", "Completed")
+        DetailRow("Reference", state.idempotencyKey)
+        DetailRow("Remaining balance", formatMoney(state.balanceMinor))
+    }
+    PrimaryButton("Done", onClick = { viewModel.onDoneClicked(onDone) })
+    OutlinedButton(onClick = viewModel::onSendAnotherClicked, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(AppStrings.ACTION_SEND_ANOTHER))
+    }
+}
+
+/** Backward-compatible overload for previews. */
 @Composable
 private fun TransferReceipt(state: WalletUiState, onDone: () -> Unit, onSendAnother: () -> Unit) {
     val contact = MockCatalog.contacts.firstOrNull { it.handle == state.recipient }

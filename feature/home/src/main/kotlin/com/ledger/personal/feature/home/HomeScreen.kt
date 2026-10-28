@@ -1,47 +1,28 @@
 package com.ledger.personal.feature.home
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.LocalOffer
-import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.paging.PagingData
 import com.ledger.personal.domain.board.HomeBoard
 import com.ledger.personal.domain.board.HomeLayout
 import com.ledger.personal.domain.board.HomeSection
@@ -53,25 +34,16 @@ import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
 import com.ledger.personal.domain.sync.SyncCoordinator
 import com.ledger.personal.domain.sync.SyncPhase
-import com.ledger.personal.ui.components.BannerTone
-import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.components.MaskedAmount
 import com.ledger.personal.ui.components.OfflineBanner
-import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.SectionCard
-import com.ledger.personal.ui.components.SkeletonRows
-import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.components.SyncIndicator
 import com.ledger.personal.ui.components.SyncState
-import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import androidx.paging.PagingData
 
-private val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
 
 /** Shows the home screen. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,7 +59,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -96,10 +67,6 @@ fun HomeScreen(
                         Text(greeting(name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         SyncIndicator(state.sync.toUi(offline))
                     }
-                },
-                actions = {
-                    IconButton(onClick = onAccountClick) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Account & Security") }
-                    IconButton(onClick = viewModel::refresh) { Icon(Icons.Outlined.Refresh, contentDescription = "Sync now") }
                 },
             )
         },
@@ -120,165 +87,27 @@ fun HomeScreen(
                 if (offline) {
                     item(key = "offline_banner", contentType = "banner") { OfflineBanner("a few minutes ago") }
                 }
-                if (!state.layoutReady) {
-                    item(key = "skeleton_rows", contentType = "skeleton") { SkeletonRows() }
-                } else {
-                    state.layoutMessage?.let { message ->
-                        item(key = "layout_message", contentType = "banner") {
-                            StatusBanner(message, BannerTone.WARNING, title = "Dashboard Notice")
-                        }
-                    }
-                    state.sections.forEachIndexed { index, section ->
-                        when (section) {
-                            HomeSection.Balance -> {
-                                item(key = "section_balance_$index", contentType = "balance_summary") {
-                                    SummaryCard(balanceMinor, revealBalance, onToggleReveal)
-                                }
-                                item(key = "section_scan_and_pay_$index", contentType = "scan_and_pay") {
-                                    SectionCard(title = stringResource(AppStrings.SECTION_SCAN_AND_PAY)) {
-                                        Text(
-                                            "Pay anyone instantly using UPI QR code or phone number.",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        PrimaryButton(
-                                            text = stringResource(AppStrings.ACTION_SCAN_QR),
-                                            icon = Icons.Outlined.QrCodeScanner,
-                                            onClick = onScanClick,
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                }
-                                item(key = "section_account_$index", contentType = "account_card") {
-                                    SectionCard(title = "Account & Security") {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = name.ifBlank { "Personal Account" },
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                )
-                                                Text(
-                                                    text = "Manage security, lock app, or log out",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                            OutlinedButton(onClick = onAccountClick) {
-                                                Text("Manage")
-                                            }
-                                        }
-                                    }
-                                }
-                                if (state.promotions.isNotEmpty()) {
-                                    item(key = "section_promotions_$index", contentType = "promotions_carousel") {
-                                        PromotionsHorizontalSection(
-                                            promotions = state.promotions,
-                                            onOfferClick = { offer ->
-                                                val query = Uri.encode(offer.pitch)
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$query"))
-                                                try {
-                                                    context.startActivity(intent)
-                                                } catch (_: ActivityNotFoundException) {
-                                                    // Ignore if browser not found
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                            is HomeSection.Note -> item(
-                                key = "section_note_${section.title}_$index",
-                                contentType = "note_card",
-                            ) {
-                                SectionCard(title = section.title.ifBlank { null }) { Text(section.body) }
-                            }
-                            is HomeSection.Shortcuts, is HomeSection.Activity -> Unit
-                        }
-                    }
+                item(key = "section_balance", contentType = "balance_summary") {
+                    SummaryCard(balanceMinor, revealBalance, onToggleReveal)
                 }
             }
         }
     }
 }
 
-/** Shows summary card with current account balance. */
+/** Shows summary card with account number and balance only. */
 @Composable
 private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Unit) {
-    val asOfTime = remember {
-        Instant.now().atZone(ZoneId.systemDefault()).format(timeFormat)
-    }
     SectionCard {
-        Text("Savings •• 4821", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        MaskedAmount(balanceMinor, reveal, onToggle)
         Text(
-            "Available balance · as of $asOfTime",
-            style = MaterialTheme.typography.bodySmall,
+            text = "Savings A/C •• 4821",
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        MaskedAmount(balanceMinor, reveal, onToggle)
     }
 }
 
-/** Shows promotions features in a horizontal scrollable view. */
-@Composable
-private fun PromotionsHorizontalSection(
-    promotions: List<PromoOffer>,
-    onOfferClick: (PromoOffer) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(AppStrings.SECTION_OFFERS), style = MaterialTheme.typography.titleSmall)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(
-                items = promotions,
-                key = { it.id },
-                contentType = { "promo_offer" },
-            ) { offer ->
-                androidx.compose.material3.Surface(
-                    onClick = { onOfferClick(offer) },
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier.width(240.dp),
-                ) {
-                    Column(
-                        Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            IconBadge(Icons.Outlined.LocalOffer, size = 32)
-                            Text(
-                                "PROMO",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        Text(
-                            offer.pitch,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                        )
-                        if (offer.until.isNotBlank()) {
-                            Text(
-                                offer.until,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 /** Greeting. */
 private fun greeting(name: String): String {

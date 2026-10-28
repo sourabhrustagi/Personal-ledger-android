@@ -3,6 +3,8 @@ package com.ledger.personal.data.tools
 import com.ledger.personal.data.security.LocalBindingServer
 import com.ledger.personal.data.security.SIGNATURE_ALGORITHM
 import com.ledger.personal.domain.model.Transaction
+import com.ledger.personal.feature.scan.UpiTarget
+import com.ledger.personal.feature.scan.parseUpi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

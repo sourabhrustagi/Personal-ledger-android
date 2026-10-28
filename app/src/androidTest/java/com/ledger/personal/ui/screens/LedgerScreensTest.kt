@@ -12,8 +12,8 @@ import com.ledger.personal.testing.sampleTransaction
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
-import com.ledger.personal.ui.screens.list.TransactionListScreen
-import com.ledger.personal.ui.screens.list.TransactionListUiState
+import com.ledger.personal.feature.ledger.list.TransactionListScreen
+import com.ledger.personal.feature.ledger.list.TransactionListUiState
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

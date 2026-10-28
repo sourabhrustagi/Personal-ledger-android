@@ -56,14 +56,14 @@ import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
 import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
-import com.ledger.personal.feature.ledger.account.AccountScreen
-import com.ledger.personal.feature.ledger.history.LedgerHistoryScreen
-import com.ledger.personal.feature.ledger.home.HomeScreen
-import com.ledger.personal.feature.ledger.home.HomeViewModel
+import com.ledger.personal.feature.account.AccountScreen
+import com.ledger.personal.feature.history.LedgerHistoryScreen
+import com.ledger.personal.feature.home.HomeScreen
+import com.ledger.personal.feature.home.HomeViewModel
 import com.ledger.personal.feature.ledger.list.TransactionListScreen
 import com.ledger.personal.feature.ledger.list.TransactionListViewModel
-import com.ledger.personal.feature.ledger.promotions.PromotionsScreen
-import com.ledger.personal.feature.ledger.promotions.PromotionsViewModel
+import com.ledger.personal.feature.promotions.PromotionsScreen
+import com.ledger.personal.feature.promotions.PromotionsViewModel
 
 /** Shows ledger nav host. */
 @Composable

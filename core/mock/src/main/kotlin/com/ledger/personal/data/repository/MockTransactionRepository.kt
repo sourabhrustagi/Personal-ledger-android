@@ -15,8 +15,10 @@ import kotlinx.coroutines.flow.map
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Reads and writes mock transaction. */
+@Singleton
 class MockTransactionRepository @Inject constructor() : TransactionRepository {
 
     private val storage = ConcurrentHashMap<String, Transaction>()

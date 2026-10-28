@@ -58,11 +58,32 @@ class LedgerMigrationTest {
         migrated.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'kyc_drafts'").use { cursor ->
             assertEquals(true, cursor.moveToFirst())
         }
+    @Test
+    fun migratesToVersionSixDroppingNonPromotionTables() {
+        helper.createDatabase(TEST_DB_V5, 5).apply {
+            execSQL(
+                "INSERT INTO promotions (id, shelfId, shelfTitle, pitch, `until`, position) VALUES " +
+                    "('p1', 's1', 'Title', 'Pitch', 'Until', 0)",
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB_V5, 6, true, MIGRATION_5_6)
+        migrated.query("SELECT id, shelfTitle FROM promotions WHERE id = 'p1'").use { cursor ->
+            assertEquals(true, cursor.moveToFirst())
+            assertEquals("p1", cursor.getString(0))
+            assertEquals("Title", cursor.getString(1))
+        }
+        migrated.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'transactions'").use { cursor ->
+            assertEquals(false, cursor.moveToFirst())
+        }
         migrated.close()
     }
 
     private companion object {
         const val TEST_DB = "migration-test"
         const val TEST_DB_V2 = "migration-test-v2"
+        const val TEST_DB_V5 = "migration-test-v5"
     }
 }
+

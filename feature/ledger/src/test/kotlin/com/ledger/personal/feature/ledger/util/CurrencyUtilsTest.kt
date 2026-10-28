@@ -1,4 +1,4 @@
-package com.ledger.personal.util
+package com.ledger.personal.feature.ledger.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

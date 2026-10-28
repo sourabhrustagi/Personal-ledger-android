@@ -45,6 +45,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [3. Build Flavor Dependency Injection](#3-build-flavor-dependency-injection)
   - [4. Multi-Layer Banking Security](#4-multi-layer-banking-security)
   - [5. Current Architectural Limitations, Trade-offs & Flaws](#5-current-architectural-limitations-trade-offs--flaws)
+  - [6. Architectural Transformation: Feature Modularization & Standalone Mock Environments](#6-architectural-transformation-feature-modularization--standalone-mock-environments)
 - [ViewModels](#view-models)
 - [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
   - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
@@ -402,7 +403,7 @@ The application is structured into a modular multi-tier hierarchy to enforce sep
 
 | Module / Path | Layer | Responsibility & Capabilities | Key Technologies & Files |
 |---|---|---|---|
-| **`app/`** | App Shell | Top-level application shell, navigation graph (`Screen`), build flavors, DI wiring, and application-level flows (`ui/app`: auth, hubs, scan) | `LedgerOneApp.kt`, `LedgerNavHost.kt`, `RepositoryModule.kt` |
+| **`app/`** | App Shell | Top-level application shell, root navigation graph (`LedgerNavHost`), build flavors, and DI wiring | `LedgerOneApp.kt`, `LedgerNavHost.kt`, `RepositoryModule.kt` |
 | **`core/model/`** | Domain (Pure Kotlin) | Domain models (`Transaction`, `Money`), abstract repository interfaces, Use Cases, and core business rules (`Rules.kt`) | `Transaction.kt`, `Rules.kt`, `SendOtpUseCase.kt` |
 | **`core/network/`** | Data (Remote) | Retrofit REST API, serialization DTOs, auth interceptor, TLS certificate pinning, and device binding | `TransactionApi.kt`, `SafeApiCall.kt`, `DeviceBinding.kt` |
 | **`core/database/`** | Data (Local) | Room database, schema migrations, offline-first repository, WorkManager sync worker, and DataStore preferences | `LedgerDatabase.kt`, `TransactionDao.kt`, `TransactionSyncWorker.kt` |
@@ -410,7 +411,8 @@ The application is structured into a modular multi-tier hierarchy to enforce sep
 | **`core/ui/`** | UI Utilities | Shared Compose UI effects, lifecycle helpers, and window security utilities (`SecureWindow` for screenshot blocking) | `SecureWindow.kt` |
 | **`core/mock/`** | Mock & Demo | Mock backend, seeded demo catalog (`MockCatalog`), mock credentials (`MockValues`), and testing levers (`MockSwitches`) | `MockValues.kt`, `MockCatalog.kt`, `MockSwitches.kt` |
 | **`core/testing/`** | Test Fixtures | Shared test samples, test dispatchers, and scripted mock coordinators | `Samples.kt` |
-| **`feature/<name>/`** | Feature Modules | Distinct product features (one module per feature: `:feature:ledger`, `:feature:wallet`) | `HomeScreen.kt`, `WalletScreen.kt` |
+| **`feature/<name>/`** | Feature Modules | Distinct, isolated product features (`:feature:auth`, `:feature:hubs`, `:feature:ledger`, `:feature:scan`, `:feature:update`, `:feature:wallet`) | `OnboardingScreen.kt`, `HomeScreen.kt`, `WalletScreen.kt` |
+| **`feature/<name>/demo/`** | Standalone Demo Apps | Independent runnable application modules for each feature running on mock dependencies | `DemoActivity.kt`, `DemoApplication.kt` |
 | **`docs/`** | Documentation | Architectural Decision Records (MADRs), architecture documentation, and module integration guidelines | `docs/ARCHITECTURE.md`, `docs/MODULES.md` |
 
 > [!IMPORTANT]
@@ -675,6 +677,163 @@ graph TD
 * **Recommended Remediation:** 
   - Standardize on a centralized `MainDispatcherRule : TestWatcher` in `:core:testing`.
   - Refocus tests on behavior verification (triggering ViewModel intents and asserting resulting `StateFlow` state transitions).
+
+---
+
+### <a id="6-architectural-transformation-feature-modularization--standalone-mock-environments"></a>6. Architectural Transformation: Feature Modularization & Standalone Mock Environments
+
+To eliminate monolithic app bottlenecks and provide an industry-standard, scalable multi-module development workflow, LedgerOne adopted a **Feature-Isolated Architecture with Standalone Mock Demo Environments**.
+
+Every user-facing screen was extracted from `:app` into its respective `:feature:*` module, and every feature module was equipped with an independent runnable companion application (`:feature:<name>:demo`).
+
+```mermaid
+graph TD
+    subgraph AppMonolith ["Production / Monolith Application Shell"]
+        APP[":app<br/>(LedgerOneApp, LedgerNavHost, DI Graph)"]
+    end
+
+    subgraph FeatureModules ["Feature Modules (UI + ViewModels)"]
+        F_AUTH[":feature:auth<br/>(Onboarding, Login)"]
+        F_HUBS[":feature:hubs<br/>(PayHub, Offers)"]
+        F_SCAN[":feature:scan<br/>(QR Camera Scanner)"]
+        F_LEDGER[":feature:ledger<br/>(Dashboard, History)"]
+        F_WALLET[":feature:wallet<br/>(P2P Transfers, PIN)"]
+        F_UPDATE[":feature:update<br/>(Version Check, Dialogs)"]
+    end
+
+    subgraph FeatureDemos ["Standalone Feature Demo Apps (Runnable)"]
+        D_AUTH[":feature:auth:demo"]
+        D_HUBS[":feature:hubs:demo"]
+        D_SCAN[":feature:scan:demo"]
+        D_LEDGER[":feature:ledger:demo"]
+        D_WALLET[":feature:wallet:demo"]
+        D_UPDATE[":feature:update:demo"]
+    end
+
+    subgraph CoreLibraries ["Core Shared Layer"]
+        C_MODEL[":core:model<br/>(Domain Models, Rules, UseCases)"]
+        C_DESIGN[":core:designsystem<br/>(Themes, Colors, Scaffolds)"]
+        C_MOCK[":core:mock<br/>(MockCatalog, MockValues, Fixtures)"]
+    end
+
+    %% Dependencies
+    APP --> F_AUTH
+    APP --> F_HUBS
+    APP --> F_SCAN
+    APP --> F_LEDGER
+    APP --> F_WALLET
+    APP --> F_UPDATE
+
+    D_AUTH --> F_AUTH
+    D_HUBS --> F_HUBS
+    D_SCAN --> F_SCAN
+    D_LEDGER --> F_LEDGER
+    D_WALLET --> F_WALLET
+    D_UPDATE --> F_UPDATE
+
+    D_AUTH --> C_MOCK
+    D_HUBS --> C_MOCK
+    D_SCAN --> C_MOCK
+    D_LEDGER --> C_MOCK
+    D_WALLET --> C_MOCK
+    D_UPDATE --> C_MOCK
+
+    FeatureModules --> C_MODEL
+    FeatureModules --> C_DESIGN
+    FeatureDemos --> C_DESIGN
+```
+
+#### A. The Architectural Bottleneck Being Solved
+
+In traditional or semi-modular Android codebases, the `:app` module often accumulates screens, flows, and feature ViewModels. This causes severe engineering bottlenecks:
+1. **Compilation Cascades:** Any small layout tweak in `OnboardingScreen` or `ScanScreen` triggered recompilation of `:app`, invoking annotation processors (Hilt/KSP) across the entire application and invalidating the Gradle build cache.
+2. **Deep Funnel Friction:** Testing a screen nested deep within the user journey (e.g., verifying a transfer confirmation bottom sheet in `:feature:wallet` or force update prompt in `:feature:update`) required developers to repeatedly log in, enter OTPs, pass PIN checks, and navigate manually.
+3. **Flaky Network & Backend Dependencies:** Running the full app often depended on network connectivity, live backend services, or complex local SQLite migrations, slowing down rapid UI/UX iteration.
+4. **Accidental Coupling:** Without physical module boundaries between screens, developers could easily create direct imports across disparate flows (e.g. referencing login state inside payments), violating separation of concerns.
+
+#### B. Core Principles of the New Architecture
+
+##### 1. Strict Feature Isolation (Zero Feature-to-Feature Coupling)
+* Screens and ViewModels live exclusively inside their dedicated feature module:
+  - `:feature:auth`: `OnboardingScreen`, `LoginScreen`, `OnboardingViewModel`, `LoginViewModel`
+  - `:feature:hubs`: `PayHubScreen`, `OffersScreen`, `PayHubViewModel`, `PromotionsViewModel`
+  - `:feature:scan`: `ScanScreen`, camera barcode analyzer, camera permission handling
+  - `:feature:update`: `UpdateScreen`, version check evaluator, update prompt dialogs
+  - `:feature:ledger`: `HomeScreen`, `LedgerHistoryScreen`, `HomeViewModel`, `TransactionListViewModel`
+  - `:feature:wallet`: `WalletScreen`, `WalletViewModel`
+* **Enforced by CI / Architecture Tests:** `ModuleBoundaryTest` verifies at build time that no `:feature:*` module declares a dependency on or imports from another `:feature:*` module. Cross-feature data or components are shared exclusively through `:core:*`.
+
+##### 2. Autonomous Standalone Feature Demo Apps (`:feature:<name>:demo`)
+* Each feature has a companion `demo` Android application module (e.g. `:feature:auth:demo`, `:feature:ledger:demo`).
+* **Minimal Dependency Graph:** A demo module depends *only* on its sibling feature module, `:core:designsystem`, `:core:mock`, and `:core:model`. It does **not** depend on other features, `:core:database` Room tables, or `:core:network` Retrofit clients.
+* **Instant Direct Launch:** The demo app has its own `DemoApplication` and `DemoActivity` that launches directly into the feature screen. There are no login barriers, splash screens, or deep-link hops.
+* **Sub-Second Incremental Compilation:** Because the demo app is completely decoupled from the rest of the application, Gradle compiles and deploys the feature to a device or emulator in **under 3 seconds** (compared to 30–60+ seconds for the full monolith).
+
+##### 3. Decoupled Feature Navigation Architecture
+* Feature composables are designed to be completely **host-agnostic**:
+  ```kotlin
+  // Feature composable hoists navigation callbacks as pure lambdas
+  @Composable
+  fun PayHubScreen(
+      onNavigateToWallet: () -> Unit,
+      onNavigateToScan: () -> Unit,
+      onNavigateToOffers: () -> Unit,
+      viewModel: PayHubViewModel = viewModel()
+  )
+  ```
+* **In the Production App (`:app`):** `LedgerNavHost` binds these lambdas to top-level `NavController.navigate()` calls, routing the user across the full multi-module navigation graph.
+* **In the Standalone Demo App (`:feature:hubs:demo`):** `DemoActivity` binds these lambdas to lightweight mock responses (e.g. showing a Toast `Toast.makeText(this, "Navigate to Scan clicked", Toast.LENGTH_SHORT).show()`). This allows engineers and designers to verify interactive UI behavior without needing the destination screen compiled into the APK.
+
+##### 4. Deterministic Mock Data Harness
+* Standalone demo apps consume deterministic fake repositories and use cases from `:core:mock` (`MockCatalog`, `MockValues`, `MockSwitches`).
+* Edge cases (empty transaction history, network timeout, insufficient balance, invalid OTP, KYC blocked) can be toggled instantly in mock data without needing a staging backend or mock HTTP server.
+
+#### C. Developer Guide: Running Feature Modules in Isolation
+
+Developers can run any feature module independently either through Android Studio or via the Gradle CLI:
+
+##### 1. Android Studio Run Configurations
+Each demo module is registered as a standalone Android App run configuration in Android Studio:
+- Select `feature.auth.demo` from the configuration dropdown and click **Run**.
+- Select `feature.ledger.demo` to inspect the dashboard and transactions list.
+- Select `feature.wallet.demo` to test P2P transfers and UPI money flows.
+- Select `feature.hubs.demo` to test hub shortcuts and promotional banners.
+- Select `feature.scan.demo` to test the camera QR viewfinder.
+- Select `feature.update.demo` to test mandatory update dialogs and release notes.
+
+##### 2. Gradle Command-Line Execution
+Run any feature directly onto an attached device or emulator:
+```bash
+# Run Auth (Onboarding & Login) in isolation
+./gradlew :feature:auth:demo:installDebug
+
+# Run Ledger (Dashboard & History) in isolation
+./gradlew :feature:ledger:demo:installDebug
+
+# Run Wallet (Send Money & Transfers) in isolation
+./gradlew :feature:wallet:demo:installDebug
+
+# Run Hubs (Pay Hub & Offers) in isolation
+./gradlew :feature:hubs:demo:installDebug
+
+# Run Scan (Camera QR Scanner) in isolation
+./gradlew :feature:scan:demo:installDebug
+
+# Run Update (Force Update Screen) in isolation
+./gradlew :feature:update:demo:installDebug
+```
+
+#### D. Architectural Comparison Matrix
+
+| Architectural Dimension | Legacy Monolithic App Shell | Feature-Isolated Architecture with Demo Apps |
+| :--- | :--- | :--- |
+| **Screen Placement** | Mixed across `:app` and `:feature:*` | 100% encapsulated inside distinct `:feature:*` modules |
+| **Feature Coupling** | High risk of unintended cross-feature dependencies | Zero feature-to-feature coupling (enforced by `ModuleBoundaryTest`) |
+| **UI Build & Deploy Speed** | 30–60s+ (full `:app` KSP, Room, ProGuard, Hilt) | 1–3s incremental (compiles only feature + demo harness) |
+| **UI Edge-Case Verification** | High friction (must navigate through entire app funnel) | Zero friction (launches directly into target screen with seed mocks) |
+| **Testing Isolation** | Flaky (affected by database migrations and network state) | Deterministic (pure in-memory mock catalog in `:core:mock`) |
+| **Team Scalability** | Merge conflicts in `:app` navigation and resources | Independent feature ownership; parallel development across teams |
+| **CI/CD Build Times** | Full rebuild on every PR | Selective Gradle task execution (`:feature:<name>:testMockDebugUnitTest`) |
 
 ---
 

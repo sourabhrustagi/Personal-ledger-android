@@ -1,5 +1,6 @@
 package com.ledger.personal.feature.update
 
+import com.ledger.personal.feature.update.util.PlayStore
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

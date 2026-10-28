@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.ui.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
@@ -9,6 +9,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,14 +31,17 @@ fun MaskedAmount(
     style: TextStyle = MaterialTheme.typography.headlineMedium,
     color: Color = MaterialTheme.colorScheme.onSurface,
 ) {
+    val formattedAmount = remember(minor, currency) { formatMoney(minor, currency) }
+    val spoken = remember(minor, currency) { spokenAmount(minor, currency) }
+
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(
-            if (revealed) formatMoney(minor, currency) else "₹ • • • • •",
+            if (revealed) formattedAmount else "₹ • • • • •",
             style = style,
             fontWeight = FontWeight.Bold,
             color = color,
             modifier = Modifier.semantics {
-                contentDescription = if (revealed) spokenAmount(minor, currency) else "Balance hidden"
+                contentDescription = if (revealed) spoken else "Balance hidden"
             },
         )
         IconButton(onClick = onToggle) {

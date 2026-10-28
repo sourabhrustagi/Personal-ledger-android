@@ -9,6 +9,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -84,6 +85,7 @@ class MockTransactionRepository @Inject constructor() : TransactionRepository {
     private fun pageSource(): PagingSource<Int, Transaction> = object : PagingSource<Int, Transaction>() {
         /** Load. */
         override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Transaction> {
+            delay(1_500L)
             val all = sortedSnapshot()
             val start = params.key ?: 0
             val end = minOf(start + params.loadSize, all.size)

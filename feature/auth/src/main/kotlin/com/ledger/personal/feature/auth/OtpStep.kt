@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.app.auth
+package com.ledger.personal.feature.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,9 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.ledger.personal.core.AppConstants
 import com.ledger.personal.mock.MockValues
-import com.ledger.personal.ui.app.OtpUiState
 import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.OtpField
 import com.ledger.personal.ui.components.PrimaryButton

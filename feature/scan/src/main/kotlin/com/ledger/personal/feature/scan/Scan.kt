@@ -1,6 +1,6 @@
 @file:Suppress("MatchingDeclarationName")
 
-package com.ledger.personal.ui.app.scan
+package com.ledger.personal.feature.scan
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -25,8 +25,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.core.content.ContextCompat
 import com.ledger.personal.core.upiPayload
-import com.ledger.personal.data.tools.UpiTarget
-import com.ledger.personal.data.tools.parseUpi
 import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.FeatureScaffold
 import com.ledger.personal.ui.components.IconBadge

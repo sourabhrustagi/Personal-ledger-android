@@ -188,7 +188,13 @@ private object IdleSync : SyncCoordinator {
 private val PreviewBoard = HomeBoard {
     Result.success(
         HomeLayout(
-            tabs = listOf(HomeTab("home", "Home")),
+            tabs = listOf(
+                HomeTab("home", "Home"),
+                HomeTab("pay", "Pay"),
+                HomeTab("passbook", "Passbook"),
+                HomeTab("offers", "Offers"),
+                HomeTab("account", "Account"),
+            ),
             sections = listOf(
                 HomeSection.Balance,
             ),

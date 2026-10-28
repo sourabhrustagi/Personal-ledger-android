@@ -28,8 +28,6 @@ include(
     ":core:mock",
     ":feature:ledger",
     ":feature:ledger:demo",
-    ":feature:wallet",
-    ":feature:wallet:demo",
     ":feature:auth",
     ":feature:auth:demo",
     ":feature:scan",

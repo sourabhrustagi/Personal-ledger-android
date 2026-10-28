@@ -10,26 +10,32 @@ import com.ledger.personal.domain.board.PaymentsBackend
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.board.PromotionsBackend
+import kotlinx.coroutines.delay
 import javax.inject.Inject
+
+private const val MOCK_API_DELAY_MS = 120_000L
 
 /** Mock dashboard. The home screen draws these sections in this order and keeps no layout of its own. */
 class MockHomeBoard @Inject constructor() : HomeBoard {
     /** Returns layout. */
-    override suspend fun layout(): Result<HomeLayout> = MockSwitches.gate {
-        Result.success(
-            HomeLayout(
-                tabs = listOf(
-                    HomeTab("home", "Home"),
-                    HomeTab("pay", "Pay"),
-                    HomeTab("passbook", "Passbook"),
-                    HomeTab("offers", "Offers"),
-                    HomeTab("account", "Account"),
+    override suspend fun layout(): Result<HomeLayout> {
+        delay(MOCK_API_DELAY_MS)
+        return MockSwitches.gate {
+            Result.success(
+                HomeLayout(
+                    tabs = listOf(
+                        HomeTab("home", "Home"),
+                        HomeTab("pay", "Pay"),
+                        HomeTab("passbook", "Passbook"),
+                        HomeTab("offers", "Offers"),
+                        HomeTab("account", "Account"),
+                    ),
+                    sections = listOf(
+                        HomeSection.Balance,
+                    ),
                 ),
-                sections = listOf(
-                    HomeSection.Balance,
-                ),
-            ),
-        )
+            )
+        }
     }
 }
 

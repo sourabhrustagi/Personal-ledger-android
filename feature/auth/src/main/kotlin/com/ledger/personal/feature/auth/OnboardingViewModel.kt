@@ -1,8 +1,7 @@
-package com.ledger.personal.ui.app.auth
+package com.ledger.personal.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ledger.personal.core.AppConstants
 import com.ledger.personal.data.prefs.AppPreferences
 import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.domain.session.Session

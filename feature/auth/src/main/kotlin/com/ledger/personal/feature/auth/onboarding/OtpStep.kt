@@ -64,10 +64,16 @@ fun OtpStep(
         code = it
         onDismissError()
     })
-    if (isError) StatusBanner(stringResource(AppStrings.ERROR_INVALID_OTP), BannerTone.ERROR)
-    errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
-    StatusBanner(sentMessage, BannerTone.INFO)
-    StatusBanner(stringResource(AppStrings.INFO_DEMO_OTP, MockValues.OTP), BannerTone.INFO)
+    if (isError) {
+        StatusBanner(stringResource(AppStrings.ERROR_INVALID_OTP), BannerTone.ERROR, title = "Invalid Code")
+    }
+    errorMessage?.let {
+        StatusBanner(it, BannerTone.ERROR, title = "Verification Failed")
+    }
+    if (uiState.isOtpSent && sentMessage.isNotBlank()) {
+        StatusBanner(sentMessage, BannerTone.SUCCESS, title = "Code Sent")
+    }
+    StatusBanner(stringResource(AppStrings.INFO_DEMO_OTP, MockValues.OTP), BannerTone.INFO, title = "Demo Environment")
     if (resendCountdown > 0) {
         val timerText = "0:${resendCountdown.toString().padStart(2, '0')}"
         Text(

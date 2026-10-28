@@ -10,4 +10,5 @@ data class OtpUiState(
     val resendCountdown: Int = 0,
     val phone: String = "",
     val otpCode: String = "",
+    val isVerifying: Boolean = false,
 )

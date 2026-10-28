@@ -96,10 +96,10 @@ fun OtpLoginScreen(
                     wrong = false
                 })
                 if (wrong) {
-                    StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR)
+                    StatusBanner("That code doesn't match. Check the SMS and try again.", BannerTone.ERROR, title = "Incorrect Code")
                 }
                 if (demoOtp) {
-                    StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO)
+                    StatusBanner("Demo build: use code ${MockValues.OTP}.", BannerTone.INFO, title = "Demo Environment")
                 }
                 if (resendCountdown > 0) {
                     Text(

@@ -9,9 +9,6 @@
     <string name="title_pay">Pay</string>
     <string name="title_scan">Scan</string>
     <string name="title_wallet">Send money</string>
-    <string name="title_new_transaction">New Transaction</string>
-    <string name="title_edit_transaction">Edit Transaction</string>
-    <string name="title_transaction_details">Transaction Details</string>
 
     <!-- Action Buttons -->
     <string name="action_continue">Continue</string>
@@ -25,9 +22,6 @@
     <string name="action_scan_qr">Scan any UPI QR code</string>
     <string name="action_open_camera">Open camera &amp; scan</string>
     <string name="action_back_to_list">Back to List</string>
-    <string name="action_add_transaction">Add Transaction</string>
-    <string name="action_update_transaction">Update Transaction</string>
-    <string name="action_saving_changes">Saving Changes…</string>
     <string name="action_edit_details">Edit details</string>
     <string name="action_send_another">Send another</string>
 
@@ -51,13 +45,10 @@
     <string name="empty_transactions_subtitle">Transactions you record show up here.</string>
     <string name="empty_transactions_default_title">No transactions yet</string>
     <string name="empty_transactions_default_subtitle">Your financial journey begins with your first record.</string>
-    <string name="empty_transaction_not_found">The requested transaction could not be located.</string>
     <string name="empty_promotions">No promotions right now.</string>
     <string name="empty_tab_content">Nothing in this tab.</string>
     <string name="no_matching_transactions">No transactions found</string>
     <string name="loading_transactions">Loading your transactions…</string>
-    <string name="loading_transaction_details">Fetching transaction details…</string>
-    <string name="loading_transaction_data">Loading transaction data…</string>
 
     <!-- Section Titles -->
     <string name="section_offers">Offers &amp; promotions</string>

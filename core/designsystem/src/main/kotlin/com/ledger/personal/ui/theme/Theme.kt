@@ -27,11 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.ledger.personal.designsystem.R
 
 /** Allowed values of theme mode. */
-enum class ThemeMode(val label: String) {
-    SYSTEM("System"),
-    LIGHT("Light"),
-    DARK("Dark"),
-}
+typealias ThemeMode = com.ledger.personal.domain.model.ThemeMode
 
 /** Ledger colors. */
 @Immutable

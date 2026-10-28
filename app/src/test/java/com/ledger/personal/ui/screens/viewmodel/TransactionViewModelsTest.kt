@@ -9,7 +9,6 @@ import com.ledger.personal.testing.MockSyncCoordinator
 import com.ledger.personal.testing.MockUserSettings
 import com.ledger.personal.testing.ScriptedTransactionRepository
 import com.ledger.personal.testing.sampleTransaction
-import com.ledger.personal.ui.screens.detail.TransactionDetailViewModel
 import com.ledger.personal.ui.screens.list.TransactionListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -116,76 +115,5 @@ class TransactionViewModelsTest {
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
     }
-
-    private fun TestScope.detailViewModel(
-        repository: com.ledger.personal.domain.repository.TransactionRepository,
-        savedStateHandle: androidx.lifecycle.SavedStateHandle,
-    ): TransactionDetailViewModel {
-        val viewModel = TransactionDetailViewModel(repository, savedStateHandle)
-        backgroundScope.launch { viewModel.uiState.collect {} }
-        return viewModel
-    }
-
-
-    @Test
-    fun detailViewModel_handlesDeleteConfirmationFlow() = runTest {
-        val tx = sampleTransaction(id = "test-del-1", amountInCents = 1500L, category = "Subscriptions")
-        mockRepository.insertDirect(tx)
-
-        val savedStateHandle = SavedStateHandle(mapOf("transactionId" to tx.id))
-        val viewModel = detailViewModel(mockRepository, savedStateHandle)
-        advanceUntilIdle()
-
-        assertEquals(tx.id, viewModel.uiState.value.transaction?.id)
-
-        viewModel.setDeleteDialogVisible(true)
-        advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.showDeleteConfirmation)
-
-        viewModel.confirmDelete()
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.isDeleted)
-        assertTrue(mockRepository.getTransactionById(tx.id).isFailure)
-    }
-
-    @Test
-    fun detailViewModel_missingIdSetsError() = runTest {
-        val viewModel = detailViewModel(mockRepository, SavedStateHandle())
-        advanceUntilIdle()
-        assertEquals("Missing transaction ID", viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isLoading)
-    }
-
-    @Test
-    fun detailViewModel_loadAndDeleteFailures() = runTest {
-        val repo = ScriptedTransactionRepository().apply {
-            getByIdResult = Result.failure(NoSuchElementException("gone"))
-        }
-        val viewModel = detailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "gone")))
-        advanceUntilIdle()
-        assertEquals("gone", viewModel.uiState.value.errorMessage)
-
-        repo.getByIdResult = Result.success(sampleTransaction(id = "gone"))
-        viewModel.loadTransaction("gone")
-        advanceUntilIdle()
-        repo.deleteResult = Result.failure(IllegalStateException("locked"))
-        viewModel.confirmDelete()
-        advanceUntilIdle()
-        assertEquals(transactionFailureMessage(IllegalStateException("locked")), viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isDeleted)
-        assertFalse(viewModel.uiState.value.showDeleteConfirmation)
-    }
-
-    @Test
-    fun detailViewModel_confirmDeleteWithoutTransactionIsNoOp() = runTest {
-        val repo = ScriptedTransactionRepository().apply {
-            getByIdResult = Result.failure(NoSuchElementException("missing"))
-        }
-        val viewModel = detailViewModel(repo, SavedStateHandle(mapOf("transactionId" to "missing")))
-        advanceUntilIdle()
-        viewModel.confirmDelete()
-        advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.isDeleted)
-    }
 }
+

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -55,11 +56,14 @@ import com.ledger.personal.ui.app.offlineNow
 import com.ledger.personal.ui.app.rememberConnected
 import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.components.OfflineScreen
+import com.ledger.personal.feature.ledger.account.AccountScreen
 import com.ledger.personal.feature.ledger.history.LedgerHistoryScreen
 import com.ledger.personal.feature.ledger.home.HomeScreen
 import com.ledger.personal.feature.ledger.home.HomeViewModel
 import com.ledger.personal.feature.ledger.list.TransactionListScreen
 import com.ledger.personal.feature.ledger.list.TransactionListViewModel
+import com.ledger.personal.feature.ledger.promotions.PromotionsScreen
+import com.ledger.personal.feature.ledger.promotions.PromotionsViewModel
 
 /** Shows ledger nav host. */
 @Composable
@@ -92,12 +96,14 @@ fun LedgerNavHost(
         "home" -> Screen.Home
         "pay" -> Screen.Scan
         "passbook" -> Screen.Passbook
+        "offers" -> Screen.Promotions
         else -> null
     }
     fun iconFor(id: String) = when (id) {
         "home" -> Icons.Outlined.Home
         "pay" -> Icons.Outlined.QrCodeScanner
         "passbook" -> Icons.AutoMirrored.Outlined.ReceiptLong
+        "offers" -> Icons.Outlined.LocalOffer
         else -> null
     }
     val bar = homeState.tabs.mapNotNull { tab ->
@@ -141,7 +147,7 @@ fun LedgerNavHost(
             ) {
                 tabRoutes(navController, prefs, flags, home)
                 ledgerRoutes(navController)
-                productRoutes(navController)
+                productRoutes(navController, prefs, appViewModel)
                 payRoutes(navController)
             }
 
@@ -181,6 +187,7 @@ private fun NavGraphBuilder.tabRoutes(
             offline = flags.offline,
             onToggleReveal = flags.onToggleReveal,
             onScanClick = { nav.navigate(Screen.Scan) },
+            onAccountClick = { nav.navigate(Screen.Account) },
             viewModel = home,
         )
     }
@@ -189,6 +196,11 @@ private fun NavGraphBuilder.tabRoutes(
             onBack = null,
             title = "Passbook",
         )
+    }
+    composable<Screen.Promotions> {
+        val offers: PromotionsViewModel = hiltViewModel()
+        val uiState by offers.uiState.collectAsStateWithLifecycle()
+        PromotionsScreen(uiState, offers::select)
     }
 }
 
@@ -213,10 +225,23 @@ private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController) {
 }
 
 /** Product routes. */
-private fun NavGraphBuilder.productRoutes(nav: NavHostController) {
+private fun NavGraphBuilder.productRoutes(
+    nav: NavHostController,
+    prefs: AppPrefs,
+    appViewModel: AppViewModel,
+) {
     val back: () -> Unit = { nav.popBackStack() }
     composable<Screen.LedgerHistory> {
         LedgerHistoryScreen(onBack = back)
+    }
+    composable<Screen.Account> {
+        AccountScreen(
+            name = prefs.name,
+            phone = prefs.phone,
+            onLock = appViewModel::lock,
+            onLogout = appViewModel::logout,
+            onBack = back,
+        )
     }
 }
 

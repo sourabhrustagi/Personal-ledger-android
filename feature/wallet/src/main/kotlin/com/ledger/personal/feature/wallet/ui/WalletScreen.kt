@@ -1,8 +1,9 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet.ui
 
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import com.ledger.personal.feature.wallet.payment.PaymentRail
 import android.os.Build
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult

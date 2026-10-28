@@ -24,11 +24,11 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.core.AppConstants
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.app.OtpUiState
-import com.ledger.personal.ui.feature.BannerTone
-import com.ledger.personal.ui.feature.OtpField
-import com.ledger.personal.ui.feature.PrimaryButton
-import com.ledger.personal.ui.feature.StatusBanner
-import com.ledger.personal.ui.feature.TextLink
+import com.ledger.personal.ui.components.BannerTone
+import com.ledger.personal.ui.components.OtpField
+import com.ledger.personal.ui.components.PrimaryButton
+import com.ledger.personal.ui.components.StatusBanner
+import com.ledger.personal.ui.components.TextLink
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 
@@ -40,13 +40,14 @@ fun OtpStep(
     resendCountdown: Int = uiState.resendCountdown,
     onEdit: () -> Unit,
     onResend: (() -> Unit)? = null,
-    onVerified: () -> Unit,
+    onVerifyClick: (String) -> Unit = {},
+    onDismissError: () -> Unit = {},
 ) {
     val sentMessage = uiState.sentMessage
     val errorMessage = uiState.errorMessage
     val isResending = uiState.isSending
     var code by rememberSaveable { mutableStateOf("") }
-    var error by rememberSaveable { mutableStateOf(false) }
+    val isError = uiState.isOtpError
 
     Text(
         text = stringResource(AppStrings.TITLE_ENTER_CODE),
@@ -60,9 +61,9 @@ fun OtpStep(
     TextLink(stringResource(AppStrings.ACTION_CHANGE_NUMBER), onEdit)
     OtpField(code, {
         code = it
-        error = false
+        onDismissError()
     })
-    if (error) StatusBanner(stringResource(AppStrings.ERROR_INVALID_OTP), BannerTone.ERROR)
+    if (isError) StatusBanner(stringResource(AppStrings.ERROR_INVALID_OTP), BannerTone.ERROR)
     errorMessage?.let { StatusBanner(it, BannerTone.ERROR) }
     StatusBanner(sentMessage, BannerTone.INFO)
     StatusBanner(stringResource(AppStrings.INFO_DEMO_OTP, MockValues.OTP), BannerTone.INFO)
@@ -88,13 +89,30 @@ fun OtpStep(
     }
     PrimaryButton(
         text = stringResource(AppStrings.ACTION_VERIFY),
-        onClick = {
-            if (code == MockValues.OTP) onVerified() else error = true
-        },
+        onClick = { onVerifyClick(code) },
         enabled = code.length == AppConstants.OTP_CODE_LENGTH,
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/** Backward-compatible overload for legacy callers and previews. */
+@Composable
+fun OtpStep(
+    phone: String,
+    uiState: OtpUiState = OtpUiState(),
+    resendCountdown: Int = uiState.resendCountdown,
+    onEdit: () -> Unit,
+    onResend: (() -> Unit)? = null,
+    onVerified: () -> Unit,
+) = OtpStep(
+    phone = phone,
+    uiState = uiState,
+    resendCountdown = resendCountdown,
+    onEdit = onEdit,
+    onResend = onResend,
+    onVerifyClick = { if (it == MockValues.OTP) onVerified() },
+    onDismissError = {},
+)
 
 @PreviewLightDark
 @Composable

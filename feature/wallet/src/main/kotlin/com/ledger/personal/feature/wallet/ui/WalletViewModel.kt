@@ -1,4 +1,4 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,6 +6,10 @@ import com.ledger.personal.core.TransferBook
 import com.ledger.personal.core.transactionFailureMessage
 import com.ledger.personal.core.withRetry
 import com.ledger.personal.mock.MockCatalog
+import com.ledger.personal.feature.wallet.payment.PaymentFsmEvent
+import com.ledger.personal.feature.wallet.payment.PaymentFsmReducer
+import com.ledger.personal.feature.wallet.payment.PaymentFsmState
+import com.ledger.personal.feature.wallet.payment.PaymentRail
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

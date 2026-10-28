@@ -49,9 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import com.ledger.personal.domain.model.Transaction
+import com.ledger.personal.core.formatApiError
+import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.EmptyState
 import com.ledger.personal.ui.components.ErrorState
 import com.ledger.personal.ui.components.LoadingState
+import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.feature.ledger.util.toFormattedCurrency
@@ -139,7 +142,8 @@ fun TransactionListScreen(
             } else {
                 uiState.isLoading && uiState.items.isEmpty() && uiState.errorMessage == null
             }
-            val failure = (refresh as? LoadState.Error)?.error?.message ?: uiState.errorMessage
+            val failure = (refresh as? LoadState.Error)?.error?.let(::formatApiError)
+                ?: uiState.errorMessage?.let(::formatApiError)
             val empty = if (paging != null) {
                 refresh is LoadState.NotLoading && paging.itemCount == 0 && failure == null
             } else {
@@ -173,18 +177,13 @@ fun TransactionListScreen(
                         val listError = uiState.errorMessage
                         if (listError != null) {
                             item(key = "list-error", contentType = "error_banner") {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.errorContainer,
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = listError,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(12.dp)
-                                    )
-                                }
+                                StatusBanner(
+                                    message = formatApiError(listError),
+                                    tone = BannerTone.WARNING,
+                                    title = "Sync Issue",
+                                    actionLabel = "Retry",
+                                    onAction = onRefresh,
+                                )
                             }
                         }
                         if (paging != null) {

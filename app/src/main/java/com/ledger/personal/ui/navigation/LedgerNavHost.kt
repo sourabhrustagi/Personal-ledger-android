@@ -60,8 +60,7 @@ import com.ledger.personal.feature.account.AccountScreen
 import com.ledger.personal.feature.history.LedgerHistoryScreen
 import com.ledger.personal.feature.home.HomeScreen
 import com.ledger.personal.feature.home.HomeViewModel
-import com.ledger.personal.feature.ledger.list.TransactionListScreen
-import com.ledger.personal.feature.ledger.list.TransactionListViewModel
+
 import com.ledger.personal.feature.promotions.PromotionsScreen
 import com.ledger.personal.feature.promotions.PromotionsViewModel
 
@@ -146,7 +145,6 @@ fun LedgerNavHost(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 tabRoutes(navController, prefs, flags, home)
-                ledgerRoutes(navController)
                 productRoutes(navController, prefs, appViewModel)
                 payRoutes(navController)
             }
@@ -204,25 +202,6 @@ private fun NavGraphBuilder.tabRoutes(
     }
 }
 
-/** List route. */
-private fun NavGraphBuilder.listRoute(nav: NavHostController) {
-    composable<Screen.TransactionList> {
-        val viewModel: TransactionListViewModel = hiltViewModel()
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
-        TransactionListScreen(
-            uiState = state,
-            onRefresh = viewModel::refresh,
-            onLoadMore = viewModel::loadNextPage,
-            onProductsClick = { nav.popBackStack() },
-            paging = viewModel.pages.collectAsLazyPagingItems(),
-        )
-    }
-}
-
-/** Ledger routes. */
-private fun NavGraphBuilder.ledgerRoutes(nav: NavHostController) {
-    listRoute(nav)
-}
 
 /** Product routes. */
 private fun NavGraphBuilder.productRoutes(

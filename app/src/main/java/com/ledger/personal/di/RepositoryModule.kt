@@ -24,7 +24,6 @@ import com.ledger.personal.mock.MockPaymentsBackend
 import com.ledger.personal.mock.MockPromotionsBackend
 import com.ledger.personal.mock.MockSwitches
 import com.ledger.personal.mock.SwitchConditions
-import com.ledger.personal.feature.wallet.payment.PaymentRail
 import java.io.File
 import java.io.IOException
 import dagger.Binds
@@ -113,12 +112,4 @@ object DemoModule {
     @Singleton
     fun conditions(mock: SwitchConditions): DemoConditions =
         if (BuildConfig.FLAVOR == "mock") mock else SteadyConditions
-
-    /** Supplies the payment attempt. Only the mock flavor runs the flaky rail. */
-    @Provides
-    fun paymentRail(): PaymentRail = if (BuildConfig.FLAVOR == "mock") {
-        PaymentRail { post -> MockSwitches.payment(post = post) }
-    } else {
-        PaymentRail { post -> post() }
-    }
 }

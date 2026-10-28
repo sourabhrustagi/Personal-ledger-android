@@ -7,6 +7,7 @@ import com.ledger.personal.data.prefs.AppPreferences
 import com.ledger.personal.domain.session.OtpResponse
 import com.ledger.personal.domain.session.Session
 import com.ledger.personal.domain.usecase.SendOtpUseCase
+import com.ledger.personal.mock.MockValues
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -93,6 +94,51 @@ class OnboardingViewModel internal constructor(
             store?.completeOnboarding(phone)
             session?.begin()
             onFinished()
+        }
+    }
+
+    /** Reacts to phone input changes from the UI. */
+    fun onPhoneChanged(phone: String) {
+        mutableOtpState.update { it.copy(phone = phone, errorMessage = null) }
+    }
+
+    /** Reacts to OTP code input changes from the UI. */
+    fun onOtpCodeChanged(code: String) {
+        mutableOtpState.update { it.copy(otpCode = code, isOtpError = false) }
+    }
+
+    /** Triggered when the user clicks the Send Code button on PhoneStep. */
+    fun onSendOtpClick(phone: String) {
+        mutableOtpState.update { it.copy(phone = phone, isOtpError = false) }
+        sendOtp(phone)
+    }
+
+    /** Triggered when the user clicks Change Number on OtpStep. Returns flow to PhoneStep. */
+    fun onEditPhoneClick() {
+        mutableOtpState.update { it.copy(isOtpSent = false, isOtpError = false) }
+    }
+
+    /** Triggered when the user clicks Resend Code on OtpStep. */
+    fun onResendOtpClick(phone: String) {
+        if (!mutableOtpState.value.isSending) {
+            sendOtp(phone)
+        }
+    }
+
+    /** Triggered when the user clicks Verify button on OtpStep. */
+    fun onVerifyOtpClick(code: String, phone: String, onFinished: () -> Unit = {}) {
+        if (code == MockValues.OTP) {
+            mutableOtpState.update { it.copy(isOtpError = false) }
+            completeOnboarding(phone, onFinished)
+        } else {
+            mutableOtpState.update { it.copy(isOtpError = true) }
+        }
+    }
+
+    /** Clears OTP validation error when user begins typing new code. */
+    fun dismissOtpError() {
+        if (mutableOtpState.value.isOtpError) {
+            mutableOtpState.update { it.copy(isOtpError = false) }
         }
     }
 

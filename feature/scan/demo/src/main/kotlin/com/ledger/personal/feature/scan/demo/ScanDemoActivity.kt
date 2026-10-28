@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.ledger.personal.feature.scan.ScanScreen
+import com.ledger.personal.feature.scan.ui.ScanScreen
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import dagger.hilt.android.AndroidEntryPoint
 

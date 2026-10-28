@@ -20,9 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ledger.personal.feature.hubs.PayHub
-import com.ledger.personal.feature.hubs.PromotionsHub
-import com.ledger.personal.feature.hubs.PromotionsViewModel
+import com.ledger.personal.feature.hubs.pay.PayHub
+import com.ledger.personal.feature.hubs.offers.PromotionsHub
+import com.ledger.personal.feature.hubs.offers.PromotionsViewModel
 import com.ledger.personal.ui.components.HubFlags
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import dagger.hilt.android.AndroidEntryPoint

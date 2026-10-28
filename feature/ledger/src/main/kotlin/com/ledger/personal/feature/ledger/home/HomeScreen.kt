@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Refresh
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -81,6 +83,7 @@ fun HomeScreen(
     offline: Boolean,
     onToggleReveal: () -> Unit,
     onScanClick: () -> Unit = {},
+    onAccountClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,6 +98,7 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onAccountClick) { Icon(Icons.Outlined.AccountCircle, contentDescription = "Account & Security") }
                     IconButton(onClick = viewModel::refresh) { Icon(Icons.Outlined.Refresh, contentDescription = "Sync now") }
                 },
             )
@@ -143,6 +147,31 @@ fun HomeScreen(
                                             onClick = onScanClick,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
+                                    }
+                                }
+                                item(key = "section_account_$index", contentType = "account_card") {
+                                    SectionCard(title = "Account & Security") {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = name.ifBlank { "Personal Account" },
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                )
+                                                Text(
+                                                    text = "Manage security, lock app, or log out",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                            OutlinedButton(onClick = onAccountClick) {
+                                                Text("Manage")
+                                            }
+                                        }
                                     }
                                 }
                                 if (state.promotions.isNotEmpty()) {

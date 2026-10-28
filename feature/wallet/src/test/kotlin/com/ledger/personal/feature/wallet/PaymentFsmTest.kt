@@ -1,4 +1,11 @@
-package com.ledger.personal.ui.feature
+package com.ledger.personal.feature.wallet
+
+import com.ledger.personal.feature.wallet.payment.PaymentFsmEvent
+import com.ledger.personal.feature.wallet.payment.PaymentFsmReducer
+import com.ledger.personal.feature.wallet.payment.PaymentFsmState
+import com.ledger.personal.feature.wallet.ui.TransferStatus
+import com.ledger.personal.feature.wallet.ui.TransferStep
+import com.ledger.personal.feature.wallet.ui.WalletViewModel
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

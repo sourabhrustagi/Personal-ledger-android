@@ -4,10 +4,6 @@ import kotlinx.serialization.Serializable
 
 /** Contract for screen. */
 sealed interface Screen {
-    /** Route to the transaction list screen. */
-    @Serializable
-    data object TransactionList : Screen
-
 
     /** Route to the ledger history screen. */
     @Serializable

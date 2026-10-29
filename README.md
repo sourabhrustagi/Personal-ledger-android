@@ -823,7 +823,124 @@ Run any feature directly onto an attached device or emulator:
 ./gradlew :feature:update:demo:installDebug
 ```
 
-#### D. Architectural Comparison Matrix
+#### D. Developer Guide: Creating a Feature Folder and Android Library Module in Android Studio
+
+To create a new feature module structured cleanly under the `feature/` folder (analogous to `:core:*` modules under `core/`), follow this step-by-step workflow in Android Studio:
+
+##### 1. Switch Android Studio to "Project" View
+By default, Android Studio opens in the **Android** view, which flattens modules and hides empty or non-module parent directories. To see and manage physical directories:
+1. In the upper-left corner of the **Project** tool window (left sidebar), click the view dropdown (defaults to **Android**).
+2. Select **Project** view.
+3. This displays the physical filesystem directory tree starting from the project root (`Personal ledger/`).
+
+##### 2. Create the Parent `feature/` Directory (If Not Already Present)
+1. In **Project** view, right-click the root project directory (`Personal ledger`).
+2. Select **New** ➔ **Directory**.
+3. Name the directory `feature` and press **Enter**.
+*(Note: In LedgerOne, the `feature/` directory is already present at the project root).*
+
+##### 3. Create the Android Library Module in Android Studio
+1. Right-click on the `feature` directory in the Project view (or choose **File** ➔ **New** ➔ **New Module...** from the main menu).
+2. In the **New Module** wizard dialog, select **Android Library** from the left panel.
+3. Configure the module properties:
+   * **Module name:** `:feature:<your_feature_name>` (e.g. `:feature:profile` or `:feature:settings`).
+     > **Important:** Specifying the `:feature:` prefix ensures that Android Studio and Gradle place the physical module folder directly inside `feature/<your_feature_name>/` rather than at the root directory.
+   * **Package name:** `com.ledger.personal.feature.<your_feature_name>`
+   * **Language:** `Kotlin`
+   * **Minimum SDK:** `API 26: Android 8.0 (Oreo)` (matching project minimum baseline).
+4. Click **Finish**. Android Studio generates the directory structure and automatically appends `include(":feature:<your_feature_name>")` to `settings.gradle.kts`.
+
+##### 4. Configure `feature/<your_feature_name>/build.gradle.kts`
+Open `feature/<your_feature_name>/build.gradle.kts` and configure it with the standard LedgerOne feature module plugins, Compose setup, and core dependencies:
+
+```kotlin
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+}
+
+android {
+    namespace = "com.ledger.personal.feature.<your_feature_name>"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 26
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    // Core shared modules (Strictly core dependencies only)
+    implementation(project(":core:model"))
+    implementation(project(":core:designsystem"))
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Jetpack Compose & Material 3
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Dependency Injection
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    ksp(libs.hilt.compiler)
+
+    // Unit Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(project(":core:testing"))
+}
+```
+
+> **Strict Rule (Feature Isolation):** Never add an `implementation(project(":feature:..."))` dependency to another feature module. Cross-feature dependencies violate `AGENTS.md` and fail the automated `ModuleBoundaryTest`. All shared models, themes, and repositories must reside in `:core:*`.
+
+##### 5. Verify Registration in `settings.gradle.kts`
+Verify that `settings.gradle.kts` contains the new module:
+```kotlin
+include(
+    // ...
+    ":feature:<your_feature_name>",
+)
+```
+
+##### 6. Wire the Feature into the Main App (`:app`)
+In `app/build.gradle.kts`, add the new feature module dependency to the `dependencies` block:
+```kotlin
+dependencies {
+    // ...
+    implementation(project(":feature:<your_feature_name>"))
+}
+```
+Then register the new screen composable in `LedgerNavHost.kt` in `:app`.
+
+##### 7. Sync Project with Gradle & Validate Boundaries
+Click **Sync Project with Gradle Files** (elephant icon in Android Studio) or run in the terminal:
+```bash
+./gradlew testMockDebugUnitTest :core:model:test detekt
+```
+
+#### E. Architectural Comparison Matrix
 
 | Architectural Dimension | Legacy Monolithic App Shell | Feature-Isolated Architecture with Demo Apps |
 | :--- | :--- | :--- |

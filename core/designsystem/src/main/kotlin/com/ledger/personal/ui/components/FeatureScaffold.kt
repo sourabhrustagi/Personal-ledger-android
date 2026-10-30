@@ -35,38 +35,40 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeatureScaffold(
-    title: String,
-    onBack: (() -> Unit)?,
+    title: String? = null,
+    onBack: (() -> Unit)? = null,
     subtitle: String? = null,
     scrollable: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        subtitle?.let {
-                            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!title.isNullOrEmpty() || onBack != null) {
+                TopAppBar(
+                    title = {
+                        Column {
+                            title?.let {
+                                Text(it, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            }
+                            subtitle?.let {
+                                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                    }
-                },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
                         }
-                    }
-                },
-                actions = actions,
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-            )
+                    },
+                    actions = actions,
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                )
+            }
         },
-        bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

@@ -472,7 +472,7 @@
       </div>
 
       <div class="stats-bar">
-        <div class="stat-pill">Total Questions: <strong>35 Exhaustive Topics</strong></div>
+        <div class="stat-pill">Total Questions: <strong>43 Exhaustive Topics</strong></div>
         <div class="stat-pill">Architecture: <strong>3-Tier Multi-Module</strong></div>
         <div class="stat-pill">UI: <strong>100% Jetpack Compose M3</strong></div>
         <div class="stat-pill">Persistence: <strong>Room (Offline-First)</strong></div>
@@ -486,7 +486,7 @@
           <input type="text" id="searchInput" class="search-input" placeholder="Search questions (e.g. CancellationException, Double-Entry, Room, Remember, Keystore, a11y, Effects)..." oninput="filterCards()">
         </div>
         <div class="category-pills">
-          <button class="cat-btn active" onclick="setCategory('all', this)">All Topics (35)</button>
+          <button class="cat-btn active" onclick="setCategory('all', this)">All Topics (43)</button>
           <button class="cat-btn" onclick="setCategory('Architecture', this)">Architecture & Modules</button>
           <button class="cat-btn" onclick="setCategory('Coroutines', this)">Coroutines & Flows</button>
           <button class="cat-btn" onclick="setCategory('Financial Math', this)">Financial Invariants</button>
@@ -1461,6 +1461,230 @@ IconButton(
             <li><strong>Android Studio Layout Inspector:</strong> Live inspection shows recomposition count and skip count badges next to composables in real-time.</li>
             <li><strong>ADB GfxInfo (`dumpsys gfxinfo`):</strong> Measures 90th/95th/99th percentile frame rendering times, ensuring frames render within the <strong>8.33ms budget</strong> for 120 FPS fluidity.</li>
             <li><strong>Macrobenchmark (TTID & TTFD):</strong> Measures Time to Initial Display and Time to Full Display on cold, warm, and hot startups on physical devices.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 36 -->
+    <div class="qa-card" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Architecture & Hardware</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">36. How does LedgerOne's QR scanner module (`:feature:scan`) achieve zero-latency QR code detection without dropping UI frames or locking camera hardware?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>The <code>:feature:scan</code> module implements a high-throughput, non-blocking camera pipeline leveraging <strong>Android Jetpack CameraX</strong> paired with Google's on-device <strong>ML Kit Barcode Scanning</strong>:</p>
+          <ul>
+            <li><strong>Non-Blocking Backpressure Strategy:</strong> Configures <code>ImageAnalysis.Builder()</code> with <code>STRATEGY_KEEP_ONLY_LATEST</code>. When the machine learning analyzer is evaluating a frame, CameraX automatically discards newly arriving camera frames rather than queueing them up in memory, eliminating OutOfMemory errors and image lag.</li>
+            <li><strong>Dedicated Analysis Executor:</strong> Image analysis executes strictly on a dedicated background thread pool (<code>Executors.newSingleThreadExecutor()</code> or <code>Dispatchers.Default.asExecutor()</code>), ensuring image plane YUV-to-RGB unpacking never runs on the Main UI thread.</li>
+            <li><strong>Compose Lifecycle Binding:</strong> Utilizes <code>AndroidView</code> hosting a CameraX <code>PreviewView</code>, binding the <code>ProcessCameraProvider</code> strictly to the host screen's <code>LifecycleOwner</code>. When the user navigates away or switches apps, the camera sensor and flash hardware are immediately released.</li>
+            <li><strong>Payload Checksum & UPI Validation:</strong> Extracted QR data is verified for UPI specification compliance (<code>upi://pay?pa=...&pn=...&am=...</code>) with strict VPA format regex checks before triggering navigation to the payment leg.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 37 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Hardware Security</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">37. How does LedgerOne integrate `BiometricPrompt` with hardware-backed Keystore `CryptoObject` to authorize high-value transactions securely?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Rather than relying on vulnerable boolean callbacks (<code>onAuthenticationSucceeded</code>), which can be manipulated by instrumentation hooks (Frida/Xposed) on rooted devices, LedgerOne ties biometric authorization directly to <strong>cryptographic hardware unlocking</strong>:</p>
+          <ul>
+            <li><strong>Hardware-Bound Key Specification:</strong> Generates an AES-256 or RSA key inside the <strong>Android Keystore (StrongBox Keymaster / TEE)</strong> configured with <code>setUserAuthenticationRequired(true)</code> and <code>setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)</code>.</li>
+            <li><strong>BiometricPrompt.CryptoObject:</strong> Prior to displaying the system prompt, the app initializes a <code>Cipher</code> in <code>ENCRYPT_MODE</code> or a <code>Signature</code> object using the protected key. The Keystore refuses to initialize the cipher without user presence.</li>
+            <li><strong>Hardware-Verified Decryption:</strong> Passing <code>BiometricPrompt.CryptoObject(cipher)</code> into <code>prompt.authenticate()</code> guarantees that the Cipher is cryptographically unlocked ONLY when the Secure Element / TEE verifies the user's authentic biometric signature (Fingerprint or 3D Face Unlock).</li>
+            <li><strong>Tamper-Proof Transaction Signing:</strong> The transaction payload (amount, payee VPA, timestamp, idempotency key) is signed by this authenticated cipher, providing undeniable cryptographic non-repudiation.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 38 -->
+    <div class="qa-card" data-category="Testing & DevOps">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Diagnostics & Tooling</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">38. How are memory leaks and network traffic inspected in LedgerOne without degrading production APK performance or exposing sensitive PII?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>LedgerOne isolates diagnostics and telemetry tooling using Gradle dependency configurations to guarantee zero overhead in production builds:</p>
+          <ul>
+            <li><strong>LeakCanary 2 (Zero-Code Memory Leak Detection):</strong> Included solely via <code>debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")</code>. It installs via <code>ContentProvider</code> and hooks into <code>Application.ActivityLifecycleCallbacks</code> and Compose <code>ViewTreeLifecycleOwner</code>. When a screen is popped, LeakCanary tracks its ViewModel and Compose node with a <code>WeakReference</code>. If not garbage collected within 5 seconds, it dumps the JVM heap (<code>.hprof</code>) and uses Shark to traverse GC Roots, pinpointing retained references without crashing the app.</li>
+            <li><strong>Chucker Network Inspector:</strong> Added via <code>debugImplementation("com.github.chuckerteam.chucker:library:4.1.0")</code>, with a <code>releaseImplementation("...:library-no-op:4.1.0")</code> counterpart. In debug builds, it intercepts OkHttp traffic and surfaces notification toasts for inspecting payloads.</li>
+            <li><strong>PII Scrubbing:</strong> In staging and mock builds, sensitive headers (<code>Authorization</code>, <code>Bearer</code>, CVV, Card PAN) are masked in Chucker using custom OkHttp body filters, preventing developer devices from leaking unmasked banking tokens.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 39 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Cryptographic Security</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">39. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage during database column encryption?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <div class="alert alert-danger">
+            <strong>Catastrophic Keystream Leakage:</strong> In AES-GCM (Galois/Counter Mode), repeating a Nonce/IV with the same master key completely destroys confidentiality and message authenticity.
+          </div>
+          <p>Under AES-GCM, the ciphertext $C$ is computed by XORing plaintext $P$ with a keystream $K$ generated from the key and counter block ($C_1 = P_1 \oplus K$, $C_2 = P_2 \oplus K$).</p>
+          <ul>
+            <li><strong>Plaintext Exposure:</strong> If the IV is reused across two records, XORing the ciphertexts yields the XOR of the plaintexts: $C_1 \oplus C_2 = P_1 \oplus P_2$. Any known plaintext prefix (e.g. standard JSON keys or card prefixes) immediately recovers the other message's contents.</li>
+            <li><strong>GHASH Key Recovery:</strong> Furthermore, nonce reuse in GCM allows an attacker to mathematically solve for the universal GHASH authentication key $H$, allowing the attacker to forge arbitrary valid ciphertexts and inject fraudulent ledger entries.</li>
+            <li><strong>LedgerOne Implementation:</strong> LedgerOne strictly generates a fresh 12-byte (96-bit) cryptographically strong random IV using <code>SecureRandom</code> for every single encryption call. The IV is prepended to the ciphertext and stored as: <code>[12-byte IV] + [Ciphertext] + [16-byte GCM Authentication Tag]</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 40 -->
+    <div class="qa-card" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Staff Engineering & Leadership</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">40. Describe how you handle high-pressure business/product requests that introduce severe architectural and security risks (The "Zero-Friction Offline Auto-Pay" trade-off).</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>This is a real-world Staff Engineer leadership case study from the LedgerOne architecture:</p>
+          <ul>
+            <li><strong>The Business Request:</strong> Product management requested a "Zero-Friction Offline Auto-Pay" feature: enabling users in poor network environments (subways, rural bazaars) to complete recurring merchant payments offline without PIN confirmation, queuing transactions locally to sync whenever connectivity returned.</li>
+            <li><strong>The Hidden Catastrophes:</strong>
+              <ol>
+                <li><strong>Double-Spending & Account Overdraft:</strong> A user could spend ₹5,000 at Merchant A offline, and simultaneously spend ₹5,000 at Merchant B online, creating an irrecoverable ledger deficit.</li>
+                <li><strong>Replay & Relay Attacks:</strong> A malicious merchant terminal could capture the offline packet and replay it multiple times to drain the user's funds.</li>
+                <li><strong>Physical Device Theft:</strong> If a phone was stolen, an attacker could make infinite offline purchases without triggering biometric or PIN challenges.</li>
+              </ol>
+            </li>
+            <li><strong>Stakeholder Communication Strategy:</strong> Rather than saying "no" outright, the engineering lead translated technical failure modes into commercial business metrics: calculated default rates, regulatory non-compliance fines, and chargeback dispute liability.</li>
+            <li><strong>The Win-Win Architectural Solution:</strong> <em>"Pre-Authorized Signed Intent with 15-Minute TTL"</em>. The user pre-authorizes an exact expenditure amount while online using biometric authentication. The app signs a hardware-backed cryptographic voucher containing an idempotency key, recipient VPA, maximum amount, and a strict 15-minute Time-To-Live (TTL). When offline, this signed voucher is verified by the merchant terminal without overdraft risk or indefinite replay exposure.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 41 -->
+    <div class="qa-card" data-category="Testing & DevOps">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Testing & Quality</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">41. How do you test asynchronous Kotlin Flows and state transitions deterministically without using flaky `Thread.sleep()` or arbitrary coroutine `delay()`?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>LedgerOne uses <strong>Square's Turbine</strong> library combined with <code>kotlinx-coroutines-test</code> (<code>runTest</code>) to test cold and hot asynchronous flows deterministically:</p>
+          <pre><code>@Test
+fun `transfers flow transitions from Loading to Success with transaction items`() = runTest {
+    val repository = FakeLedgerRepository()
+    val viewModel = LedgerViewModel(repository)
+
+    viewModel.uiState.test {
+        // Assert initial state emitted upon subscription
+        assertThat(awaitItem()).isEqualTo(LedgerUiState.Loading)
+
+        // Trigger action
+        viewModel.loadTransactions()
+
+        // Assert subsequent emission
+        val successState = awaitItem() as LedgerUiState.Success
+        assertThat(successState.items).hasSize(3)
+
+        // Verify no unexpected emissions or leaks
+        expectNoEvents()
+    }
+}</code></pre>
+          <ul>
+            <li><strong>Virtual Time Control:</strong> <code>runTest</code> virtualizes the coroutine clock. Calls like <code>delay(10_000)</code> complete instantaneously in the test environment, eliminating flaky timeouts on CI machines.</li>
+            <li><strong>Deterministic Item Consumption:</strong> <code>awaitItem()</code> suspends until the flow emits, capturing exceptions immediately if the coroutine crashes or emits unexpected events.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 42 -->
+    <div class="qa-card" data-category="Testing & DevOps">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Static Analysis & CI</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">42. How does LedgerOne enforce architectural modularity, Kotlin idioms, and prevent secret leaks before code is merged?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>LedgerOne integrates a multi-tier automated static analysis pipeline that runs locally via pre-commit Git hooks and in CI/CD pull request gateways:</p>
+          <ul>
+            <li><strong>Detekt (Static Code Analysis):</strong> Enforces maximum cyclomatic complexity, cognitive complexity, naming conventions, and coroutine hygiene (e.g. banning unhandled <code>CancellationException</code> catches, limiting throw statements to 2 per function).</li>
+            <li><strong>Android Lint (`lintMockDebug`):</strong> Catches target SDK mismatches, missing accessibility descriptors, inefficient resource layouts, and incorrect permissions.</li>
+            <li><strong>ModuleBoundaryTest (Architectural Fitness Testing):</strong> A dedicated unit test in <code>:app</code> that inspects the project dependency tree via reflection and Gradle metadata. If any <code>:feature:*</code> module declares a dependency on another <code>:feature:*</code> module, or if raw <code>Color(0x...)</code> hex values are discovered inside feature screens, the test fails immediately with a descriptive violation message.</li>
+            <li><strong>Secret & SAST Scanning:</strong> TruffleHog / GitGuardian scanners scan commit diffs for accidental exposure of private Keystore passwords, AWS keys, or unmasked PAN patterns.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 43 -->
+    <div class="qa-card" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">App Distribution & Updates</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">43. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine (`:feature:update`)?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>The <code>:feature:update</code> module provides robust client version management using the Google Play Core In-App Update API paired with backend configuration fallback:</p>
+          <ul>
+            <li><strong>Immediate (Blocking) Updates:</strong> Used when a breaking database schema migration or critical security vulnerability occurs. The app queries the configuration endpoint on cold launch. If <code>currentVersionCode &lt; minSupportedVersionCode</code>, the app launches <code>AppUpdateType.IMMEDIATE</code>. A fullscreen, non-cancellable UI blocks interaction with the rest of the app, routing the user directly into Google Play's update flow.</li>
+            <li><strong>Flexible (Background) Updates:</strong> For non-breaking improvements, the app requests <code>AppUpdateType.FLEXIBLE</code>. The update is downloaded silently in the background while the user continues interacting with the ledger. Once downloaded, a Snackbar notifies the user: "Update ready. Restart to finish installation."</li>
+            <li><strong>OEM / Sideload Fallback:</strong> If Google Play Services is unavailable on the device (e.g. custom OEM builds or Chinese market variants), the module falls back to launching an explicit Market intent (<code>market://details?id=com.ledger.personal</code>) or downloading from a secure enterprise distribution endpoint.</li>
           </ul>
         </div>
       </div>

@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Ledger (LedgerOne) - Technical Interview & Architectural Master Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-card: #162032;
+      --surface-border: #1f2d44;
+      --surface-hover: #1b283f;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-glow: rgba(59, 130, 246, 0.15);
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --code-bg: #0b111e;
+      --code-border: #1e293b;
+      --badge-bg: rgba(59, 130, 246, 0.12);
+      --badge-text: #93c5fd;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --radius: 12px;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-card: #f1f5f9;
+      --surface-border: #e2e8f0;
+      --surface-hover: #e6edf5;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --primary: #2563eb;
+      --primary-light: #3b82f6;
+      --primary-glow: rgba(37, 99, 235, 0.1);
+      --accent: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.1);
+      --code-bg: #f8fafc;
+      --code-border: #cbd5e1;
+      --badge-bg: #dbeafe;
+      --badge-text: #1d4ed8;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding-bottom: 80px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Header & Hero */
+    header {
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 40px 20px 30px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: block;
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-btn {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+    }
+    .theme-btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .stat-pill strong { color: var(--primary-light); }
+
+    /* Search & Filter Controls */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 12px 18px 12px 42px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-subtle);
+      pointer-events: none;
+    }
+
+    .category-pills {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+
+    .cat-btn {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .cat-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text-main);
+    }
+    .cat-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* Content Area */
+    main {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* QA Accordion Card */
+    .qa-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .qa-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .qa-header {
+      padding: 18px 22px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      user-select: none;
+    }
+
+    .qa-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .qa-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .topic-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--badge-bg);
+      color: var(--badge-text);
+    }
+
+    .difficulty-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .diff-core { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .diff-adv { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .diff-deep { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+    .qa-question {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .chevron {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+
+    .qa-card.open .chevron {
+      transform: rotate(180deg);
+      color: var(--primary-light);
+    }
+
+    .qa-body {
+      display: none;
+      padding: 0 22px 22px;
+      border-top: 1px solid var(--surface-border);
+      background: var(--surface-card);
+      font-size: 0.93rem;
+      color: var(--text-muted);
+    }
+
+    .qa-card.open .qa-body {
+      display: block;
+    }
+
+    .qa-answer {
+      padding-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .qa-answer p {
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .qa-answer ul, .qa-answer ol {
+      margin-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .qa-answer strong {
+      color: var(--text-main);
+    }
+
+    /* Code Blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+      position: relative;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--code-border);
+      color: var(--primary-light);
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: inherit;
+    }
+
+    /* Callout Highlights */
+    .callout {
+      border-left: 4px solid var(--primary);
+      background: var(--primary-glow);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.88rem;
+    }
+    .callout-warning {
+      border-left-color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+    }
+    .callout strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-subtle);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .qa-question { font-size: 0.95rem; }
+      header { padding: 20px 14px; }
+      main { padding: 0 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="top-bar">
+        <div class="brand">
+          <div class="brand-logo">L1</div>
+          <div>
+            <h1>Personal Ledger (LedgerOne)</h1>
+            <span>Android Senior & Lead Engineer Interview Master Cheat-Sheet</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="theme-btn" id="themeToggle" onclick="toggleTheme()">🌓 Theme</button>
+          <button class="theme-btn" onclick="toggleAll()">↕ Expand / Collapse All</button>
+        </div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-pill">Architecture: <strong>3-Tier Multi-Module</strong></div>
+        <div class="stat-pill">UI: <strong>100% Jetpack Compose M3</strong></div>
+        <div class="stat-pill">Storage: <strong>Room (Offline-First)</strong></div>
+        <div class="stat-pill">Precision: <strong>64-bit Long Minor Units</strong></div>
+        <div class="stat-pill">Coupling: <strong>Zero Cross-Feature Dependencies</strong></div>
+      </div>
+
+      <div class="controls">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search questions (e.g. CancellationException, Double-Entry, Room, Remember, Keystore, a11y)..." oninput="filterCards()">
+        </div>
+        <div class="category-pills">
+          <button class="cat-btn active" onclick="setCategory('all', this)">All Topics (20)</button>
+          <button class="cat-btn" onclick="setCategory('Architecture', this)">Architecture & Modularization</button>
+          <button class="cat-btn" onclick="setCategory('Coroutines', this)">Coroutines & Concurrency</button>
+          <button class="cat-btn" onclick="setCategory('Financial Math', this)">Financial Invariants & Math</button>
+          <button class="cat-btn" onclick="setCategory('Payments & Security', this)">Payments & Security</button>
+          <button class="cat-btn" onclick="setCategory('Compose & UI', this)">Compose State & Performance</button>
+          <button class="cat-btn" onclick="setCategory('Room & Sync', this)">Room & Offline Sync</button>
+          <button class="cat-btn" onclick="setCategory('Accessibility', this)">Accessibility (a11y)</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="qaList">
+
+    <!-- QUESTION 1 -->
+    <div class="qa-card open" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Architecture</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">1. Explain LedgerOne's 3-tier multi-module architecture. Why are feature-to-feature dependencies strictly forbidden?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>LedgerOne decomposes the application into three decoupled tiers:</p>
+          <ul>
+            <li><strong><code>:app</code> (Application Shell):</strong> Wires Hilt dependency injection graphs, top-level navigation (<code>LedgerNavHost</code>), and background work dispatchers (<code>WorkManager</code>).</li>
+            <li><strong><code>:feature:*</code> (Feature Libraries):</strong> Encapsulates UI screens and ViewModels for distinct product domains (e.g., <code>:feature:home</code>, <code>:feature:history</code>, <code>:feature:auth</code>, <code>:feature:account</code>).</li>
+            <li><strong><code>:core:*</code> (Core Shared Layer):</strong> Reusable domain models, design system, network abstractions, Room database, and testing utilities (e.g., <code>:core:model</code>, <code>:core:designsystem</code>, <code>:core:database</code>, <code>:core:network</code>).</li>
+          </ul>
+          <div class="callout">
+            <strong>Why forbid feature-to-feature dependencies?</strong>
+            Allowing <code>:feature:wallet</code> to import <code>:feature:ledger</code> creates circular dependencies, tight coupling, and massive Gradle build bottlenecks. If two features need the same model, repository, or UI primitive, that code <strong>must be elevated to <code>:core:*</code></strong>. This invariant is automatically verified by <code>ModuleBoundaryTest</code> on every CI build.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 2 -->
+    <div class="qa-card" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Architecture</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">2. What are standalone feature demo apps (`:feature:<name>:demo`), and what technical problem do they solve?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Every feature module has a runnable companion application (e.g., <code>:feature:home:demo</code>, <code>:feature:auth:demo</code>). Feature libraries (<code>com.android.library</code>) cannot be launched as standalone APKs on devices. The demo app is a minimal <code>com.android.application</code> that embeds only that feature and mocks.</p>
+          <ul>
+            <li><strong>Instant Build Times:</strong> Building <code>:app</code> takes 30–60s due to full Room annotation processing, Hilt compilation, and all feature assets. Running <code>:feature:account:demo</code> compiles in <strong>1–3 seconds</strong>.</li>
+            <li><strong>Zero Navigational Friction:</strong> Developers and QA test deep edge cases (e.g., OTP timeouts, KYC rejection) immediately without logging in or navigating through the entire app funnel.</li>
+            <li><strong>Independent Team Scalability:</strong> Feature teams can iterate without being blocked by regressions or merge conflicts in unrelated features.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 3 -->
+    <div class="qa-card" data-category="Coroutines">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Coroutines</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">3. Why must you NEVER swallow `CancellationException` in Kotlin coroutines? How can standard `runCatching` cause leaks?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>In Kotlin, <strong>structured concurrency cancellation is cooperative</strong> and implemented under the hood by throwing <code>CancellationException</code>. When a coroutine scope cancels (e.g., user exits screen and <code>viewModelScope</code> terminates), a <code>CancellationException</code> cascades through the coroutine hierarchy.</p>
+          <div class="callout callout-warning">
+            <strong>The Danger of Swallowing CancellationException:</strong>
+            If you catch <code>Exception</code> or <code>Throwable</code> without rethrowing <code>CancellationException</code>, the coroutine ignores the cancellation signal and continues running wasted work, leaking CPU cycles and network memory in the background!
+          </div>
+          <pre><code>// ❌ INCORRECT: Swallows cancellation, preventing coroutine termination
+try {
+    api.submitTransfer(payload)
+} catch (e: Exception) {
+    Log.e(TAG, "Failed", e)
+}
+
+// ✅ CORRECT: Explicitly rethrows CancellationException
+try {
+    api.submitTransfer(payload)
+} catch (e: CancellationException) {
+    throw e
+} catch (e: IOException) {
+    Result.failure(e)
+}
+
+// ✅ CORRECT: runCatching with cancellation propagation
+val result = runCatching { api.fetchStatement() }
+    .onFailure { if (it is CancellationException) throw it }</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 4 -->
+    <div class="qa-card" data-category="Coroutines">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Coroutines</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">4. Why should ViewModels expose read-only `StateFlow` via `WhileSubscribed(5_000)` instead of `Eagerly` or LiveData?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Converting upstream cold flows (e.g., Room database queries or location updates) into hot UI state in ViewModels is accomplished using <code>stateIn</code>:</p>
+          <pre><code>val uiState: StateFlow&lt;HomeUiState&gt; = repository.observeDashboard()
+    .map { HomeUiState.Success(it) }
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = HomeUiState.Loading
+    )</code></pre>
+          <ul>
+            <li><strong>Why `WhileSubscribed`?</strong> When the composable leaves the screen, upstream database/network flows automatically stop collecting, preserving battery and memory.</li>
+            <li><strong>Why the 5,000ms (5-second) buffer?</strong> During configuration changes (screen rotation, multi-window split, dark mode toggle), the Activity destroys and recreates within ~200–500ms. The 5-second grace window keeps the upstream flow alive, avoiding expensive database restarts and screen flickering!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 5 -->
+    <div class="qa-card" data-category="Financial Math">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Financial Math</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">5. Why are currency amounts stored strictly as 64-bit `Long` minor units instead of `Double` or `Float`?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Floating-point types (<code>Float</code> and <code>Double</code>) adhere to the <strong>IEEE 754 binary standard</strong>, which represents fractions in base 2. Most decimal fractions (such as <code>0.10</code> or <code>0.01</code>) cannot be represented precisely in binary:</p>
+          <pre><code>// In Java/Kotlin:
+println(0.1 + 0.2) // Prints: 0.30000000000000004!</code></pre>
+          <div class="callout">
+            <strong>The LedgerOne Rule:</strong>
+            In financial software, a fraction of a cent discrepancy will fail bank reconciliations and audit compliance. LedgerOne stores all currency as integer <code>Long</code> values in **minor units** (paise for INR, cents for USD). Example: <code>₹1,245.50</code> is stored strictly as <code>124550L</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 6 -->
+    <div class="qa-card" data-category="Financial Math">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Financial Math</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">6. How does double-entry bookkeeping work in LedgerOne, and what invariants are enforced by `post()`?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Double-entry bookkeeping mandates that money never appears from or disappears into thin air; every debit from one account must be matched by an identical credit to another account:</p>
+          <pre><code>fun post(legs: List&lt;LedgerLeg&gt;): Boolean {
+    require(legs.isNotEmpty()) { "Transaction must contain at least one leg" }
+    
+    // Invariant 1: Every leg must be either debit or credit, never both or negative
+    legs.forEach { leg ->
+        require(leg.debitMinor &gt;= 0L && leg.creditMinor &gt;= 0L)
+        require((leg.debitMinor == 0L) xor (leg.creditMinor == 0L))
+    }
+    
+    // Invariant 2: Total debits must equal total credits
+    val totalDebits = legs.sumOf { it.debitMinor }
+    val totalCredits = legs.sumOf { it.creditMinor }
+    return totalDebits == totalCredits
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 7 -->
+    <div class="qa-card" data-category="Financial Math">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Financial Math</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">7. How does remainder-preserving expense splitting (`splitEvenly`) guarantee zero currency leakage?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>When dividing ₹100.00 (10,000 paise) among 3 people, integer division yields <code>10000 / 3 = 3333</code> paise per person ($3333 \times 3 = 9999$). One paisa is lost as remainder! Ordinary systems drop the remainder or round up, causing financial drift.</p>
+          <p><code>splitEvenly</code> solves this by distributing remainder paise one-by-one to the earliest participants:</p>
+          <pre><code>fun splitEvenly(totalMinor: Long, parts: Int): List&lt;Long&gt; {
+    require(parts &gt; 0)
+    val base = totalMinor / parts
+    val remainder = (totalMinor % parts).toInt()
+    
+    return List(parts) { index -&gt;
+        if (index &lt; remainder) base + 1L else base
+    }
+}
+// For 10000 paise across 3 parts: returns [3334L, 3333L, 3333L] -> Sum exactly 10000L!</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 8 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Payments & Security</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">8. What is an Idempotency Key in payments, and how does `TransferBook` prevent double deductions on retries?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>When a user taps "Pay ₹5,000", if the mobile network drops right as the bank is processing the debit, the client has no idea if the transfer succeeded or failed. If the client simply retries, the user could be debited twice!</p>
+          <div class="callout">
+            <strong>Idempotency Key Mechanism:</strong>
+            Before initiating a payment, the client generates a unique cryptographic UUID (<code>idempotencyKey</code>). The backend records all transactions indexed by this key. If a retry arrives with the <em>same</em> idempotency key, the backend returns the original confirmed transaction status instead of executing another debit.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 9 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Payments & Security</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">9. Explain the Luhn Algorithm for card validation and how PAN masking prevents compliance leaks.</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Payment card numbers (13–19 digits) are verified using the <strong>Luhn (Mod-10) algorithm</strong> before transmitting to network switches:</p>
+          <ol>
+            <li>Traverse digits from right to left starting with the second-to-last digit.</li>
+            <li>Double every second digit. If doubling results in a number &gt; 9, subtract 9 (sum the digits).</li>
+            <li>Sum all digits. If the total is divisible by 10 (<code>sum % 10 == 0</code>), the card is valid.</li>
+          </ol>
+          <p><strong>PAN Masking & Redaction:</strong> Under PCI-DSS compliance, full card numbers must never be written to logs, Room databases, or plain UI text. LedgerOne automatically passes card numbers through <code>redactPans</code> to mask them as <code>**** **** **** 1234</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 10 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Payments & Security</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">10. How does Envelope Encryption work with the Android Keystore (TEE/StrongBox) for database security?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Encrypting a high-volume SQLite database directly inside the Android Keystore is impractical because hardware Keystore crypto operations are slow and cannot process streaming database I/O. LedgerOne uses <strong>Envelope Encryption</strong>:</p>
+          <ol>
+            <li><strong>Key Encryption Key (KEK):</strong> A master 256-bit AES key is generated and sealed permanently inside the device's hardware-isolated <strong>Trusted Execution Environment (TEE) / StrongBox</strong>. The key material never leaves hardware.</li>
+            <li><strong>Database Encryption Key (DEK):</strong> A random 256-bit AES key is generated to encrypt the SQLCipher SQLite database.</li>
+            <li><strong>Envelope Sealing:</strong> The DEK is encrypted (wrapped) by the hardware KEK via AES-256-GCM and stored safely in private app files.</li>
+            <li><strong>Memory Zeroization:</strong> On app launch, the DEK is unwrapped, passed to SQLCipher, and the in-memory key buffer is immediately overwritten with zeros via <code>PiiMasker.zeroize(byteArray)</code>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 11 -->
+    <div class="qa-card" data-category="Compose & UI">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Compose & UI</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">11. What is the fundamental difference between `remember` and `rememberSaveable` in Jetpack Compose?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <ul>
+            <li><strong><code>remember { ... }</code>:</strong> Preserves state across <strong>recompositions</strong> of the composable. However, if the Activity is recreated due to configuration changes (screen rotation, dark/light theme switch) or OS process death, the state is completely lost and resets to initial value.</li>
+            <li><strong><code>rememberSaveable { ... }</code>:</strong> Saves state inside Android's <code>SavedStateRegistry</code> (backed by Android OS <code>Bundle</code>). The state survives <strong>screen rotations AND OS process termination</strong> when the user temporarily leaves the app.</li>
+          </ul>
+          <div class="callout">
+            <strong>Rule of Thumb:</strong> Use <code>rememberSaveable</code> for all transient user inputs (search queries, form drafts, PIN inputs, step indices) so users never lose entered data when rotating their phone!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 12 -->
+    <div class="qa-card" data-category="Compose & UI">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Compose & UI</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">12. When should you use `derivedStateOf` in Jetpack Compose, and what mistake do developers frequently make?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p><code>derivedStateOf</code> is used when a composable state changes more frequently than the UI needs to update, allowing Compose to dampen unnecessary recompositions.</p>
+          <p><strong>Classic Example (Scroll to Top Button):</strong> A <code>LazyListState</code> updates its scroll pixel offset on every single pixel of motion (60–120 times per second). We only care if the first visible item index is &gt; 0:</p>
+          <pre><code>// ✅ CORRECT: Recomposes ONLY when the boolean flips between true and false!
+val showScrollToTop by remember {
+    derivedStateOf { listState.firstVisibleItemIndex &gt; 0 }
+}</code></pre>
+          <div class="callout callout-warning">
+            <strong>Common Mistake:</strong> Wrapping non-Compose snapshot state (like a plain Kotlin parameter) inside <code>derivedStateOf</code>. If the input is not a <code>State&lt;T&gt;</code>, <code>derivedStateOf</code> cannot observe it and will never invalidate!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 13 -->
+    <div class="qa-card" data-category="Compose & UI">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Compose & UI</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">13. Why does Material 3 deprecate alpha blending (`copy(alpha = 0.6f)`) in favor of opaque tokens like `onSurfaceVariant`?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <ol>
+            <li><strong>GPU Frame Rate (120 FPS):</strong> Alpha blending forces the GPU's Skia rendering engine to allocate offscreen intermediate framebuffers to calculate transparency over backgrounds. Opaque colors (<code>onSurfaceVariant</code>) can be drawn in a single hardware pass.</li>
+            <li><strong>Guaranteed WCAG Contrast:</strong> Applying <code>copy(alpha = 0.6f)</code> causes unpredictable contrast variations over elevated or tinted surfaces. Pre-calculated opaque tokens guarantee compliant contrast (7.3:1 AA in Light, 8.4:1 AA in Dark).</li>
+            <li><strong>Design Consistency:</strong> Eliminates arbitrary magic alpha decimals (<code>0.38f</code>, <code>0.6f</code>, <code>0.7f</code>) scattered across codebases.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 14 -->
+    <div class="qa-card" data-category="Compose & UI">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Compose & UI</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">14. What are RowScope and ColumnScope in Jetpack Compose, and what compile-time safety do they provide?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p><code>RowScope</code> and <code>ColumnScope</code> are receiver scopes defined on the content lambdas of <code>Row</code> and <code>Column</code>. They supply scope-specific modifiers that are only valid in 1D linear layouts:</p>
+          <ul>
+            <li><strong><code>Modifier.weight(...)</code>:</strong> Distributes remaining horizontal width in a Row or remaining vertical height in a Column.</li>
+            <li><strong>Cross-Axis Alignment:</strong> <code>Modifier.align(...)</code> takes <code>Alignment.Vertical</code> in a Row and <code>Alignment.Horizontal</code> in a Column.</li>
+          </ul>
+          <p><strong>Compile-Time Safety:</strong> You cannot accidentally call <code>Modifier.weight()</code> inside a <code>Box</code> or <code>LazyColumn</code> item—the Kotlin compiler prevents it at build time!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 15 -->
+    <div class="qa-card" data-category="Room & Sync">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Room & Sync</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">15. How does LedgerOne implement an Offline-First architecture with Room and WorkManager?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>In an offline-first architecture, the UI **never observes network endpoints directly**—it observes the local Room SQLite database as the single source of truth:</p>
+          <ol>
+            <li><strong>Immediate Local Write:</strong> When a user takes an action, the record is immediately committed to Room with a sync flag: <code>PENDING_CREATE</code> or <code>PENDING_UPDATE</code>. The UI updates instantly.</li>
+            <li><strong>Background Sync (`WorkManager`):</strong> <code>SyncWorker</code> is registered with OS constraints (<code>NetworkType.CONNECTED</code> + <code>BatteryNotLow</code>).</li>
+            <li><strong>Reconciliation:</strong> When internet is restored, the worker pushes pending mutations to the remote API and flips local status to <code>SYNCED</code>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 16 -->
+    <div class="qa-card" data-category="Accessibility">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Accessibility</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">16. How is accessibility (a11y) handled for masked balances in `MaskedAmount.kt`?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>Visually, sensitive bank balances are masked with bullet characters: <code>₹ • • • • •</code>. If a screen reader (TalkBack) simply reads the text, it will announce confusing gibberish: <em>"Rupee, bullet, bullet, bullet"</em>.</p>
+          <p>LedgerOne solves this using custom Compose semantics:</p>
+          <pre><code>Text(
+    text = if (revealed) formattedAmount else "₹ • • • • •",
+    modifier = Modifier.semantics {
+        // TalkBack announces clear intent without exposing digits when hidden:
+        contentDescription = if (revealed) spoken else "Balance hidden"
+    }
+)
+
+IconButton(
+    onClick = onToggle,
+    modifier = Modifier.size(48.dp) // Minimum 48dp touch target
+) {
+    Icon(
+        imageVector = if (revealed) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+        contentDescription = if (revealed) "Hide balance" else "Show balance"
+    )
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 17 -->
+    <div class="qa-card" data-category="Accessibility">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Accessibility</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">17. Why does LedgerOne use OpenType tabular numerals (`tnum`) for currency displays?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>In standard proportional fonts, the digit <code>1</code> is significantly narrower than <code>8</code>. When viewing vertical transaction lists or changing counters, columns jitter and wobble horizontally, making it difficult for users with dyslexia, vision impairments, or cognitive stress to scan finances.</p>
+          <p>LedgerOne configures the <strong>Inter</strong> font family with <strong>tabular figures (<code>fontFeatureSettings = "tnum"</code>)</strong>. All numeric digits occupy identical advance widths, ensuring decimals and digits align in clean vertical columns.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 18 -->
+    <div class="qa-card" data-category="Architecture">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Architecture</span>
+            <span class="difficulty-tag diff-adv">Advanced</span>
+          </div>
+          <div class="qa-question">18. What is the Single Responsibility Principle (SRP) in Jetpack Compose UI components? Give an example from LedgerOne.</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>In Compose, the <strong>Single Responsibility Principle (SRP)</strong> dictates that every UI component should do exactly one thing and have one reason to change:</p>
+          <ul>
+            <li><strong>Separation of Files:</strong> Independent components are never lumped together into one file (e.g. <code>LedgerOneButton.kt</code>, <code>LedgerOneText.kt</code>, <code>LedgerOneTextField.kt</code>, and <code>LedgerOneCard.kt</code> are distinct files).</li>
+            <li><strong>Scaffold vs TopBar:</strong> <code>FeatureTopBar.kt</code> is responsible solely for rendering title, subtitle, and back navigation. <code>FeatureScaffold.kt</code> is responsible solely for scaffolding the screen container, responsive width bounding (720dp), and content layout.</li>
+            <li><strong>Decoupling State:</strong> Components are stateless presentation elements; state hoisting bubbles events up via lambdas (<code>onClick</code>, <code>onValueChange</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 19 -->
+    <div class="qa-card" data-category="Payments & Security">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Payments & Security</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">19. How does the Payment Finite State Machine (`PaymentStateMachine`) handle "In-Doubt" transactions?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>A banking transaction flows through states: <code>Form</code> &rarr; <code>AwaitingAuth</code> &rarr; <code>Submitting</code>.</p>
+          <p>If network connection drops during <code>Submitting</code>, the client retries with exponential backoff (1s, 2s, 4s) using the same <code>idempotencyKey</code>. If all retries exhaust without server response, the transaction transitions to <strong><code>TransferStatus.IN_DOUBT</code></strong> (never Failed!):</p>
+          <ul>
+            <li>The UI displays a <strong>"Check Status"</strong> reconciliation action rather than allowing immediate duplicate payment submission.</li>
+            <li><code>viewModel.reconcile()</code> queries <code>TransferBook.status(idempotencyKey)</code>. If the bank switch posted the debit before connection loss, the UI transitions cleanly to <code>Success</code>. If unrecorded, it safely enables re-attempt.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 20 -->
+    <div class="qa-card" data-category="Accessibility">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Accessibility</span>
+            <span class="difficulty-tag diff-core">Core</span>
+          </div>
+          <div class="qa-question">20. What are Android's minimum touch target standards, and how are they enforced in LedgerOne?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>According to Material 3 and WCAG 2.1 guidelines, every interactive touch target must be at least <strong>48 &times; 48 dp</strong> to prevent missed taps for users with motor tremors or one-handed usage:</p>
+          <ul>
+            <li><code>LedgerOneButton</code>: Full width &times; <strong>52 dp</strong> height.</li>
+            <li><code>NumericKeypad</code>: 3x4 keys &times; <strong>60 dp</strong> (or <strong>72 dp</strong> in large mode); backspace button is <strong>56 &times; 56 dp</strong>.</li>
+            <li><code>MaskedAmount</code> eye icon: Explicitly wrapped in a <strong>48 &times; 48 dp</strong> <code>IconButton</code>.</li>
+            <li>Decorative icons explicitly specify <code>contentDescription = null</code> so screen readers do not waste time reading non-interactive graphics.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Personal Ledger (LedgerOne) Architectural Interview Guide &bull; Generated from <a href="README.md">README.md</a> &bull; Clean Architecture & Jetpack Compose</p>
+  </footer>
+
+  <script>
+    // Theme Switcher
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const target = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', target);
+      localStorage.setItem('l1-theme', target);
+    }
+    const savedTheme = localStorage.getItem('l1-theme');
+    if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
+
+    // Toggle Single Card
+    function toggleCard(header) {
+      const card = header.closest('.qa-card');
+      card.classList.toggle('open');
+    }
+
+    // Toggle All Cards
+    let allExpanded = false;
+    function toggleAll() {
+      allExpanded = !allExpanded;
+      document.querySelectorAll('.qa-card').forEach(card => {
+        if (allExpanded) card.classList.add('open');
+        else card.classList.remove('open');
+      });
+    }
+
+    // Category Filter
+    let activeCategory = 'all';
+    function setCategory(cat, btn) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterCards();
+    }
+
+    // Search & Filter
+    function filterCards() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.qa-card');
+
+      cards.forEach(card => {
+        const cat = card.getAttribute('data-category');
+        const text = card.textContent.toLowerCase();
+        const matchesCat = (activeCategory === 'all' || cat === activeCategory);
+        const matchesQuery = query === '' || text.includes(query);
+
+        if (matchesCat && matchesQuery) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

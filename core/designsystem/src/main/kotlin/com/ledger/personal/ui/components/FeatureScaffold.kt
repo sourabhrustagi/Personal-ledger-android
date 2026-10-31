@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -73,8 +77,21 @@ fun FeatureScaffold(
 @Composable
 private fun FeatureScaffoldPreview() {
     PersonalLedgerTheme {
-        FeatureScaffold(title = "Payments", onBack = {}, subtitle = "UPI · Instant") {
-            HeroCard("Available", "₹2,45,678.90", supporting = "Savings •• 4821")
+        FeatureScaffold(
+            title = "Account & Security",
+            subtitle = "Profile & Settings",
+            onBack = {},
+            actions = {
+                IconButton(onClick = {}) {
+                    Icon(Icons.Outlined.Info, contentDescription = "Info")
+                }
+            },
+        ) {
+            SectionCard {
+                DetailRow("Account Holder", "Asha Rao")
+                DetailRow("Status", "KYC Verified")
+            }
+            LedgerOneButton("Manage Security", onClick = {})
         }
     }
 }

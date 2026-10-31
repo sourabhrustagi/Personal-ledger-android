@@ -59,6 +59,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
     - [`collectAsStateWithLifecycle()` vs `collectAsState()`](#b-collectasstatewithlifecycle-vs-collectasstate)
     - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
+    - [Proportional Sizing & Space Distribution (`Modifier.weight`)](#e-proportional-sizing--space-distribution-modifierweight)
   - [6. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
   - [7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
   - [8. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
@@ -1637,6 +1638,105 @@ In Jetpack Compose, the placement of child composables is governed by two orthog
        LedgerOneText("Sourabh Rustagi", role = LedgerOneTextRole.Title)
    }
    ```
+
+#### <a id="e-proportional-sizing--space-distribution-modifierweight"></a>E. Proportional Sizing & Space Distribution (`Modifier.weight`)
+
+In Jetpack Compose, **`Modifier.weight()`** is a scope-restricted layout modifier available exclusively inside `RowScope` and `ColumnScope`. It allows child composables to resize proportionally relative to their siblings along the parent container's **Main Axis** (horizontal width in a `Row`, vertical height in a `Column`).
+
+```mermaid
+flowchart LR
+    subgraph RowContainer ["Row(Modifier.fillMaxWidth())"]
+        direction LR
+        Fixed1["Icon / Leading<br/>(Intrinsic Width)"]
+        Weighted["Title & Subtitle Column<br/>Modifier.weight(1f)<br/>(Consumes 100% of Free Space)"]
+        Fixed2["Trailing Action / Amount<br/>(Intrinsic Width)"]
+    end
+    Fixed1 --> Weighted --> Fixed2
+```
+
+##### 1. Mathematical Anatomy & Measurement Passes
+Compose calculates child sizes using a **two-pass measurement algorithm**:
+1. **Pass 1 (Measure Unweighted Children):** Compose first measures all children that do *not* have `Modifier.weight()` (e.g. fixed icons, buttons, padding, or intrinsic text labels).
+2. **Pass 2 (Distribute Remaining Space):** Compose calculates the remaining free space along the main axis:
+   $$\text{FreeSpace} = \text{TotalAvailableSpace} - \sum \text{UnweightedChildSizes}$$
+3. **Pass 3 (Allocate Proportions):** The remaining free space is divided among weighted children according to their weight ratio:
+   $$\text{AllocatedSize}_i = \text{FreeSpace} \times \frac{\text{weight}_i}{\sum_{j} \text{weight}_j}$$
+
+##### 2. The `fill` Parameter (`fill = true` vs. `fill = false`)
+The `weight()` function signature provides a boolean `fill` parameter:
+```kotlin
+fun Modifier.weight(
+    weight: Float,
+    fill: Boolean = true
+): Modifier
+```
+
+* **`fill = true` (Default):** Forces the child composable to expand and occupy **exactly** the allocated space, regardless of whether its internal content is smaller.
+* **`fill = false`:** Sets a proportional **maximum size constraint** (ceiling). If the child's content is smaller than the allocated space, it stays at its intrinsic size without stretching; if the content grows, it cannot exceed its weighted share.
+
+| Configuration | Behavior | Common Production Use Case |
+|---|---|---|
+| **`weight(1f, fill = true)`** | Stretches child to fill all allocated free space. | Middle titles in app bars, expanding input forms, flexible content pushers. |
+| **`weight(1f, fill = false)`** | Allows child to be smaller than allocated space, but caps growth. | Wrapping `LazyColumn` inside a card so it hugs small lists without stretching empty space (`LedgerHistoryScreen`). |
+| **`weight(2f)` vs `weight(1f)`** | Allocates $\frac{2}{3}$ of free space to child A and $\frac{1}{3}$ to child B. | Split forms (e.g. 2-column dashboards, key-value comparisons). |
+
+##### 3. Scope-Restricted Compile-Time Safety
+Unlike legacy Android XML `layout_weight`, Compose enforces layout rules at **compile time**:
+* In `RowScope`, `Modifier.weight()` controls **horizontal width**.
+* In `ColumnScope`, `Modifier.weight()` controls **vertical height**.
+* You **cannot** call `Modifier.weight()` on children of a `Box` or `LazyColumn` item—the Kotlin compiler prevents invalid usage at build time.
+
+##### 4. Key Real-World Usages in LedgerOne:
+
+###### A. Expanding Title with Pinned Trailing Action in `Row` (`SectionHeader.kt`, `ListRow.kt`)
+In `SectionHeader.kt`, the section title takes `Modifier.weight(1f)` to consume all free horizontal space, automatically pushing any trailing action button flush to the end edge:
+```kotlin
+Row(
+    modifier = modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.weight(1f), // Takes remaining width, pushing action to end
+    )
+    action() // Trailing action takes only its intrinsic size
+}
+```
+
+###### B. Pinned Bottom Action Button with Flexible Content in `Column` (`OnboardingScreen.kt`, Forms)
+To pin a primary call-to-action button to the bottom of the viewport while allowing the form content above it to take all remaining height:
+```kotlin
+Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    // Content box consumes all available height above the button:
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+    ) {
+        // Form fields or scrollable wizard steps
+    }
+
+    // Pinned firmly at the bottom:
+    LedgerOneButton(
+        text = "Continue",
+        onClick = onContinue,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+```
+
+###### C. Non-Stretching Bounded Lists with `fill = false` (`LedgerHistoryScreen.kt`)
+In `LedgerHistoryScreen.kt`, the passbook history card uses `weight(1f, fill = false)`:
+```kotlin
+SectionCard(Modifier.weight(1f, fill = false)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        items(pages.itemCount) { index -> ... }
+    }
+}
+```
+If the passbook only has 1 or 2 items, `fill = false` prevents `SectionCard` from unnaturally stretching down the entire screen. When the list has dozens of items, the card smoothly hits the maximum height without clipping or overflowing.
 
 ---
 

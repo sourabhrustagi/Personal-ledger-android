@@ -41,6 +41,8 @@ import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Shows the account and security settings screen. */
 @Composable
@@ -64,9 +66,9 @@ fun AccountScreen(
             Card(
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    containerColor = colorScheme.surfaceVariant,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = BorderStroke(1.dp, colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -80,34 +82,34 @@ fun AccountScreen(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
+                            .background(colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = "User profile",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(32.dp),
                         )
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = name.ifBlank { "Personal Ledger User" },
-                            style = MaterialTheme.typography.titleLarge,
+                            style = typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = colorScheme.onSurface,
                         )
                         if (phone.isNotBlank()) {
                             Text(
                                 text = phone,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
                             )
                         }
                         Text(
                             text = "Status: Encrypted & Active",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            style = typography.labelMedium,
+                            color = colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -125,13 +127,13 @@ fun AccountScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Biometric & Hardware Key Security",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             text = "All database records are sealed with local AES hardware keys.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = typography.bodySmall,
+                            color = colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -141,8 +143,8 @@ fun AccountScreen(
             SectionCard(title = "Lock Session") {
                 Text(
                     text = "Instantly lock the app. You will need to enter your MPIN or use biometrics to re-enter.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 PrimaryButton(
@@ -157,8 +159,8 @@ fun AccountScreen(
             SectionCard(title = "Account Session") {
                 Text(
                     text = "Log out from this device. All local cached credentials will be cleared.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedButton(
@@ -188,7 +190,7 @@ fun AccountScreen(
                         onLogout()
                     },
                 ) {
-                    Text("Log Out", color = MaterialTheme.colorScheme.error)
+                    Text("Log Out", color = colorScheme.error)
                 }
             },
             dismissButton = {

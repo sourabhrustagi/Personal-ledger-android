@@ -33,6 +33,8 @@ import com.ledger.personal.ui.components.FeatureScaffold
 import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Shows the promotions tab screen. */
 @Composable
@@ -52,8 +54,8 @@ fun PromotionsScreen(
         if (shelves.isEmpty()) {
             Text(
                 text = stringResource(AppStrings.EMPTY_PROMOTIONS),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = typography.bodyLarge,
+                color = colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp),
             )
         } else {
@@ -71,8 +73,8 @@ fun PromotionsScreen(
             if (offers.isEmpty()) {
                 Text(
                     text = stringResource(AppStrings.EMPTY_TAB_CONTENT),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp),
                 )
             } else {
@@ -113,9 +115,9 @@ private fun PromotionCard(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = colorScheme.surfaceVariant,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -132,15 +134,15 @@ private fun PromotionCard(
             ) {
                 Text(
                     text = offer.pitch,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colorScheme.onSurface,
                 )
                 if (offer.until.isNotBlank()) {
                     Text(
                         text = offer.until,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = typography.labelMedium,
+                        color = colorScheme.primary,
                     )
                 }
             }

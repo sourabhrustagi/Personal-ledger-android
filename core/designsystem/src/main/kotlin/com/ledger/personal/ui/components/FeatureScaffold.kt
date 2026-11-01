@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /**
  * Standard screen layout scaffold for feature screens.
@@ -51,7 +51,7 @@ fun FeatureScaffold(
             }
         },
         snackbarHost = snackbarHost,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = colorScheme.background,
         modifier = modifier,
     ) { padding ->
         Box(

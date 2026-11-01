@@ -9,7 +9,6 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +17,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Allowed values of sync state. */
 enum class SyncState(val label: String, val tone: BannerTone, val icon: ImageVector) {
@@ -32,7 +33,7 @@ enum class SyncState(val label: String, val tone: BannerTone, val icon: ImageVec
 fun SyncIndicator(state: SyncState, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(state.icon, contentDescription = null, tint = state.tone.toneColor(), modifier = Modifier.size(16.dp))
-        Text(state.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(state.label, style = typography.labelMedium, color = colorScheme.onSurfaceVariant)
     }
 }
 

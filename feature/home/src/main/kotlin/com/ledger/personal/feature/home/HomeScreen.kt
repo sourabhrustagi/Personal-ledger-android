@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -39,6 +38,8 @@ import com.ledger.personal.ui.components.MaskedAmount
 import com.ledger.personal.ui.components.OfflineBanner
 import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import androidx.paging.PagingData
@@ -62,7 +63,7 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(greeting(name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(greeting(name), style = typography.titleLarge, fontWeight = FontWeight.Bold)
                 },
             )
         },
@@ -106,8 +107,8 @@ private fun SummaryCard(balanceMinor: Long, reveal: Boolean, onToggle: () -> Uni
     SectionCard {
         Text(
             text = "Savings A/C •• 4821",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = typography.labelLarge,
+            color = colorScheme.onSurfaceVariant,
         )
         MaskedAmount(balanceMinor, reveal, onToggle)
     }

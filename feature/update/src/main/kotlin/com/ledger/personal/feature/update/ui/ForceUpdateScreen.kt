@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.components.PrimaryButton
@@ -44,7 +45,7 @@ data class ForceUpdateUiState(val versionName: String = "")
 @Composable
 fun ForceUpdateScreen(uiState: ForceUpdateUiState) {
     val context = LocalContext.current
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = colorScheme.background) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(
                 Modifier
@@ -58,10 +59,10 @@ fun ForceUpdateScreen(uiState: ForceUpdateUiState) {
             ) {
                 Spacer(Modifier.height(48.dp))
                 IconBadge(Icons.Outlined.SystemUpdate, size = 72)
-                Text("Update required", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Update required", style = typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(
                     "Version ${uiState.versionName} is no longer supported. Update LedgerOne to keep your account secure and keep paying.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colorScheme.onSurfaceVariant,
                 )
                 StatusBanner("Your money and data are safe. Nothing is lost by updating.", BannerTone.INFO)
                 PrimaryButton(

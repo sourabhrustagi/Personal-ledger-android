@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.ledger.personal.ui.theme.colorScheme
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 
@@ -55,7 +56,7 @@ internal fun CameraScanner(onCode: (String) -> Unit) {
                 .clip(MaterialTheme.shapes.medium),
         )
     }
-    Text("Point the camera at the QR code", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("Point the camera at the QR code", color = colorScheme.onSurfaceVariant)
     DisposableEffect(owner) {
         if (context.findActivity() == null) return@DisposableEffect onDispose {}
         val executor = Executors.newSingleThreadExecutor()

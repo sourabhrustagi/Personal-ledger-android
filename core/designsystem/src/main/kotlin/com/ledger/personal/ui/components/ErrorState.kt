@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Full-screen failure, with an optional retry. */
 @Composable
@@ -37,26 +38,26 @@ fun ErrorState(
                 imageVector = Icons.Outlined.ErrorOutline,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.error,
+                tint = colorScheme.error,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Something went wrong",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
+                style = typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = errorMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = typography.bodyMedium,
+                color = colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             if (onRetry != null) {
                 Spacer(modifier = Modifier.height(20.dp))
                 OutlinedButton(
                     onClick = onRetry,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.primary),
                 ) { Text("Retry") }
             }
         }

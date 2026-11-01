@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +40,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /**
  * Full-screen offline state displayed when network connectivity is lost.
@@ -54,7 +55,7 @@ fun OfflineScreen(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        color = colorScheme.background,
     ) {
         Box(
             modifier = Modifier
@@ -74,14 +75,14 @@ fun OfflineScreen(
                     modifier = Modifier
                         .size(96.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.errorContainer),
+                        .background(colorScheme.errorContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.WifiOff,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        tint = colorScheme.onErrorContainer,
                     )
                 }
 
@@ -89,8 +90,8 @@ fun OfflineScreen(
 
                 Text(
                     text = stringResource(AppStrings.TITLE_NO_INTERNET),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
 
@@ -98,8 +99,8 @@ fun OfflineScreen(
 
                 Text(
                     text = stringResource(AppStrings.MESSAGE_NO_INTERNET),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
@@ -107,7 +108,7 @@ fun OfflineScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(20.dp),
                 ) {
                     Row(
@@ -118,13 +119,13 @@ fun OfflineScreen(
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = colorScheme.primary,
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = stringResource(AppStrings.LABEL_WAITING_FOR_CONNECTION),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = typography.labelMedium,
+                            color = colorScheme.onSurfaceVariant,
                         )
                     }
                 }

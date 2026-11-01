@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +28,7 @@ import com.ledger.personal.ui.components.StepHeader
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /** Steps in the onboarding flow. */
 private enum class OnboardStep { PHONE, OTP }
@@ -53,7 +53,7 @@ fun OnboardingFlow(
     val step = if (otpState.isOtpSent) OnboardStep.OTP else OnboardStep.PHONE
 
     SecureWindow()
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = colorScheme.background) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter,

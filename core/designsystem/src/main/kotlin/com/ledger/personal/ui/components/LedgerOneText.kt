@@ -1,6 +1,5 @@
 package com.ledger.personal.ui.components
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +9,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.typography
 
 /** Which Ledger One text style to draw. */
 enum class LedgerOneTextRole { Display, Title, Body, Label }
@@ -25,7 +25,7 @@ fun LedgerOneText(
     align: TextAlign? = null,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    val type = MaterialTheme.typography
+    val type = typography
     val base = when (role) {
         LedgerOneTextRole.Display -> type.headlineMedium
         LedgerOneTextRole.Title -> type.titleMedium

@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Full-screen empty page, with an optional action. */
 @Composable
@@ -40,19 +41,19 @@ fun EmptyState(
                 imageVector = Icons.Outlined.Inbox,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
+                style = typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = typography.bodyMedium,
+                color = colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             if (actionLabel != null && onActionClick != null) {
@@ -71,9 +72,9 @@ fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modi
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconBadge(icon, size = 64, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        IconBadge(icon, size = 64, tint = colorScheme.onSurfaceVariant)
+        Text(title, style = typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(message, style = typography.bodyMedium, color = colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
 

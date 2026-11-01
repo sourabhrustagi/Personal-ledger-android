@@ -4,6 +4,7 @@ package com.ledger.personal.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Surface
@@ -13,6 +14,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -48,8 +50,32 @@ val LocalLedgerColors = staticCompositionLocalOf { LightLedger }
 /** Shared ledger theme. */
 object LedgerTheme {
     val colors: LedgerColors
-        @Composable get() = LocalLedgerColors.current
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalLedgerColors.current
+
+    val colorScheme: ColorScheme
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme
+
+    val typography: Typography
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.typography
 }
+
+/** Direct shorthand accessor for MaterialTheme.colorScheme. */
+val colorScheme: ColorScheme
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme
+
+/** Direct shorthand accessor for MaterialTheme.typography. */
+val typography: Typography
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.typography
 
 private val LightScheme = lightColorScheme(
     primary = Blue700,

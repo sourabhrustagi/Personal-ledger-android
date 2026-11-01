@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,10 +16,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /** Shows icon badge. */
 @Composable
-fun IconBadge(icon: ImageVector, modifier: Modifier = Modifier, tint: Color = MaterialTheme.colorScheme.primary, size: Int = 44) {
+fun IconBadge(icon: ImageVector, modifier: Modifier = Modifier, tint: Color = colorScheme.primary, size: Int = 44) {
     Box(
         modifier.size(size.dp).clip(CircleShape).background(tint.copy(alpha = 0.14f)),
         contentAlignment = Alignment.Center,

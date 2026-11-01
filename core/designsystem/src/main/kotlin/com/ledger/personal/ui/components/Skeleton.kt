@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,6 +29,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /** Keeps reduced motion. */
 @Composable
@@ -62,7 +62,7 @@ fun Skeleton(modifier: Modifier = Modifier, height: Dp = 16.dp) {
             .height(height)
             .clip(RoundedCornerShape(8.dp))
             .graphicsLayer { this.alpha = alphaProvider() }
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(colorScheme.surfaceVariant),
     )
 }
 

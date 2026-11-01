@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Shows otp field. */
 @Composable
@@ -37,12 +38,12 @@ fun OtpField(value: String, onValueChange: (String) -> Unit, modifier: Modifier 
                         Modifier.size(width = 44.dp, height = 56.dp)
                             .border(
                                 if (focused) 2.dp else 1.dp,
-                                if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                if (focused) colorScheme.primary else colorScheme.outline,
                                 RoundedCornerShape(8.dp),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(char?.toString() ?: "", style = MaterialTheme.typography.headlineSmall)
+                        Text(char?.toString() ?: "", style = typography.headlineSmall)
                     }
                 }
             }

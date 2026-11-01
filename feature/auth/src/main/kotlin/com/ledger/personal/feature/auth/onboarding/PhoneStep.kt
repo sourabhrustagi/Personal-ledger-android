@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Sms
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,6 +36,8 @@ import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 private const val PHONE_LENGTH = 10
 
@@ -54,12 +55,12 @@ fun PhoneStep(
 
     Text(
         text = stringResource(AppStrings.TITLE_ENTER_MOBILE),
-        style = MaterialTheme.typography.headlineSmall,
+        style = typography.headlineSmall,
         fontWeight = FontWeight.Bold,
     )
     Text(
         text = stringResource(AppStrings.SUBTITLE_PHONE_VERIFICATION),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = colorScheme.onSurfaceVariant,
     )
     if (errorMessage != null) {
         StatusBanner(errorMessage, BannerTone.ERROR, title = "Verification Failed")
@@ -75,7 +76,7 @@ fun PhoneStep(
         prefix = { Text(stringResource(AppStrings.PHONE_PREFIX)) },
         supportingText = {
             if (errorMessage != null) {
-                Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                Text(errorMessage, color = colorScheme.error)
             } else {
                 Text(stringResource(AppStrings.LABEL_MOBILE_NUMBER_HINT))
             }
@@ -90,7 +91,7 @@ fun PhoneStep(
         Checkbox(checked = consent, onCheckedChange = { consent = it }, enabled = !isSending)
         Text(
             text = stringResource(AppStrings.LABEL_TERMS_AND_PRIVACY),
-            style = MaterialTheme.typography.bodyMedium,
+            style = typography.bodyMedium,
         )
     }
     PrimaryButton(
@@ -110,7 +111,7 @@ fun PhoneStep(
 @Composable
 private fun PhoneStepPreview() {
     PersonalLedgerTheme {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(), color = colorScheme.background) {
             Column(
                 Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),

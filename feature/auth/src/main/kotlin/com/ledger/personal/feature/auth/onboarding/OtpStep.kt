@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +34,8 @@ import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.components.TextLink
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Shows OTP verification step with timer state managed by ViewModel StateFlow. */
 @Composable
@@ -55,12 +56,12 @@ fun OtpStep(
 
     Text(
         text = stringResource(AppStrings.TITLE_ENTER_CODE),
-        style = MaterialTheme.typography.headlineSmall,
+        style = typography.headlineSmall,
         fontWeight = FontWeight.Bold,
     )
     Text(
         text = stringResource(AppStrings.SUBTITLE_CODE_SENT_TO, phone),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = colorScheme.onSurfaceVariant,
     )
     TextLink(stringResource(AppStrings.ACTION_CHANGE_NUMBER), onEdit)
     OtpField(code, {
@@ -81,7 +82,7 @@ fun OtpStep(
         val timerText = "0:${resendCountdown.toString().padStart(2, '0')}"
         Text(
             text = stringResource(AppStrings.LABEL_RESEND_CODE_TIMER, timerText),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colorScheme.onSurfaceVariant,
         )
     } else {
         TextLink(
@@ -139,7 +140,7 @@ fun OtpStep(
 @Composable
 private fun OtpStepPreview() {
     PersonalLedgerTheme {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(), color = colorScheme.background) {
             Column(
                 Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),

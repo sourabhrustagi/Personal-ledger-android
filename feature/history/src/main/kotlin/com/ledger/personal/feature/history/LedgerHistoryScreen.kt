@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,6 +35,7 @@ import com.ledger.personal.ui.components.SectionCard
 import com.ledger.personal.ui.components.categoryIcon
 import com.ledger.personal.ui.theme.AppStrings
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -87,7 +87,7 @@ fun LedgerHistoryScreen(
                             title = row.description.ifBlank { row.category },
                             subtitle = "${row.category} · $formattedDate",
                             trailing = formattedAmount,
-                            trailingColor = MaterialTheme.colorScheme.onSurface,
+                            trailingColor = colorScheme.onSurface,
                         )
                     }
                     if (pages.loadState.append is LoadState.Loading) {

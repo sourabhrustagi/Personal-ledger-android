@@ -12,7 +12,6 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.typography
 
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
@@ -50,8 +50,8 @@ fun StatusBanner(
         ) {
             Icon(icon, contentDescription = null, tint = color)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                title?.let { Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) }
-                Text(message, style = MaterialTheme.typography.bodyMedium)
+                title?.let { Text(it, style = typography.titleSmall, fontWeight = FontWeight.SemiBold) }
+                Text(message, style = typography.bodyMedium)
             }
             if (actionLabel != null && onAction != null) {
                 TextButton(onClick = onAction) {

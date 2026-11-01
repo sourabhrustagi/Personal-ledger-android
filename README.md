@@ -133,6 +133,13 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [9. Testing Non-Deterministic LLM UI Components & CI/CD Isolation](#9-testing-non-deterministic-llm-ui-components--cicd-isolation)
   - [10. Engineering Leadership: Review Checklists, Static Analysis & Security Gateways](#10-engineering-leadership-review-checklists-static-analysis--security-gateways)
   - [11. Technical Documentation & README Best Practices (Documentation-as-Code)](#11-technical-documentation--readme-best-practices-documentation-as-code)
+- [Technical Interview Questions & Staff-Level Architectural Q&A](#technical-interview-questions--answers)
+  - [Category 1: Modular Architecture & System Design](#category-1-modular-architecture--system-design)
+  - [Category 2: Kotlin Coroutines & Asynchronous Concurrency](#category-2-kotlin-coroutines--asynchronous-concurrency)
+  - [Category 3: Jetpack Compose Internals & 120 FPS Performance](#category-3-jetpack-compose-internals--120-fps-performance)
+  - [Category 4: Financial Engineering & Accounting Invariants](#category-4-financial-engineering--accounting-invariants)
+  - [Category 5: Enterprise Security, Cryptography & Fraud Prevention](#category-5-enterprise-security-cryptography--fraud-prevention)
+  - [Category 6: Offline-First Synchronization, Testing & Production Operations](#category-6-offline-first-synchronization-testing--production-operations)
 
 ---
 
@@ -4876,6 +4883,450 @@ Before approving any pull request that impacts project architecture or setup, re
 - [ ] **Accurate Command Flags:** Are all Gradle tasks, build flavor names (`mockDebug`, `devDebug`, `stagingDebug`, `prodRelease`), and command flags completely accurate?
 - [ ] **Code Freshness:** Do README code snippets match the actual Kotlin 2.2.0 / Compose idioms used in the codebase?
 - [ ] **No Leaked PII or Credentials:** Are all displayed tokens, phone numbers, and keys drawn strictly from `MockValues`?
+
+---
+
+## <a id="technical-interview-questions--answers"></a>Technical Interview Questions & Staff-Level Architectural Q&A
+
+This section provides an **exhaustive repository of technical interview questions, real-world scenario challenges, and staff-level architectural trade-offs** modeled after engineering leadership interviews at top fintech institutions (Google, PhonePe, Razorpay, Paytm, CRED). Every answer is strictly grounded in `LedgerOne`'s production implementation.
+
+---
+
+### <a id="category-1-modular-architecture--system-design"></a>Category 1: Modular Architecture & System Design
+
+#### Q1. Explain LedgerOne's 3-Tier Multi-Module Architecture. Why are feature-to-feature dependencies strictly forbidden?
+- **Interviewer Perspective:** Assesses modular architecture understanding, build performance optimization, and architectural boundary governance.
+- **Answer:**
+  LedgerOne organizes its codebase into three distinct tiers:
+  1. **`:app` (Application Shell):** Responsible for top-level navigation graph assembly (`LedgerNavHost`), Hilt dependency injection wiring, build flavors, and WorkManager background task registration.
+  2. **`:feature:*` (Feature Libraries):** Encapsulates single UI product domains (e.g. `:feature:home`, `:feature:history`, `:feature:auth`, `:feature:account`, `:feature:promotions`, `:feature:scan`, `:feature:update`). Features contain their own ViewModels, UI Composables, and navigation destinations.
+  3. **`:core:*` (Shared Core Libraries):** Houses reusable, product-agnostic domain models (`:core:model`), Room database entities and DAOs (`:core:database`), Retrofit networking interfaces (`:core:network`), the unified design system and typography tokens (`:core:designsystem`), and shared testing utilities (`:core:testing`).
+
+  **Why feature-to-feature dependencies are strictly forbidden:**
+  - **Coupling & Gradle Invalidation:** Allowing `:feature:wallet` to depend on `:feature:ledger` creates high coupling. Any modification to a model or resource in `:feature:ledger` invalidates Gradle compilation caches for `:feature:wallet`, causing massive compilation bottlenecks.
+  - **Circular Dependency Deadlocks:** Cross-feature imports easily devolve into cyclical dependency graphs that break Gradle builds.
+  - **Code Sharing via Core:** If two features need common models or UI primitives, that logic **must be elevated to `:core:*`**.
+  - **Enforcement:** This boundary invariant is mechanically enforced on every commit and CI pull request by [`ModuleBoundaryTest.kt`](app/src/test/java/com/ledger/personal/ModuleBoundaryTest.kt), which inspects the `build.gradle.kts` of every feature module and fails if any `:feature:*` dependency is declared.
+
+#### Q2. What are standalone feature demo apps (`:feature:<name>:demo`), and what technical problem do they solve?
+- **Interviewer Perspective:** Tests developer velocity optimization and modular build strategies in large engineering teams.
+- **Answer:**
+  In Android, a library module (`com.android.library`) cannot be compiled directly into a runnable APK. When developing in a feature module, building the full `:app` requires compiling all features, processing Hilt annotations across the entire dependency graph, and merging all Android resources—taking 30–60 seconds.
+  
+  LedgerOne introduces standalone companion demo applications (e.g. `:feature:account:demo`, `:feature:auth:demo`) configured as `com.android.application`. These embed only that specific feature plus `:core:mock`.
+  - **Sub-Second Build Loops:** Compiling and deploying `:feature:account:demo` takes **1–3 seconds**, enabling instant UI iterations.
+  - **Zero Navigational Friction:** QA and engineers can test deep, complex edge cases (e.g., OTP timeout, biometric rejection, network failure banners) directly on launch without entering login credentials, SMS verification, or navigating through primary funnels.
+
+#### Q3. How is Unidirectional Data Flow (UDF) enforced end-to-end across LedgerOne?
+- **Interviewer Perspective:** Validates state management discipline, predictability of UI rendering, and separation of concerns.
+- **Answer:**
+  UDF guarantees that state flows down and events flow up in a single, predictable loop:
+  ```
+  [User Interaction / Gestures]
+             │
+             ▼ (Event / Intent)
+       [ViewModel] ──► Mutates state atomically via StateFlow.update { ... }
+             │
+             ▼ (State emission)
+    [Room SQLite / Cache] ──► Emits cold Flow<List<Transaction>>
+             │
+             ▼
+      [Repository] ──► Maps entities to immutable domain models
+             │
+             ▼
+    [ViewModel uiState] ──► Exposes read-only StateFlow<UiState>
+             │
+             ▼ (collectAsStateWithLifecycle)
+     [Compose Screen] ──► Recomposes only components reading changed fields
+  ```
+  - **Immutability:** UI state classes (`AccountUiState`, `HomeUiState`) are immutable `data class` models annotated with `@Immutable`.
+  - **Single Source of Truth:** Screens never mutate state locally; they fire callbacks (`onLock`, `onLogout`, `onDigit`) to the ViewModel, which executes business logic and updates the single StateFlow source.
+
+#### Q4. What is the Single Responsibility Principle (SRP) in Jetpack Compose UI components?
+- **Interviewer Perspective:** Assesses clean composable decomposition and design system maintainability.
+- **Answer:**
+  A common anti-pattern in Compose codebases is grouping buttons, text fields, headers, and cards into monolithic `Components.kt` files.
+  
+  In LedgerOne, SRP requires:
+  - Every UI component must have a **single reason to change** and reside in its own dedicated file (e.g., `LedgerOneButton.kt`, `LedgerOneText.kt`, `LedgerOneCard.kt`, `SectionCard.kt`, `SectionHeader.kt`).
+  - Previews (`@PreviewLightDark`) must reside in the exact same file as the component they render, ensuring preview rendering stays in sync with component API changes.
+  - Screen containers (e.g., `FeatureScaffold.kt`) handle window insets, scrolling, and layout bounds, while content cards (`SectionCard.kt`) handle container elevation and grouping, and header rows (`SectionHeader.kt`) handle title and action alignment.
+
+---
+
+### <a id="category-2-kotlin-coroutines--asynchronous-concurrency"></a>Category 2: Kotlin Coroutines & Asynchronous Concurrency
+
+#### Q5. Why must you NEVER swallow `CancellationException` in Kotlin coroutines? How does standard `runCatching` cause leaks?
+- **Interviewer Perspective:** Critical concurrency knowledge; tests whether the candidate understands cooperative cancellation mechanics.
+- **Answer:**
+  In Kotlin Coroutines, cancellation is **cooperative and implemented by throwing `CancellationException`**. When a coroutine scope (such as `viewModelScope` when a user navigates back) is cancelled, all active coroutines inside that scope receive a `CancellationException`.
+  
+  If code catches `Exception` or `Throwable` without rethrowing `CancellationException`, the coroutine catches its own termination signal, assumes it was a normal failure, and continues executing background work:
+  ```kotlin
+  // CRITICAL BUG: Swallows cancellation, leaks background work
+  try {
+      api.syncLargeLedger()
+  } catch (e: Exception) {
+      Log.e("Sync", "Error", e) // Coroutine never terminates!
+  }
+  ```
+  **The `runCatching` Pitfall:**
+  Standard Kotlin `runCatching { ... }` catches `Throwable`, which includes `CancellationException`. If wrapping a suspend call with `runCatching`, you **MUST propagate cancellation**:
+  ```kotlin
+  // CORRECT: Propagate CancellationException immediately
+  val result = runCatching { api.syncLargeLedger() }
+      .onFailure { if (it is CancellationException) throw it }
+  ```
+
+#### Q6. Why should ViewModels expose state via `WhileSubscribed(5_000)` instead of `Eagerly` or `Lazily`?
+- **Interviewer Perspective:** Tests lifecycle awareness, memory leak prevention, and Android device resource optimization.
+- **Answer:**
+  When converting a cold Flow (from Room or network polling) into a hot `StateFlow` inside a ViewModel using `stateIn`:
+  ```kotlin
+  val uiState: StateFlow<UiState> = repository.observeTransactions()
+      .map { UiState.Success(it) }
+      .stateIn(
+          scope = viewModelScope,
+          started = SharingStarted.WhileSubscribed(5_000),
+          initialValue = UiState.Loading,
+      )
+  ```
+  - **`SharingStarted.Eagerly`:** Starts upstream collection immediately upon ViewModel instantiation and never stops until `viewModelScope` is destroyed. If the user minimizes the app or navigates to another screen, Room database queries or network sockets continue running, draining battery and RAM.
+  - **`SharingStarted.Lazily`:** Starts when the first subscriber arrives, but once started, never stops even when all subscribers disappear.
+  - **`SharingStarted.WhileSubscribed(5_000)`:** Starts collection when the UI begins observing, and **cancels upstream collection when all UI subscribers disconnect**.
+  - **The 5-second (5,000ms) buffer:** During screen rotation or configuration changes, the Activity is destroyed and recreated in ~100–300ms. Without the 5-second buffer, the collector would cancel and restart immediately upon rotation, re-executing expensive database queries and causing UI flicker.
+
+#### Q7. How do you test asynchronous Kotlin Flows deterministically without using flaky `delay()` or `Thread.sleep()`?
+- **Interviewer Perspective:** Assesses testing maturity, coroutine virtual time manipulation, and asynchronous state verification.
+- **Answer:**
+  Using `Thread.sleep()` in coroutine tests blocks the test thread, and arbitrary `delay()` introduces flakiness depending on CI CPU load.
+  
+  LedgerOne uses **CashApp Turbine** combined with `StandardTestDispatcher` and `runTest`:
+  ```kotlin
+  @Test
+  fun `verify transaction flow emissions`() = runTest {
+      val repository = FakeTransactionRepository()
+      val viewModel = LedgerViewModel(repository)
+
+      viewModel.uiState.test {
+          // 1. Initial State
+          assertEquals(UiState.Loading, awaitItem())
+
+          // 2. Trigger Action
+          repository.emit(listOf(sampleTransaction))
+
+          // 3. Assert Next Deterministic State
+          val successState = awaitItem() as UiState.Success
+          assertEquals(1, successState.items.size)
+
+          // 4. Ensure no unexpected emissions
+          expectNoEvents()
+      }
+  }
+  ```
+  `runTest` provides a virtual scheduler (`TestCoroutineScheduler`) that advances time automatically when coroutines are suspended, executing tests in milliseconds.
+
+#### Q8. How does `Mutex.withLock` protect shared mutable state across coroutines vs Java's `synchronized`?
+- **Interviewer Perspective:** Evaluates thread safety in multi-threaded coroutine environments.
+- **Answer:**
+  - **Why `synchronized` Fails in Coroutines:** Java's `synchronized` blocks the underlying operating system thread. If a suspended coroutine holds a monitor lock, other threads are blocked, which can cause thread pool starvation (especially on `Dispatchers.Default` which has threads equal to CPU cores). Furthermore, calling a `suspend` function inside `synchronized` is a compilation error in Kotlin.
+  - **`Mutex.withLock` Mechanism:** `kotlinx.coroutines.sync.Mutex` is a non-blocking, suspending mutual exclusion primitive. When a coroutine reaches `writes.withLock { ... }`, if another coroutine holds the lock, the caller is **suspended** (freeing up the underlying OS thread to do other work) until the lock is released.
+  - **Usage in LedgerOne:** In `AssistantViewModel` and `TransferBook`, critical write queues are protected with `Mutex` to guarantee that concurrent payment requests are processed serially without double charging.
+
+---
+
+### <a id="category-3-jetpack-compose-internals--120-fps-performance"></a>Category 3: Jetpack Compose Internals & 120 FPS Performance
+
+#### Q9. What is the fundamental difference between `remember`, `rememberSaveable`, `ViewModel`, and `SavedStateHandle`?
+- **Interviewer Perspective:** Core Compose state survival knowledge across recreation events.
+- **Answer:**
+
+| Mechanism | Survives Recomposition? | Survives Configuration Change (Rotation)? | Survives Process Death (Low Memory Killer)? | Survives App Relaunch? | Recommended Use Case |
+|---|---|---|---|---|---|
+| `remember { mutableStateOf() }` | **Yes** | **No** (reset to initial) | **No** | **No** | Ephemeral animation state, ripple states, local UI toggles |
+| `rememberSaveable { mutableStateOf() }` | **Yes** | **Yes** (saved to Bundle) | **Yes** (saved to Bundle) | **No** | Screen-level input fields (OTP, phone input, confirmation dialog visibility) |
+| `ViewModel (StateFlow)` | **Yes** | **Yes** (retained in ViewModelStore) | **No** (unless backed by SavedStateHandle) | **No** | Business domain state, repository streams, screen data |
+| `SavedStateHandle` | **Yes** | **Yes** | **Yes** (persisted across process death) | **No** | Navigation arguments, transaction IDs, restored search queries |
+| `Room SQLite / DataStore` | **Yes** | **Yes** | **Yes** | **Yes** | Financial ledger, credentials, cached offline data |
+
+#### Q10. When should you use `derivedStateOf`, and what mistake do developers frequently make?
+- **Interviewer Perspective:** Advanced Compose compiler optimization and recomposition dampening.
+- **Answer:**
+  `derivedStateOf` is designed for **invalidation dampening**: when an input state changes frequently (e.g. scroll position on every pixel), but the output state changes rarely (e.g. whether a "Scroll to Top" button should be visible).
+  ```kotlin
+  // CORRECT: scrollOffset changes 60-120 times/sec; showButton only changes once
+  val showButton by remember {
+      derivedStateOf { listState.firstVisibleItemIndex > 5 }
+  }
+  ```
+  **The Common Anti-Pattern:**
+  Wrapping simple computations whose input state changes at the exact same frequency as the output:
+  ```kotlin
+  // ANTI-PATTERN: Waste of memory and computation
+  val fullName by remember {
+      derivedStateOf { "$firstName $lastName" }
+  }
+  // CORRECT: Simple remember is cleaner and more efficient
+  val fullName = remember(firstName, lastName) { "$firstName $lastName" }
+  ```
+  `derivedStateOf` adds overhead (snapshot observers and allocation). Only use it when **the frequency of input changes is substantially greater than the frequency of output changes**.
+
+#### Q11. Compare Compose Side-Effect handlers: `LaunchedEffect`, `DisposableEffect`, `SideEffect`, and `rememberUpdatedState`.
+- **Interviewer Perspective:** Tests lifecycle side-effect governance and leak prevention in Compose.
+- **Answer:**
+  1. **`LaunchedEffect(key)`:** Launches a coroutine scoped to the composition. Whenever `key` changes, the existing coroutine is cancelled and a new one is launched. Ideal for one-time loads, timers, and observing navigation events.
+  2. **`DisposableEffect(key)`:** Used for side-effects that require clean-up (listeners, observers, camera bindings). Must provide an `onDispose { ... }` block that executes when keys change or the composable leaves composition.
+     - *Real LedgerOne Example:* [`LockWhenBackgrounded`](app/src/main/java/com/ledger/personal/ui/app/LedgerOneApp.kt) registers a `LifecycleEventObserver` and cleans it up via `onDispose { owner.lifecycle.removeObserver(observer) }`.
+  3. **`SideEffect`:** Executes on **every successful recomposition**. Never launches coroutines. Used to publish Compose state to external non-Compose objects (e.g., syncing analytics trackers or updating system status bar colors).
+  4. **`rememberUpdatedState(callback)`:** Captures the newest reference of a callback lambda inside a long-running effect without causing the effect to restart. Essential for avoiding stale closures in timeouts or sensor listeners.
+
+#### Q12. How do you defer state reads to skip Composition and Layout phases during 120 FPS animations?
+- **Interviewer Perspective:** Assesses frame rendering phases (Composition -> Layout -> Draw) and jank prevention.
+- **Answer:**
+  Jetpack Compose processes UI in three distinct phases:
+  ```
+  [Composition: What to show] ──► [Layout: Where to place] ──► [Draw: How to render]
+  ```
+  If you read state directly in the Composable function body:
+  ```kotlin
+  // JANK HAZARD: Re-composes the entire node on every single frame!
+  Box(modifier = Modifier.alpha(animatedAlpha.value))
+  ```
+  Every change to `animatedAlpha` forces Compose to re-run the **Composition Phase**, the **Layout Phase**, and the **Draw Phase**.
+  
+  **The 120 FPS Optimization (Phase Skipping):**
+  Use lambda-based modifiers that defer the state read to the **Draw Phase**:
+  ```kotlin
+  // OPTIMAL: Skips Composition and Layout phases completely!
+  Box(
+      modifier = Modifier.graphicsLayer {
+          alpha = animatedAlpha.value
+      }
+  )
+  ```
+  Because `animatedAlpha.value` is read inside the `graphicsLayer` lambda, Compose only re-executes the **Draw Phase** on the GPU, achieving zero-recomposition 120 FPS fluidity.
+
+#### Q13. Why are `key` and `contentType` crucial in `LazyColumn` for preventing frame drops?
+- **Interviewer Perspective:** Evaluates list virtualization, node reuse, and scroll performance optimization.
+- **Answer:**
+  In a `LazyColumn`:
+  1. **`key = { item.id }`:** Without explicit keys, Compose identifies items by their positional index. If an item is inserted at the top of the list, every subsequent item's index shifts, causing Compose to recompose all items. With stable keys, Compose simply moves the existing UI nodes without recomposing them.
+  2. **`contentType = { item.type }`:** In heterogeneous lists (e.g. a feed containing `Header`, `TransactionRow`, `PromoBanner`, `AdCard`), Compose attempts to recycle node structures. Specifying `contentType` ensures Compose only recycles UI structures among identical layout types, avoiding expensive layout structure demolitions during fast fling scrolling.
+
+#### Q14. Why are raw hex colors (`Color(0x...)`) forbidden in feature modules, and how does the design system provide shorthand accessors?
+- **Interviewer Perspective:** Validates design system governance, theme consistency, and token abstraction.
+- **Answer:**
+  - **The Risk:** Hardcoding raw hex values (`Color(0xFF2563EB)`) in feature screens breaks dark mode adaptation, violates contrast ratios in accessibility modes, and fragments brand identity.
+  - **Enforcement:** Enforced automatically by `ModuleBoundaryTest.featureSourcesDoNotUseRawHexColors()`, which fails the build if `Color(0x...` is detected anywhere in `feature/**`.
+  - **Shorthand Accessors:** To eliminate repetitive `MaterialTheme.colorScheme` and `MaterialTheme.typography` declarations, [`Theme.kt`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/theme/Theme.kt) exposes top-level `@ReadOnlyComposable` getters:
+    ```kotlin
+    val colorScheme: ColorScheme
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme
+
+    val typography: Typography
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.typography
+    ```
+    Feature composables can directly reference `colorScheme.primary` or `typography.titleMedium` without boilerplate.
+
+---
+
+### <a id="category-4-financial-engineering--accounting-invariants"></a>Category 4: Financial Engineering & Accounting Invariants
+
+#### Q15. Why are currency amounts stored strictly as 64-bit `Long` minor units instead of `Double` or `Float`?
+- **Interviewer Perspective:** Essential fintech engineering invariant; tests precision math and avoidance of binary floating-point pitfalls.
+- **Answer:**
+  Binary floating-point types (`Double`, `Float`) implement IEEE 754 arithmetic, which cannot represent decimal fractions exactly:
+  ```kotlin
+  // Floating-point math hazard
+  val sum = 0.1 + 0.2 // Results in 0.30000000000000004
+  ```
+  In banking, compounding floating-point rounding errors across millions of transactions leads to ledger reconciliation imbalances and severe audit failures.
+  
+  **LedgerOne's Strict Rule:**
+  - All currency values are strictly stored and computed as **64-bit integers (`Long`) in minor currency units** (e.g. paise in INR, cents in USD).
+  - ₹100.50 is stored as `10050L`.
+  - Floating-point types are completely banned in `:core:model` and database entities. Formatting for display (`formatMoney`) converts minor units to formatted strings (`₹1,23,456.78`) with Indian numbering grouping at the presentation boundary only.
+
+#### Q16. How does double-entry bookkeeping work in LedgerOne, and what invariants are enforced by `post()`?
+- **Interviewer Perspective:** Assesses enterprise ledger integrity, accounting equation adherence, and domain validation.
+- **Answer:**
+  In double-entry bookkeeping, money cannot be created or destroyed—every financial transaction must balance across accounts:
+  $$\sum \text{Debits} == \sum \text{Credits}$$
+  In `LedgerOne`, [`PostCommand`](core/model/src/main/kotlin/com/ledger/personal/domain/model/PostCommand.kt) enforces three non-negotiable invariants:
+  1. **Non-Empty Legs:** A transaction must have at least two legs (e.g., debiting Cash and crediting Revenue). Empty leg lists are rejected immediately with `IllegalArgumentException`.
+  2. **Direction Exclusivity:** Every leg must specify either a debit or a credit, never both, and amounts must be strictly non-negative (`amount >= 0`).
+  3. **Zero-Sum Balance:** The sum of all debit legs must equal the sum of all credit legs down to the exact minor unit (paise). If `debitSum != creditSum`, the post operation fails and the entry is rejected.
+
+#### Q17. How does remainder-preserving expense splitting (`splitEvenly`) guarantee zero currency leakage?
+- **Interviewer Perspective:** Evaluates integer division arithmetic, rounding distribution, and zero-leakage algorithms.
+- **Answer:**
+  When dividing minor currency units among $N$ participants, integer division often leaves a non-zero remainder (`totalMinor % parts`):
+  For example, splitting ₹100.00 (`10000L` paise) among 3 people:
+  $10000 / 3 = 3333$ paise (₹33.33 each), with a remainder of 1 paisa ($10000 \pmod 3 = 1$). If dropped, the total sums to ₹99.99, losing 1 paisa.
+  
+  **LedgerOne's `splitEvenly` Algorithm:**
+  ```kotlin
+  fun splitEvenly(totalMinor: Long, parts: Int): List<Long> {
+      require(parts > 0) { "Parts must be positive" }
+      val base = totalMinor / parts
+      val remainder = (totalMinor % parts).toInt()
+      return List(parts) { index ->
+          base + if (index < remainder) 1L else 0L
+      }
+  }
+  ```
+  The remainder paise are allocated one-by-one to the earliest participants, guaranteeing that:
+  $$\sum_{i=1}^{N} \text{parts}[i] == \text{totalMinor}$$
+  Zero currency is lost or leaked.
+
+---
+
+### <a id="category-5-enterprise-security-cryptography--fraud-prevention"></a>Category 5: Enterprise Security, Cryptography & Fraud Prevention
+
+#### Q18. What is an Idempotency Key in payments, and how does `TransferBook` prevent double deductions on retries?
+- **Interviewer Perspective:** Core payments infrastructure question; tests duplicate deduction mitigation over unreliable networks.
+- **Answer:**
+  On mobile networks, timeouts frequently occur *after* the payment gateway processes a transfer but *before* the mobile client receives the HTTP 200 OK. If the user or background sync worker retries the request, the server could charge the user twice.
+  
+  **The Solution:**
+  - Before initiating a transfer write, the mobile client generates a unique, cryptographically random **Idempotency Key** (UUIDv4) and stores it in the local Room database.
+  - In `TransferBook`, the key is transmitted in the payment payload.
+  - If the operation is retried with the same idempotency key within a 24-hour deduplication window, the system recognizes the duplicate key, aborts executing a new debit, and returns the cached confirmation of the initial transaction.
+
+#### Q19. How does the 30-minute payee cooling period mitigate unauthorized transfer fraud?
+- **Interviewer Perspective:** Tests understanding of real-world banking regulations (RBI/NPCI mandates) and account takeover (ATO) defense.
+- **Answer:**
+  In mobile device theft or SIM-swap attacks, the fraudster adds their own mule account as a payee and immediately drains all funds before the victim can contact customer support or lock their SIM card.
+  
+  **The Implementation:**
+  - When a new payee is added, `LedgerOne` marks the beneficiary with a `createdTimestamp` and enters a mandatory **30-minute cooling period** (`coolingBlocks`).
+  - During this window, transfers to that payee are strictly held in pending or blocked status.
+  - High-priority security SMS and push alerts are dispatched to the user's registered device. If the addition was unauthorized, the victim has a 30-minute window to freeze their account.
+
+#### Q20. How does Envelope Encryption work with the Android Keystore (TEE/StrongBox) for database security?
+- **Interviewer Perspective:** Assesses hardware-backed mobile cryptography and secure key management.
+- **Answer:**
+  - **The Problem:** Encrypting an entire database using a key derived from user password or raw AES key stored in SharedPreferences leaves the database vulnerable to root extraction. However, performing every SQL query directly through the Android Keystore hardware is too slow for 120 FPS UI operations.
+  - **Envelope Encryption Mechanism:**
+    1. **Key Encryption Key (KEK / Master Key):** Generated inside the hardware-backed **Android Keystore** (backed by the device's Trusted Execution Environment (TEE) or StrongBox chip). The KEK never leaves secure hardware memory.
+    2. **Data Encryption Key (DEK):** A high-entropy 256-bit AES key generated in memory to encrypt the local Room SQLCipher database.
+    3. **The "Envelope":** The DEK encrypts the database at full hardware memory speed. The KEK in the Keystore encrypts the DEK, producing an encrypted DEK stored on disk.
+    4. Upon app unlock, the KEK decrypts the DEK into volatile RAM. If the device is seized or dumped, the database cannot be decrypted without the physical hardware TEE chip.
+
+#### Q21. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage?
+- **Interviewer Perspective:** Tests deep cryptographic awareness and prevention of catastrophic Galois/Counter Mode vulnerabilities.
+- **Answer:**
+  AES-GCM operates as a stream cipher using a counter mode combined with polynomial authentication.
+  - **The Two-Time Pad Vulnerability:** If the same 12-byte Initialization Vector (IV / Nonce) is used to encrypt two different plaintexts ($P_1$ and $P_2$) with the same key ($K$), the keystream $S$ is identical:
+    $$C_1 = P_1 \oplus S, \quad C_2 = P_2 \oplus S$$
+    $$C_1 \oplus C_2 = (P_1 \oplus S) \oplus (P_2 \oplus S) = P_1 \oplus P_2$$
+    An attacker who XORs the ciphertexts immediately eliminates the key and obtains the XOR of both plaintexts, destroying confidentiality. Furthermore, the Galois hash key ($H$) can be recovered, allowing attackers to forge arbitrary valid ciphertexts.
+  - **Prevention in LedgerOne:** Every single encryption operation generates a **fresh, cryptographically random 12-byte IV** using `SecureRandom`. The unique IV is prepended to the ciphertext byte array, ensuring that nonces are never reused.
+
+#### Q22. How does `FLAG_SECURE` protect banking screens during multitasking, recent apps, and screenshots?
+- **Interviewer Perspective:** Evaluates OS window security and data privacy (PII) leakage prevention.
+- **Answer:**
+  When a user switches apps, the Android OS window manager captures a snapshot of the active window buffer to render the thumbnail in the "Recent Apps" / multitasking overview.
+  - **The Risk:** Sensitive banking balances, account numbers, and OTP codes are saved as unencrypted thumbnail images on device storage, readable by backup utilities or malicious background apps.
+  - **The Solution:** LedgerOne applies `WindowManager.LayoutParams.FLAG_SECURE` via [`SecureWindow()`](core/ui/src/main/kotlin/com/ledger/personal/ui/security/SecureWindow.kt) on all sensitive screens (Account, OTP Login, KYC, Scan).
+  - **Protection:** Prevents the OS from creating window buffer snapshots (displays a blank or logo card in Recent Apps), blocks hardware screenshot key combinations, and prevents screen-mirroring and recording tools from scraping sensitive UI.
+
+---
+
+### <a id="category-6-offline-first-synchronization-testing--production-operations"></a>Category 6: Offline-First Synchronization, Testing & Production Operations
+
+#### Q23. How does LedgerOne implement an Offline-First architecture with Room sync states and WorkManager?
+- **Interviewer Perspective:** Validates resilient distributed systems design on mobile devices.
+- **Answer:**
+  1. **Immediate Local Persistence:** When a user initiates a transaction or updates account settings offline, the write is executed immediately against the local Room SQLite database with a sync status flag: `SyncState.PENDING_CREATE` or `PENDING_UPDATE`. The UI updates instantly via Room's reactive `Flow`.
+  2. **WorkManager Enqueue:** A unique, batched synchronization job is enqueued with `WorkManager`:
+     - Configured with `Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()`.
+     - Uses `ExistingWorkPolicy.KEEP` to prevent duplicate background workers.
+  3. **Exponential Backoff:** If the sync request fails due to server unavailability or network timeouts, WorkManager automatically retries using exponential backoff (`BackoffPolicy.EXPONENTIAL`).
+  4. **Reconciliation:** Upon successful HTTP 200 response from the bank gateway, the local record's sync flag is updated atomically to `SyncState.SYNCED`.
+
+#### Q24. How are Room schema migrations (`Migration(1, 2)`) tested to guarantee zero data loss during user app updates?
+- **Interviewer Perspective:** Assesses data persistence safety and update verification in production fintech apps.
+- **Answer:**
+  Room migrations altering database schemas (e.g. adding columns, changing foreign keys, or creating tables) can crash the app on startup with `IllegalStateException` if the migration script does not match Room's generated schema hash, or worse, silently wipe user tables if fallback to destructive migration is enabled.
+  
+  **Automated Migration Testing:**
+  LedgerOne exports database schemas to `schemas/` via Room compiler argument `room.schemaLocation`.
+  We test migrations using **`MigrationTestHelper`**:
+  ```kotlin
+  @Test
+  fun migrate1To2_preservesUserLedgerData() {
+      // 1. Create database in schema version 1
+      helper.createDatabase(TEST_DB, 1).apply {
+          execSQL("INSERT INTO transactions VALUES ('t1', 10050, 'INR', 'Groceries')")
+          close()
+      }
+
+      // 2. Run migration to version 2
+      val db = helper.runMigrationsAndValidate(TEST_DB, 2, true, MIGRATION_1_2)
+
+      // 3. Assert all existing records are completely intact
+      val cursor = db.query("SELECT * FROM transactions WHERE id = 't1'")
+      assertTrue(cursor.moveToFirst())
+      assertEquals(10050L, cursor.getLong(cursor.getColumnIndexOrThrow("amountInCents")))
+  }
+  ```
+
+#### Q25. How does `SafeApiCall` encapsulate network failures, and why must HTTP status codes never throw unhandled exceptions?
+- **Interviewer Perspective:** Evaluates network resilience, error propagation, and API domain mapping.
+- **Answer:**
+  Unhandled HTTP exceptions (e.g. 401 Unauthorized, 404 Not Found, 500 Internal Server Error) bubble up the call stack and crash the app if unhandled.
+  
+  In LedgerOne, all network executions are wrapped in `safeApiCall`:
+  - **Exception Containment:** Catches `IOException` (network drop), `SocketTimeoutException` (slow connection), and HTTP status codes, mapping them into a clean sealed interface `NetworkResult<T>`:
+    - `NetworkResult.Success(data)`
+    - `NetworkResult.HttpError(code, message)`
+    - `NetworkResult.NetworkError(throwable)`
+    - `NetworkResult.SerializationError(throwable)`
+  - **Main-Safety:** Switches execution to `Dispatchers.IO` internally.
+  - **Domain Mapping:** ViewModels map `HttpError(401)` to an automatic session-lock event, `HttpError(429)` to a retry-countdown banner, and `NetworkError` to an offline cached view without crashing.
+
+#### Q26. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine?
+- **Interviewer Perspective:** Evaluates app lifecycle governance, backend API deprecation handling, and store distribution policies.
+- **Answer:**
+  When a critical security vulnerability is patched (e.g. key rotation or API contract overhaul), running outdated APK versions in the wild poses severe fraud and compliance risks.
+  
+  **The Implementation:**
+  - On app launch, the app compares its local `BuildConfig.VERSION_CODE` against the remote config minimum supported version returned by the version gateway.
+  - If `localVersion < minimumSupportedVersion`, navigation is intercepted and routed to [`ForceUpdateScreen`](feature/update/src/main/kotlin/com/ledger/personal/feature/update/ui/ForceUpdateScreen.kt).
+  - The screen is **completely non-dismissible** (no back button, no dismiss action) and displays a primary action linking directly to the Google Play Store via `market://details?id=...`. The user is blocked from accessing any local ledger records until the updated binary is installed.
+
+#### Q27. What is the production Staged Rollout Strategy and Automated Incident Rollback Playbook?
+- **Interviewer Perspective:** Assesses operational engineering leadership, release risk management, and Google Play Vitals governance.
+- **Answer:**
+  Releasing a new fintech build directly to 100% of users invites catastrophe if an unforeseen edge case crashes devices or corrupts local databases.
+  
+  **Staged Rollout Cadence:**
+  ```
+  Day 1: Internal Dogfood (100% of internal employees)
+  Day 2: Closed Alpha (5,000 trusted beta testers)
+  Day 3: Staged Production 1% Rollout (Telemetry & Crashlytics canary phase)
+  Day 4: Staged Production 5% Rollout
+  Day 5: Staged Production 20% Rollout
+  Day 6: Staged Production 50% Rollout
+  Day 7: Full 100% Production Release
+  ```
+  **Automated Incident Rollback Triggers (P0 Halts):**
+  If any of the following Google Play Vitals or Crashlytics thresholds are breached during staged rollout:
+  1. **User-Perceived Crash Rate:** Exceeds **0.25%** (Google Play bad behavior threshold is 1.09%).
+  2. **ANR (Application Not Responding) Rate:** Exceeds **0.15%** (Google Play bad behavior threshold is 0.47%).
+  3. **Payment Failure Rate:** Gateway error rate spikes by >2% compared to the prior stable release.
+  
+  **Action Plan:**
+  - Instantly **halt staged rollout** in the Google Play Console to prevent further downloads.
+  - Enable backend **kill-switches / feature flags** for the affected module.
+  - If the bug involves a corrupted local database schema, issue an emergency hotfix build with incremented `versionCode` and automated schema repair scripts.
+
+---
 
 
 

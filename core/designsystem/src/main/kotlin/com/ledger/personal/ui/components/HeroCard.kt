@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.ledger.personal.ui.components.LedgerOneText
 import com.ledger.personal.ui.components.LedgerOneTextRole
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /** Shows hero card. */
 @Composable
@@ -30,7 +30,7 @@ fun HeroCard(
     supporting: String? = null,
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
-    val colors = MaterialTheme.colorScheme
+    val colors = colorScheme
     val onHero = colors.onPrimary
     Box(
         modifier

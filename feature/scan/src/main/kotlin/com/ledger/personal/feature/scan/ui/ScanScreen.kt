@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
 
 /** UI state for the scan screen. */
 data class ScanUiState(
@@ -91,7 +91,7 @@ private fun ScanForm(
                 } else {
                     "The demo build has no camera feed. Use the sample QR below."
                 },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colorScheme.onSurfaceVariant,
             )
             if (uiState.liveCamera) OutlinedButton(onClick = onAllowCamera) { Text("Allow camera") }
         }

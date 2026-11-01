@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +41,8 @@ import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.components.TextLink
 import com.ledger.personal.ui.security.SecureWindow
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** State for OTP login screen. */
 data class OtpLoginUiState(
@@ -66,7 +67,7 @@ fun OtpLoginScreen(
     var confirmReset by rememberSaveable { mutableStateOf(false) }
 
     SecureWindow()
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize(), color = colorScheme.background) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter,
@@ -85,12 +86,12 @@ fun OtpLoginScreen(
                 IconBadge(Icons.Outlined.Lock, size = 56)
                 Text(
                     "Welcome back",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     "Enter the 6-digit OTP sent to +91 $phone",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colorScheme.onSurfaceVariant,
                 )
                 OtpField(code, onValueChange = {
                     code = it
@@ -105,7 +106,7 @@ fun OtpLoginScreen(
                 if (resendCountdown > 0) {
                     Text(
                         "Resend code in 0:${resendCountdown.toString().padStart(2, '0')}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = colorScheme.onSurfaceVariant,
                     )
                 } else {
                     TextLink("Resend code", onResend)

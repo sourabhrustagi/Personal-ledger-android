@@ -6,7 +6,6 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -19,6 +18,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
+import com.ledger.personal.ui.theme.colorScheme
+import com.ledger.personal.ui.theme.typography
 
 /** Shows masked amount. */
 @Composable
@@ -28,8 +29,8 @@ fun MaskedAmount(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
     currency: String = "INR",
-    style: TextStyle = MaterialTheme.typography.headlineMedium,
-    color: Color = MaterialTheme.colorScheme.onSurface,
+    style: TextStyle = typography.headlineMedium,
+    color: Color = colorScheme.onSurface,
 ) {
     val formattedAmount = remember(minor, currency) { formatMoney(minor, currency) }
     val spoken = remember(minor, currency) { spokenAmount(minor, currency) }

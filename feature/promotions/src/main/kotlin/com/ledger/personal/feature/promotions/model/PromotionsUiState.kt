@@ -7,3 +7,4 @@ data class PromotionsUiState(
     val shelves: List<PromoTab> = emptyList(),
     val selected: String = "",
 )
+

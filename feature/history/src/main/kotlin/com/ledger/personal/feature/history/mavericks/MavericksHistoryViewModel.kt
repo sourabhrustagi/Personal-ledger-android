@@ -47,3 +47,4 @@ class MavericksHistoryViewModel(
         }.execute { copy(transactions = it) }
     }
 }
+

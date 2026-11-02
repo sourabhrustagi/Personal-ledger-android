@@ -7,3 +7,4 @@ data class ScanUiState(
     val invalid: Boolean = false,
     val manual: String = "",
 )
+

@@ -77,6 +77,20 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [9. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
   - [10. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
   - [11. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
+- [Multi-Architecture State Management Showcase (`:feature:history`)](#multi-architecture-state-management-history)
+  - [1. Overview & Architectural Motivation](#1-overview--architectural-motivation)
+  - [2. Directory & Package Organization by State Management](#2-directory--package-organization-by-state-management)
+  - [3. Deep Dive into the 8 State Management Architectures](#3-deep-dive-into-the-8-state-management-architectures)
+    - [A. Standard Android ViewModel + Paging (Google / AndroidX)](#a-standard-android-viewmodel--paging-google--androidx)
+    - [B. Orbit MVI (Orbit MVI Community)](#b-orbit-mvi-orbit-mvi-community)
+    - [C. Molecule (CashApp / Jake Wharton)](#c-molecule-cashapp--jake-wharton)
+    - [D. Circuit (Slack Technologies)](#d-circuit-slack-technologies)
+    - [E. Decompose (Arkadii Ivanov)](#e-decompose-arkadii-ivanov)
+    - [F. MVIKotlin (Arkadii Ivanov)](#f-mvikotlin-arkadii-ivanov)
+    - [G. Voyager ScreenModel (Adriel Café)](#g-voyager-screenmodel-adriel-café)
+    - [H. Mavericks / MvRx (Airbnb)](#h-mavericks--mvrx-airbnb)
+  - [4. Staff-Level Architectural Comparison Matrix](#4-staff-level-architectural-comparison-matrix)
+  - [5. Dynamic Architecture Switching in App & Demo](#5-dynamic-architecture-switching-in-app--demo)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -2602,6 +2616,221 @@ LedgerOne resolves large-screen ergonomics by wrapping every screen surface insi
 | **`OtpLoginScreen`** | `600.dp` | `Alignment.TopCenter` | MPIN / OTP pin pads tightly grouped in thumb-reach zone; reset dialog maintains tablet bounds |
 | **`ForceUpdateScreen`** | `560.dp` | `Alignment.TopCenter` | Centered modal presentation; prevents system warning messages from flattening across the screen |
 | **`OfflineScreen`** | `520.dp` | `Alignment.Center` | Floating card aesthetic; retry button and waiting indicator remain centered and accessible |
+
+---
+
+## <a id="multi-architecture-state-management-history"></a>Multi-Architecture State Management Showcase (`:feature:history`)
+
+### 1. Overview & Architectural Motivation
+Modern Android and Kotlin Multiplatform application development features multiple competing state management paradigms. While Google champions **AndroidX `ViewModel` + `StateFlow`**, modern tech leaders have pioneered alternative architectures to solve specific developer ergonomics, testing purity, cross-platform retention, or unidirectional data flow challenges:
+- **CashApp** built **Molecule** to leverage the Compose compiler off-screen and replace complex Rx/Flow operators with declarative snapshot state.
+- **Slack** created **Circuit** to enforce explicit presenter/UI decoupling with unified `eventSink` closures.
+- **Arkadii Ivanov** authored **Decompose** and **MVIKotlin** to enable pure Kotlin Multiplatform component trees completely decoupled from Android framework lifecycles.
+- **Adriel Café** created **Voyager** with lightweight `StateScreenModel` for multiplatform navigation and retained screen state.
+- **Airbnb** engineered **Mavericks (MvRx)** to standardize asynchronous request state machines (`Uninitialized`, `Loading`, `Success`, `Fail`) with atomic state reducers.
+- The **Orbit MVI** community standardized coroutine-first MVI centered around `ContainerHost`, `intent`, and type-safe `reduce` / `postSideEffect`.
+
+Rather than picking a single paradigm in isolation, `:feature:history` implements the **Personal Ledger Transaction History (Passbook)** feature across **all 8 state management architectures**. Developers can test, benchmark, and toggle dynamically between any architecture on a live device or emulator using the top-level **Architecture Switcher**.
+
+```mermaid
+flowchart TD
+    UI["LedgerHistoryScreen (Architecture Switcher UI)"]
+    
+    subgraph Architectures ["8 Pluggable State Management Engines"]
+        direction TB
+        A1["1. Standard ViewModel\n(AndroidX + PagingData Flow)"]
+        A2["2. Orbit MVI\n(ContainerHost + intent/reduce/sideEffects)"]
+        A3["3. Molecule\n(CashApp Compose Presenter Function)"]
+        A4["4. Circuit\n(Slack Presenter + eventSink UiState)"]
+        A5["5. Decompose\n(Arkadii Ivanov ComponentContext + Value<T>)"]
+        A6["6. MVIKotlin\n(Arkadii Ivanov Store + Executor + Reducer)"]
+        A7["7. Voyager\n(Screen + StateScreenModel)"]
+        A8["8. Mavericks\n(Airbnb Async<T> State Machine + setState)"]
+    end
+    
+    UI --> A1
+    UI --> A2
+    UI --> A3
+    UI --> A4
+    UI --> A5
+    UI --> A6
+    UI --> A7
+    UI --> A8
+    
+    A1 --> DOMAIN["Domain Repository (Room Offline-First DB / Use Cases)"]
+    A2 --> DOMAIN
+    A3 --> DOMAIN
+    A4 --> DOMAIN
+    A5 --> DOMAIN
+    A6 --> DOMAIN
+    A7 --> DOMAIN
+    A8 --> DOMAIN
+```
+
+---
+
+### 2. Directory & Package Organization by State Management
+To enforce the **Single Responsibility Principle (SRP)** and provide clear separation of concerns, the `:feature:history` module organizes code into dedicated packages according to each state management paradigm:
+
+```
+feature/history/src/main/kotlin/com/ledger/personal/feature/history/
+├── LedgerHistoryScreen.kt              # Central screen with Architecture Switcher & Host
+├── LedgerHistoryViewModel.kt           # Standard AndroidX ViewModel with PagingData
+├── model/                              # Presentation models shared across architectures
+│   ├── HistoryTransactionItem.kt       # Immutable presentation row (Long minor-unit money)
+│   └── HistoryFilterCategory.kt        # Category filter taxonomy (All, Food, Bills, etc.)
+├── common/                             # Reusable SRP UI building blocks
+│   ├── HistoryTransactionRow.kt        # Formatted transaction item row with category icons
+│   ├── HistoryCategoryFilterRow.kt     # Horizontal filter chips for category selection
+│   └── HistoryDetailDialog.kt          # Modal details dialog on transaction tap
+├── switcher/                           # Developer Architecture Levers
+│   ├── HistoryArchitecture.kt          # Enum cataloging all 8 architectures with metadata
+│   ├── HistoryArchitectureHeader.kt    # Informational card displaying paradigm & tags
+│   └── HistoryArchitectureSwitcher.kt  # Scrollable segmented pills to toggle architectures
+├── orbit/                              # Orbit MVI implementation
+│   ├── OrbitContainer.kt               # Orbit Container & ContainerHost coroutine engine
+│   ├── OrbitHistoryState.kt            # Immutable state data class
+│   ├── OrbitHistorySideEffect.kt       # One-off side effects (Toast, Click)
+│   ├── OrbitHistoryViewModel.kt        # ViewModel implementing ContainerHost
+│   └── OrbitHistoryContent.kt          # Orbit MVI Screen Composable
+├── molecule/                           # CashApp Molecule implementation
+│   ├── MoleculePresenter.kt            # Molecule presenter runner & event scope
+│   ├── MoleculeHistoryState.kt         # Immutable state emitted by presenter
+│   ├── MoleculeHistoryEvent.kt         # User events sent into presenter Flow
+│   ├── MoleculeHistoryPresenter.kt     # Composable presenter (@Composable () -> State)
+│   └── MoleculeHistoryContent.kt       # Molecule Screen Composable
+├── circuit/                            # Slack Circuit implementation
+│   ├── CircuitScreen.kt                # CircuitScreen, CircuitUiState, CircuitPresenter, CircuitUi
+│   ├── CircuitHistoryState.kt          # UiState embedding (CircuitHistoryEvent) -> Unit eventSink
+│   ├── CircuitHistoryEvent.kt          # Circuit UI interaction events
+│   ├── CircuitHistoryPresenter.kt      # Presenter implementing CircuitPresenter
+│   └── CircuitHistoryContent.kt        # UI implementing CircuitUi
+├── decompose/                          # Arkadii Ivanov Decompose implementation
+│   ├── DecomposeComponentContext.kt    # ComponentContext, Value<T>, subscribeAsState bridge
+│   ├── DecomposeHistoryState.kt        # Retained component state data class
+│   ├── DecomposeHistoryComponent.kt    # Component contract & default implementation
+│   └── DecomposeHistoryContent.kt      # Decompose Screen Composable
+├── mvikotlin/                          # Arkadii Ivanov MVIKotlin implementation
+│   ├── MviKotlinStore.kt               # Store, Executor, Reducer, Bootstrapper engine
+│   ├── MviKotlinHistoryState.kt        # Pure immutable UI state
+│   ├── MviKotlinHistoryIntent.kt       # Intent, Action, Message, and Label interfaces
+│   ├── MviKotlinHistoryStore.kt        # StoreFactory constructing Executor & Reducer
+│   └── MviKotlinHistoryContent.kt      # MVIKotlin Screen Composable
+├── voyager/                            # Adriel Café Voyager implementation
+│   ├── VoyagerScreenModel.kt           # Screen, ScreenModel, StateScreenModel, rememberScreenModel
+│   ├── VoyagerHistoryState.kt          # Voyager immutable screen state
+│   ├── VoyagerHistoryScreenModel.kt    # Retained StateScreenModel with screenModelScope
+│   └── VoyagerHistoryContent.kt        # Voyager Screen Composable
+└── mavericks/                          # Airbnb Mavericks (MvRx) implementation
+    ├── MavericksViewModel.kt           # MavericksState, Async<T>, MavericksViewModel, execute/setState
+    ├── MavericksHistoryState.kt        # State holding Async<List<HistoryTransactionItem>>
+    ├── MavericksHistoryViewModel.kt    # ViewModel managing async transitions & setState
+    └── MavericksHistoryContent.kt      # Mavericks Screen Composable
+```
+
+---
+
+### 3. Deep Dive into the 8 State Management Architectures
+
+#### A. Standard Android ViewModel + Paging (Google / AndroidX)
+- **Philosophy:** Google's canonical architecture recommendations combining `androidx.lifecycle.ViewModel` with `PagingData` streams.
+- **Mechanics:** 
+  - `LedgerHistoryViewModel` injects `GetPagedTransactionsUseCase` and calls `.cachedIn(viewModelScope)`.
+  - The UI consumes `viewModel.pages.collectAsLazyPagingItems()` to render infinite virtualized scrolling.
+- **When to Use:** Standard Android-only applications requiring robust paginated lists, automated placeholder insertion, and simple lifecycle scoping.
+
+#### B. Orbit MVI (Orbit MVI Community)
+- **Philosophy:** Pragmatic coroutine-based MVI that keeps ViewModel semantics while providing strict Unidirectional Data Flow.
+- **Mechanics:**
+  - ViewModels implement `ContainerHost<STATE, SIDE_EFFECT>`.
+  - Operations execute inside `intent { ... }` blocks.
+  - State mutations must call `reduce { state.copy(...) }`.
+  - One-off events (snackbars, navigation) use `postSideEffect(effect)`.
+- **When to Use:** Teams desiring MVI purity without the heavy boilerplate of multi-class reducers or executors.
+
+#### C. Molecule (CashApp / Jake Wharton)
+- **Philosophy:** Uses the Jetpack Compose compiler runtime off-screen to generate reactive state streams.
+- **Mechanics:**
+  - The presenter is literally a `@Composable` function: `moleculeHistoryPresenter(repository, events)`.
+  - Inside the presenter, standard Compose primitives (`remember`, `mutableStateOf`, `LaunchedEffect`) drive state transitions.
+  - The UI pushes events into a `Flow<MoleculeHistoryEvent>`, and the presenter re-runs to emit new state.
+- **When to Use:** Complex state machines with multi-input dependencies where declarative Compose code is significantly cleaner than reactive Flow operators (`combine`, `flatMapLatest`).
+
+#### D. Circuit (Slack Technologies)
+- **Philosophy:** Slack's architecture built from the ground up for Jetpack Compose, emphasizing radical decoupling and testability.
+- **Mechanics:**
+  - Presenters and UIs are completely separate classes implementing `CircuitPresenter` and `CircuitUi`.
+  - **The Circuit Invariant:** State objects implement `CircuitUiState` and *contain their own event sink callback*: `val eventSink: (CircuitHistoryEvent) -> Unit`.
+  - The UI does not know the presenter exists; it simply reads state and calls `state.eventSink(event)`.
+- **When to Use:** Large multi-module Compose applications requiring decoupled UI and presenter code, easy screen navigation, and snapshot-level UI testing.
+
+#### E. Decompose (Arkadii Ivanov)
+- **Philosophy:** Component-based architecture for Kotlin Multiplatform completely decoupled from Android `ViewModel`, Activity lifecycles, or Jetpack Compose.
+- **Mechanics:**
+  - Logic is encapsulated inside a tree of components (`DecomposeHistoryComponent`) created with a `ComponentContext`.
+  - State is exposed as an observable `Value<State>`, bridged to Compose via `subscribeAsState()`.
+  - Retained state instances (`InstanceKeeper`) survive Android Activity recreation without needing `ViewModelProvider`.
+- **When to Use:** Kotlin Multiplatform (KMP) codebases sharing business logic and navigation across Android, iOS, Desktop, and Web.
+
+#### F. MVIKotlin (Arkadii Ivanov)
+- **Philosophy:** Total separation of concerns into single-responsibility units: Intent $\to$ Executor $\to$ Message $\to$ Reducer $\to$ State & Label.
+- **Mechanics:**
+  - **Intent:** What the user intended to do (from UI).
+  - **Action:** Internal bootstrap trigger.
+  - **Executor:** Handles coroutines, database queries, and dispatches pure **Messages** and **Labels**.
+  - **Reducer:** Pure, synchronous function `(State, Message) -> State`.
+  - **Label:** Side effects dispatched to observers.
+- **When to Use:** Mission-critical financial transaction flows requiring absolute mathematical determinism, full unit-test coverage of business logic without coroutine mocks, and time-travel debugging.
+
+#### G. Voyager ScreenModel (Adriel Café)
+- **Philosophy:** Multiplatform navigation and state management library designed specifically for Compose Multiplatform.
+- **Mechanics:**
+  - Replaces `androidx.lifecycle.ViewModel` with `ScreenModel` and `StateScreenModel<State>`.
+  - Provides `screenModelScope` tied to screen lifecycle.
+  - Updates state via `updateState { ... }`.
+- **When to Use:** Lightweight Compose Multiplatform applications requiring screen-scoped state management without AndroidX lifecycle dependencies.
+
+#### H. Mavericks / MvRx (Airbnb)
+- **Philosophy:** Airbnb's battle-tested state machine architecture modeling asynchronous requests with explicit state wrappers.
+- **Mechanics:**
+  - State fields wrapping asynchronous data use `Async<T>`: `Uninitialized`, `Loading`, `Success(value)`, `Fail(error)`.
+  - Coroutines or Flows execute via `.execute { copy(transactions = it) }`, which automatically transitions state through `Loading` $\to$ `Success` / `Fail`.
+  - State is mutated atomically via `setState { copy(...) }` and inspected synchronously via `withState(viewModel) { state -> ... }`.
+- **When to Use:** Data-dense apps with numerous asynchronous network and database requests where manual tracking of `isLoading`, `error`, and `data` properties creates error-prone boilerplate.
+
+---
+
+### 4. Staff-Level Architectural Comparison Matrix
+
+| Architectural Dimension | AndroidX ViewModel | Orbit MVI | CashApp Molecule | Slack Circuit | Arkadii Decompose | Arkadii MVIKotlin | Adriel Voyager | Airbnb Mavericks |
+|---|---|---|---|---|---|---|---|---|
+| **Author / Organization** | Google | Orbit Community | CashApp (Jake Wharton) | Slack | Arkadii Ivanov | Arkadii Ivanov | Adriel Café | Airbnb |
+| **Core Paradigm** | Jetpack MVVM | Coroutine MVI (`ContainerHost`) | Composable Presenter Function | Presenter + UI with embedded `eventSink` | Component Tree (`ComponentContext`) | Strict MVI (Executor + Reducer) | Retained `ScreenModel` | Async State Machine (`Async<T>`) |
+| **Primary State Holder** | `StateFlow<T>` in `ViewModel` | `Container<S, E>` | Compose Snapshot State / `StateFlow` | `CircuitUiState` produced by presenter | `Value<T>` | `Store<Intent, State, Label>` | `StateScreenModel<T>` | `MavericksViewModel<S : MavericksState>` |
+| **State Mutation Mechanism** | `MutableStateFlow.update { }` | `intent { reduce { } }` | Compose snapshot `mutableStateOf = ...` | Recomposition of presenter state | `MutableValue.value = ...` | `Reducer.reduce(State, Message)` | `updateState { }` | `setState { copy(...) }` |
+| **Side Effect Modeling** | `Channel.receiveAsFlow()` | `postSideEffect(E)` | Inline `LaunchedEffect` | Event callbacks or UI events | Direct component callbacks | `publishLabel(Label)` | `screenModelScope.launch` | `Async.Fail` / `Job` |
+| **Async State Handling** | Custom sealed class (`UiState`) | Custom sealed class | Compose `produceState` / `LaunchedEffect` | State property | Custom sealed class | Executor Message dispatch | Custom sealed class | First-class `Async<T>` (`Loading`, `Success`, `Fail`) |
+| **Android Framework Coupling** | High (`androidx.lifecycle`) | Medium (`ViewModel` optional) | Low (Compose runtime only) | Low (Compose runtime only) | Zero (Pure Kotlin) | Zero (Pure Kotlin) | Zero (Pure Kotlin) | Medium (`androidx.lifecycle`) |
+| **KMP Multiplatform Ready?** | Partial (via AndroidX KMP) | Yes | Yes | Yes | Yes (Native first-class) | Yes (Native first-class) | Yes (Native first-class) | Android primary |
+| **Time-Travel Debugging?** | No | Possible | Difficult | Possible | Possible | Native first-class | No | Native first-class |
+| **Boilerplate Weight** | Low | Low | Very Low | Low | Medium | High | Low | Low |
+
+---
+
+### 5. Dynamic Architecture Switching in App & Demo
+To experience each architecture live:
+1. Open the Personal Ledger app and navigate to **Passbook / History** (or run `:feature:history:demo`).
+2. At the top of the screen, tap any architecture chip in the **Architecture Switcher**:
+   - `Android ViewModel`
+   - `Orbit MVI`
+   - `Molecule`
+   - `Circuit`
+   - `Decompose`
+   - `MVIKotlin`
+   - `Voyager`
+   - `Mavericks`
+3. The screen instantly switches its reactive state engine to the selected architecture. An informational **Architecture Header Card** displays the framework's author, paradigm, and key technical traits (`[UDF]`, `[Snapshot State]`, `[Retained]`, `[Async<T>]`, etc.).
+4. Interact with category filter chips ("All", "Food", "Shopping", "Transfer", "Bills"), tap individual transactions to open detail dialogs, and trigger refreshes to verify how state transitions and side effects behave under each paradigm.
 
 ---
 

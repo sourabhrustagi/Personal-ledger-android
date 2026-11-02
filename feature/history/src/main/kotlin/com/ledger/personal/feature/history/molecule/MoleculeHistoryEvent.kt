@@ -9,3 +9,4 @@ sealed interface MoleculeHistoryEvent {
     data object DismissDetail : MoleculeHistoryEvent
     data object Refresh : MoleculeHistoryEvent
 }
+

@@ -50,19 +50,25 @@ By default the app runs fully offline on built-in demo data, so you can clone it
 - [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
   - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
     - [Flutter vs. Android Compose: How the UI is Notified of State Changes](#flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes)
-  - [2. `remember` vs `rememberSaveable`](#2-remember-vs-remembersaveable)
+  - [2. What Was `@Model`? (Historical Evolution, Deprecation & The Modern Replacement)](#what-was-model-historical-evolution-deprecation--the-modern-replacement)
+    - [A. The Historical Pre-1.0 `@Model` Pattern](#a-the-historical-pre-10-model-pattern)
+    - [B. Under the Hood: What the Compose Compiler Plugin Synthesized](#b-under-the-hood-what-the-compose-compiler-plugin-synthesized)
+    - [C. Why Google Deprecated and Completely Removed `@Model`](#c-why-google-deprecated-and-completely-removed-model)
+    - [D. How Modern Jetpack Compose Replaced `@Model` (3 Production Architectural Patterns)](#d-how-modern-jetpack-compose-replaced-model-3-production-architectural-patterns)
+    - [E. Architectural Comparison Matrix: `@Model` vs. Modern Primitives](#e-architectural-comparison-matrix-model-vs-modern-primitives)
+  - [3. `remember` vs `rememberSaveable`](#2-remember-vs-remembersaveable)
     - [Why `rememberSaveable` is Critical at the Compose Level](#why-remembersaveable-is-critical-at-the-compose-level)
-  - [3. Real-World Uses of `rememberSaveable`](#3-real-world-uses-of-remembersaveable-in-ledgerone)
-  - [4. Screen & Business State: `ViewModel` + `StateFlow`](#4-screen--business-state-viewmodel--stateflow)
-  - [5. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
+  - [4. Real-World Uses of `rememberSaveable`](#3-real-world-uses-of-remembersaveable-in-ledgerone)
+  - [5. Screen & Business State: `ViewModel` + `StateFlow`](#4-screen--business-state-viewmodel--stateflow)
+  - [6. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
     - [State Hoisting (Unidirectional Data Flow)](#a-state-hoisting-unidirectional-data-flow)
     - [`collectAsStateWithLifecycle()` vs `collectAsState()`](#b-collectasstatewithlifecycle-vs-collectasstate)
     - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
     - [Proportional Sizing & Space Distribution (`Modifier.weight`)](#e-proportional-sizing--space-distribution-modifierweight)
-  - [6. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
-  - [7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
-  - [8. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
+  - [7. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
+  - [8. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
+  - [9. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -1232,7 +1238,262 @@ Button(onClick = {
 
 ---
 
-### <a id="2-remember-vs-remembersaveable"></a>2. `remember` vs `rememberSaveable`: Deep Architectural Comparison
+### <a id="what-was-model-historical-evolution-deprecation--the-modern-replacement"></a>2. What Was `@Model`? Historical Evolution, Deprecation & The Modern Production Replacement
+
+In the early developer preview releases of Jetpack Compose (2019 to mid-2020, pre-1.0), Google introduced the **`@Model`** annotation (`androidx.compose.Model`) as the primary mechanism for making state observable. 
+
+While its design intended to make UI state reactive with minimal boilerplate, `@Model` introduced severe architectural flaws, violated fundamental reactive programming principles, and was **officially deprecated and completely removed** before Jetpack Compose reached 1.0 production.
+
+---
+
+#### A. The Historical Pre-1.0 `@Model` Pattern
+Developers could annotate ordinary Kotlin classes with `@Model`. Any composable reading a property on an instance of that class would automatically subscribe to changes, and mutating any `var` property would trigger recomposition:
+
+```kotlin
+// ❌ HISTORICAL CODE (pre-1.0 Developer Preview - DEPRECATED & REMOVED)
+// Do NOT use: This annotation no longer exists in Jetpack Compose!
+@Model
+class CartState {
+    var itemCount: Int = 0
+    var totalPaise: Long = 0L
+    var note: String = ""
+}
+
+@Composable
+fun CartScreen(state: CartState) {
+    Column {
+        Text("Items: ${state.itemCount}")
+        Text("Total: ₹${state.totalPaise / 100}")
+        Button(onClick = { 
+            // In-place mutation triggered automatic recomposition via compiler magic
+            state.itemCount++
+            state.totalPaise += 500_00L 
+        }) {
+            Text("Add Item")
+        }
+    }
+}
+```
+
+---
+
+#### B. Under the Hood: What the Compose Compiler Plugin Synthesized
+Behind the scenes, `@Model` was not a simple runtime marker. The **Jetpack Compose Kotlin Compiler Plugin** intercepted the Abstract Syntax Tree (AST) at compile time and performed heavy bytecode transformations:
+
+1. **Synthesized Snapshot State Holders:** Every `var` property in the class was replaced by a private synthetic `MutableState<T>` container.
+2. **Getter / Setter Rewriting:**
+   - Every property **getter** was rewritten to invoke `Snapshot.current.readObserver()`, registering the reading Composable as a subscriber.
+   - Every property **setter** was rewritten to invoke `Snapshot.current.writeObserver()`, marking that snapshot node invalid and scheduling recomposition.
+
+```kotlin
+// Conceptual decompilation of what the Compose Compiler secretly generated for @Model:
+class CartState {
+    // 1. Synthesized hidden snapshot state containers
+    private val _itemCount = mutableIntStateOf(0)
+    private val _totalPaise = mutableLongStateOf(0L)
+    private val _note = mutableStateOf("")
+
+    // 2. Secretly redirected property accessors
+    var itemCount: Int
+        get() = _itemCount.intValue
+        set(value) { _itemCount.intValue = value }
+
+    var totalPaise: Long
+        get() = _totalPaise.longValue
+        set(value) { _totalPaise.longValue = value }
+
+    var note: String
+        get() = _note.value
+        set(value) { _note.value = value }
+}
+```
+
+---
+
+#### C. Why Google Deprecated and Completely Removed `@Model`
+
+The Jetpack Compose engineering team removed `@Model` after evaluating real-world architecture in large-scale applications. The decision was driven by six critical engineering trade-offs:
+
+1. **Excessive "Compiler Magic" & Opaque Bytecode:**
+   - The developer wrote what appeared to be a standard, lightweight mutable POJO (`class CartState`), but the compiler silently generated complex snapshot machinery, multiple backing objects, and synthetic getter/setter redirections.
+   - This "magic" obscured memory allocation costs, confused IDE debugging tools, created misleading stack traces during crashes, and made reasoning about performance overhead difficult.
+
+2. **Violation of Unidirectional Data Flow (UDF) & Two-Way Mutation Anti-Pattern:**
+   - Because `@Model` classes had public mutable properties (`var`), developers naturally passed the entire mutable model instance deep down through 5–10 levels of child composables.
+   - Any leaf composable could directly mutate parent state (`cardState.expanded = true; cartState.totalPaise += 100`).
+   - This reintroduced **two-way data binding** and fragmented state mutations across dozens of UI components—the exact architectural maintenance nightmare that Unidirectional Data Flow (UDF) was designed to abolish.
+
+3. **Recomposition Granularity & Nested Scoping Ambiguity:**
+   - With nested objects (e.g. `class Order(@Model val customer: Customer, @Model val items: List<Item>)`), tracking which Composable was subscribed to which specific property was unpredictable.
+   - Developers frequently encountered scenarios where mutating a single deep nested field either failed to trigger recomposition (due to stale references) or triggered an excessively coarse recomposition that invalidated the entire screen.
+
+4. **Zero Process-Death & `SavedState` Compatibility:**
+   - `@Model` instances were plain JVM heap allocations. They lacked any integration with Android's `SavedStateRegistry`, `SavedStateHandle`, or `rememberSaveable`.
+   - When the Android OS killed the app process in the background due to low memory, or when the user rotated the screen, the entire `@Model` state was completely destroyed and reset to initial defaults.
+
+5. **Clash with Kotlin Idioms (Immutability & Value Semantics):**
+   - Idiomatic modern Kotlin emphasizes **immutable data structures** (`data class` with `val`), pure transformations (`copy()`), and unmodifiable collections (`List<T>`).
+   - `@Model` actively encouraged mutable object-oriented state containers with `var` fields, directly conflicting with best practices in the Kotlin and Coroutines ecosystems.
+
+6. **Convergence on Coroutines `StateFlow` and Explicit Snapshot Primitives:**
+   - Modern Android architecture standardized on `StateFlow<UiState>` in the ViewModel layer and explicit `mutableStateOf()` in the UI layer. Eliminating `@Model` unified the API surface and removed ambiguity.
+
+---
+
+#### D. How Modern Jetpack Compose Replaced `@Model` (3 Production Architectural Patterns)
+
+In modern production Jetpack Compose (and throughout LedgerOne), the capabilities of `@Model` are fulfilled through **three distinct, type-safe, and predictable architectural patterns**:
+
+##### Pattern 1: UI-Local Ephemeral State via `rememberSaveable` + `mutableStateOf`
+For state that belongs strictly to a single composable (dialog toggles, input field text, step indices):
+
+```kotlin
+// Modern Pattern 1: Explicit Snapshot State
+@Composable
+fun OtpInputScreen() {
+    // Explicit, transparent, zero compiler magic, and survives process death!
+    var otpCode by rememberSaveable { mutableStateOf("") }
+    var attempts by rememberSaveable { mutableIntStateOf(0) }
+
+    OtpField(
+        value = otpCode,
+        onValueChange = { if (it.length <= 6) otpCode = it }
+    )
+}
+```
+
+##### Pattern 2: Dedicated Modern `@Stable` State Holder Class (The Direct Successor)
+When UI logic involves multiple interrelated properties, validation, or complex controller behavior, Compose uses a **Plain State Holder Class** annotated with `@Stable` and paired with a custom `Saver` to survive process death:
+
+```kotlin
+// Modern Pattern 2: Encapsulated @Stable State Holder (as implemented in LedgerOne's ModernStateHolder.kt)
+@Stable
+class ModernInputState(
+    initialAmount: String = "",
+    initialNote: String = "",
+) {
+    // 1. Read-only to external consumers; mutations are strictly encapsulated!
+    var amountInput by mutableStateOf(initialAmount)
+        private set
+
+    var noteInput by mutableStateOf(initialNote)
+        private set
+
+    // 2. Computed read-only domain invariants
+    val amountMinor: Long
+        get() = parseMinor(amountInput) ?: 0L
+
+    val isValid: Boolean
+        get() = amountMinor > 0L
+
+    // 3. Explicit intention-revealing mutation methods (UDF compliant)
+    fun onAmountChange(value: String) {
+        if (amountRegex.matches(value)) {
+            amountInput = value
+        }
+    }
+
+    fun onNoteChange(value: String) {
+        if (value.length <= MAX_NOTE_LENGTH) {
+            noteInput = value
+        }
+    }
+
+    fun clear() {
+        amountInput = ""
+        noteInput = ""
+    }
+
+    companion object {
+        private const val MAX_NOTE_LENGTH = 50
+        private val amountRegex = Regex("^\\d{0,9}(\\.\\d{0,2})?$")
+
+        // 4. Custom Saver guarantees survival across process death
+        val Saver: Saver<ModernInputState, Any> = listSaver(
+            save = { listOf(it.amountInput, it.noteInput) },
+            restore = { ModernInputState(it[0], it[1]) },
+        )
+    }
+}
+
+// 5. Convenient Composable factory function
+@Composable
+fun rememberModernInputState(
+    initialAmount: String = "",
+    initialNote: String = "",
+): ModernInputState = rememberSaveable(saver = ModernInputState.Saver) {
+    ModernInputState(initialAmount, initialNote)
+}
+```
+
+##### Pattern 3: Architecture-Level Unidirectional Data Flow (`ViewModel` + `StateFlow<UiState>`)
+For screen-level business state backed by Room databases, network repositories, and asynchronous Coroutines:
+
+```kotlin
+// Modern Pattern 3: Unidirectional Data Flow with Immutable StateFlow
+// A. Immutable UI State Data Class (Single Responsibility)
+@Immutable
+data class WalletUiState(
+    val balanceMinor: Long = 0L,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+// B. ViewModel managing atomic transitions
+@HiltViewModel
+class WalletViewModel @Inject constructor(
+    private val repository: WalletRepository,
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(WalletUiState())
+    val uiState: StateFlow<WalletUiState> = _uiState.asStateFlow()
+
+    fun transfer(id: String, amountMinor: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = repository.sendMoney(id, amountMinor)
+            _uiState.update { 
+                it.copy(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message
+                ) 
+            }
+        }
+    }
+}
+
+// C. Stateless Screen observing lifecycle-safe state
+@Composable
+fun WalletScreen(viewModel: WalletViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    if (state.isLoading) {
+        LoadingSpinner()
+    } else {
+        BalanceCard(balanceMinor = state.balanceMinor)
+    }
+}
+```
+
+---
+
+#### E. Architectural Comparison Matrix: `@Model` vs. Modern Primitives
+
+| Feature / Dimension | Legacy `@Model` (Pre-1.0 Dev Preview) | Modern `mutableStateOf` | Modern `@Stable` State Holder Class | Production `StateFlow<UiState>` |
+|---|---|---|---|---|
+| **Status in Jetpack Compose** | ❌ **Deprecated & Deleted** | ✅ Active Core Primitive | ✅ Recommended Official Architecture | ✅ Recommended Official Architecture |
+| **Data Mutability** | Mutable `class` with public `var` | Value mutable via `MutableState.value` | Encapsulated (`private set` properties) | **Strictly Immutable** (`data class` with `val`) |
+| **Compiler Magic** | Heavy (AST bytecode rewrite of getters/setters) | None (explicit Kotlin delegate / interface) | Minimal (`@Stable` informs compiler stability) | None (pure Kotlin Coroutines library) |
+| **UDF Compliance** | ❌ High risk (encourages two-way child mutation) | ⚠️ Requires discipline (hoist callbacks) | ✅ Enforced via public methods & `private set` | ✅ Guaranteed (state down, event methods up) |
+| **Survives Rotation?** | ❌ No (resets to initial) | ⚠️ Only with `rememberSaveable` | ✅ Yes (when paired with custom `Saver`) | ✅ Yes (retained in `ViewModelStore`) |
+| **Survives Process Death?** | ❌ No (heap memory lost) | ⚠️ Only with `rememberSaveable` | ✅ Yes (when paired with custom `Saver`) | ⚠️ Requires `SavedStateHandle` |
+| **Layer / Scope** | Arbitrary classes | Composable-local ephemeral state | Complex UI component controller logic | Entire Screen / Feature Business Logic |
+| **Testing Simplicity** | Hard (requires Compose runtime test harness) | Simple JVM unit test | Pure JVM unit test (e.g. [`ModernStateHolderTest.kt`](core/designsystem/src/test/kotlin/com/ledger/personal/ui/components/ModernStateHolderTest.kt)) | Pure JVM unit test with `StandardTestDispatcher` |
+| **Production Code in LedgerOne** | **0 instances (Forbidden)** | Form fields, dialog toggles | [`ModernInputState`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/components/ModernStateHolder.kt) | All ViewModels (`HomeViewModel`, `LoginViewModel`) |
+
+---
+
+### <a id="2-remember-vs-remembersaveable"></a>3. `remember` vs `rememberSaveable`: Deep Architectural Comparison
 
 In Jetpack Compose, managing ephemeral UI state requires choosing the correct state retention mechanism. While both `remember` and `rememberSaveable` retain state during the composition lifecycle, their storage backends, lifetime scopes, and resilience under Android OS events are fundamentally different.
 
@@ -1453,7 +1714,7 @@ flowchart TD
 
 ---
 
-### <a id="3-real-world-uses-of-remembersaveable-in-ledgerone"></a>3. Real-World Uses of `rememberSaveable` in LedgerOne
+### <a id="3-real-world-uses-of-remembersaveable-in-ledgerone"></a>4. Real-World Uses of `rememberSaveable` in LedgerOne
 
 #### A. Transient Form Inputs & Typing Buffers
 Users should not lose their input while filling forms if they rotate their screen before pressing submit.
@@ -1525,7 +1786,7 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 
 ---
 
-### <a id="4-screen--business-state-viewmodel--stateflow"></a><a id="4-screen-business-state-viewmodel-stateflow"></a>4. Screen & Business State: `ViewModel` + `StateFlow`
+### <a id="4-screen--business-state-viewmodel--stateflow"></a><a id="4-screen-business-state-viewmodel-stateflow"></a>5. Screen & Business State: `ViewModel` + `StateFlow`
 
 While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
 - **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
@@ -1534,7 +1795,7 @@ While `rememberSaveable` handles screen-level UI state, domain logic and async d
 
 ---
 
-### <a id="5-architectural-patterns-used-across-the-project"></a>5. Architectural Patterns Used Across the Project
+### <a id="5-architectural-patterns-used-across-the-project"></a>6. Architectural Patterns Used Across the Project
 
 #### <a id="a-state-hoisting-unidirectional-data-flow"></a>A. State Hoisting (Unidirectional Data Flow)
 In Compose screens, stateful containers are separated from stateless presentation components:
@@ -1747,7 +2008,7 @@ If the passbook only has 1 or 2 items, `fill = false` prevents `SectionCard` fro
 
 ---
 
-### <a id="6-application-state-mechanism-comparison-matrix"></a>6. Application State Mechanism Comparison Matrix
+### <a id="6-application-state-mechanism-comparison-matrix"></a>7. Application State Mechanism Comparison Matrix
 
 | State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
 |---|---|---|---|---|---|---|
@@ -1761,7 +2022,7 @@ If the passbook only has 1 or 2 items, `fill = false` prevents `SectionCard` fro
 
 ---
 
-### <a id="7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens"></a>7. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens
+### <a id="7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens"></a>8. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens
 
 #### A. Architecture of Configuration Changes in Jetpack Compose
 When an Android device is rotated between portrait and landscape:
@@ -1920,7 +2181,7 @@ Top-level application container managing navigation backstacks and global alerts
 
 ---
 
-### <a id="8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes"></a>8. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes
+### <a id="8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes"></a>9. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes
 
 #### A. Ergonomic Challenges on Expanded & Large Displays
 Tablets (e.g. Pixel Tablet, Samsung Galaxy Tab S, 10–13" foldables, and Chromebooks) operate with Window Size Classes characterized by widths $\ge 600\text{dp}$ (Medium) and $\ge 840\text{dp}$ (Expanded).
@@ -5132,11 +5393,27 @@ This section provides an **exhaustive repository of technical interview question
     ```
     Feature composables can directly reference `colorScheme.primary` or `typography.titleMedium` without boilerplate.
 
+#### Q15. What was the `@Model` annotation in early Jetpack Compose, why was it deprecated and completely removed, and what is the modern production architecture replacing it?
+- **Interviewer Perspective:** Advanced historical and architectural question. Tests whether the senior candidate understands the deep evolution of Compose's state model, why bytecode compiler magic was rejected, and how modern Unidirectional Data Flow (UDF) guarantees production predictability.
+- **Answer:**
+  1. **What `@Model` Was:**
+     In pre-1.0 Jetpack Compose previews (2019–2020), `@Model` (`androidx.compose.Model`) was a compiler plugin annotation placed on ordinary classes. The Compose compiler intercepted the class bytecode, synthesized hidden `MutableState` containers, and rewrote every `var` getter and setter to hook directly into the Compose snapshot observation system.
+  2. **Why It Was Deprecated and Removed:**
+     - **Compiler Magic & Debugging Opacity:** It hid how state and memory allocations worked, making stack traces and memory leaks difficult to diagnose.
+     - **Violation of Unidirectional Data Flow (UDF):** Because properties were mutable `var` fields, developers passed mutable models down the composable tree, allowing child composables to mutate parent state in-place. This revived the perils of two-way data binding and "spaghetti state."
+     - **Ambiguous Recomposition Granularity:** Scoping with nested `@Model` classes was unpredictable, causing either missed recompositions or massive unnecessary UI subtree recalculations.
+     - **Incompatibility with Process Death:** Plain `@Model` classes did not serialize into `Bundle` or integrate with `SavedStateRegistry` / `rememberSaveable`.
+     - **Divergence from Modern Kotlin:** Modern Kotlin favors immutable data classes, `val`, and pure functional state streams (`StateFlow`).
+  3. **The Modern Production Replacements:**
+     - **UI-Local State:** `var state by rememberSaveable { mutableStateOf(...) }` with primitive specializations (`mutableIntStateOf`).
+     - **UI State Holders:** Plain classes annotated with `@Stable`, encapsulating mutations via `private set` and event methods, paired with custom `Saver` implementations (see [`ModernInputState`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/components/ModernStateHolder.kt)).
+     - **Feature/Screen Architecture:** ViewModels exposing read-only `StateFlow<UiState>` backed by immutable data classes, mutated atomically via `_uiState.update { it.copy(...) }` and consumed in Compose via `collectAsStateWithLifecycle()`.
+
 ---
 
 ### <a id="category-4-financial-engineering--accounting-invariants"></a>Category 4: Financial Engineering & Accounting Invariants
 
-#### Q15. Why are currency amounts stored strictly as 64-bit `Long` minor units instead of `Double` or `Float`?
+#### Q16. Why are currency amounts stored strictly as 64-bit `Long` minor units instead of `Double` or `Float`?
 - **Interviewer Perspective:** Essential fintech engineering invariant; tests precision math and avoidance of binary floating-point pitfalls.
 - **Answer:**
   Binary floating-point types (`Double`, `Float`) implement IEEE 754 arithmetic, which cannot represent decimal fractions exactly:
@@ -5151,7 +5428,7 @@ This section provides an **exhaustive repository of technical interview question
   - ₹100.50 is stored as `10050L`.
   - Floating-point types are completely banned in `:core:model` and database entities. Formatting for display (`formatMoney`) converts minor units to formatted strings (`₹1,23,456.78`) with Indian numbering grouping at the presentation boundary only.
 
-#### Q16. How does double-entry bookkeeping work in LedgerOne, and what invariants are enforced by `post()`?
+#### Q17. How does double-entry bookkeeping work in LedgerOne, and what invariants are enforced by `post()`?
 - **Interviewer Perspective:** Assesses enterprise ledger integrity, accounting equation adherence, and domain validation.
 - **Answer:**
   In double-entry bookkeeping, money cannot be created or destroyed—every financial transaction must balance across accounts:
@@ -5161,7 +5438,7 @@ This section provides an **exhaustive repository of technical interview question
   2. **Direction Exclusivity:** Every leg must specify either a debit or a credit, never both, and amounts must be strictly non-negative (`amount >= 0`).
   3. **Zero-Sum Balance:** The sum of all debit legs must equal the sum of all credit legs down to the exact minor unit (paise). If `debitSum != creditSum`, the post operation fails and the entry is rejected.
 
-#### Q17. How does remainder-preserving expense splitting (`splitEvenly`) guarantee zero currency leakage?
+#### Q18. How does remainder-preserving expense splitting (`splitEvenly`) guarantee zero currency leakage?
 - **Interviewer Perspective:** Evaluates integer division arithmetic, rounding distribution, and zero-leakage algorithms.
 - **Answer:**
   When dividing minor currency units among $N$ participants, integer division often leaves a non-zero remainder (`totalMinor % parts`):
@@ -5187,7 +5464,7 @@ This section provides an **exhaustive repository of technical interview question
 
 ### <a id="category-5-enterprise-security-cryptography--fraud-prevention"></a>Category 5: Enterprise Security, Cryptography & Fraud Prevention
 
-#### Q18. What is an Idempotency Key in payments, and how does `TransferBook` prevent double deductions on retries?
+#### Q19. What is an Idempotency Key in payments, and how does `TransferBook` prevent double deductions on retries?
 - **Interviewer Perspective:** Core payments infrastructure question; tests duplicate deduction mitigation over unreliable networks.
 - **Answer:**
   On mobile networks, timeouts frequently occur *after* the payment gateway processes a transfer but *before* the mobile client receives the HTTP 200 OK. If the user or background sync worker retries the request, the server could charge the user twice.
@@ -5197,7 +5474,7 @@ This section provides an **exhaustive repository of technical interview question
   - In `TransferBook`, the key is transmitted in the payment payload.
   - If the operation is retried with the same idempotency key within a 24-hour deduplication window, the system recognizes the duplicate key, aborts executing a new debit, and returns the cached confirmation of the initial transaction.
 
-#### Q19. How does the 30-minute payee cooling period mitigate unauthorized transfer fraud?
+#### Q20. How does the 30-minute payee cooling period mitigate unauthorized transfer fraud?
 - **Interviewer Perspective:** Tests understanding of real-world banking regulations (RBI/NPCI mandates) and account takeover (ATO) defense.
 - **Answer:**
   In mobile device theft or SIM-swap attacks, the fraudster adds their own mule account as a payee and immediately drains all funds before the victim can contact customer support or lock their SIM card.
@@ -5207,7 +5484,7 @@ This section provides an **exhaustive repository of technical interview question
   - During this window, transfers to that payee are strictly held in pending or blocked status.
   - High-priority security SMS and push alerts are dispatched to the user's registered device. If the addition was unauthorized, the victim has a 30-minute window to freeze their account.
 
-#### Q20. How does Envelope Encryption work with the Android Keystore (TEE/StrongBox) for database security?
+#### Q21. How does Envelope Encryption work with the Android Keystore (TEE/StrongBox) for database security?
 - **Interviewer Perspective:** Assesses hardware-backed mobile cryptography and secure key management.
 - **Answer:**
   - **The Problem:** Encrypting an entire database using a key derived from user password or raw AES key stored in SharedPreferences leaves the database vulnerable to root extraction. However, performing every SQL query directly through the Android Keystore hardware is too slow for 120 FPS UI operations.
@@ -5217,7 +5494,7 @@ This section provides an **exhaustive repository of technical interview question
     3. **The "Envelope":** The DEK encrypts the database at full hardware memory speed. The KEK in the Keystore encrypts the DEK, producing an encrypted DEK stored on disk.
     4. Upon app unlock, the KEK decrypts the DEK into volatile RAM. If the device is seized or dumped, the database cannot be decrypted without the physical hardware TEE chip.
 
-#### Q21. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage?
+#### Q22. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage?
 - **Interviewer Perspective:** Tests deep cryptographic awareness and prevention of catastrophic Galois/Counter Mode vulnerabilities.
 - **Answer:**
   AES-GCM operates as a stream cipher using a counter mode combined with polynomial authentication.
@@ -5227,7 +5504,7 @@ This section provides an **exhaustive repository of technical interview question
     An attacker who XORs the ciphertexts immediately eliminates the key and obtains the XOR of both plaintexts, destroying confidentiality. Furthermore, the Galois hash key ($H$) can be recovered, allowing attackers to forge arbitrary valid ciphertexts.
   - **Prevention in LedgerOne:** Every single encryption operation generates a **fresh, cryptographically random 12-byte IV** using `SecureRandom`. The unique IV is prepended to the ciphertext byte array, ensuring that nonces are never reused.
 
-#### Q22. How does `FLAG_SECURE` protect banking screens during multitasking, recent apps, and screenshots?
+#### Q23. How does `FLAG_SECURE` protect banking screens during multitasking, recent apps, and screenshots?
 - **Interviewer Perspective:** Evaluates OS window security and data privacy (PII) leakage prevention.
 - **Answer:**
   When a user switches apps, the Android OS window manager captures a snapshot of the active window buffer to render the thumbnail in the "Recent Apps" / multitasking overview.
@@ -5239,7 +5516,7 @@ This section provides an **exhaustive repository of technical interview question
 
 ### <a id="category-6-offline-first-synchronization-testing--production-operations"></a>Category 6: Offline-First Synchronization, Testing & Production Operations
 
-#### Q23. How does LedgerOne implement an Offline-First architecture with Room sync states and WorkManager?
+#### Q24. How does LedgerOne implement an Offline-First architecture with Room sync states and WorkManager?
 - **Interviewer Perspective:** Validates resilient distributed systems design on mobile devices.
 - **Answer:**
   1. **Immediate Local Persistence:** When a user initiates a transaction or updates account settings offline, the write is executed immediately against the local Room SQLite database with a sync status flag: `SyncState.PENDING_CREATE` or `PENDING_UPDATE`. The UI updates instantly via Room's reactive `Flow`.
@@ -5249,7 +5526,7 @@ This section provides an **exhaustive repository of technical interview question
   3. **Exponential Backoff:** If the sync request fails due to server unavailability or network timeouts, WorkManager automatically retries using exponential backoff (`BackoffPolicy.EXPONENTIAL`).
   4. **Reconciliation:** Upon successful HTTP 200 response from the bank gateway, the local record's sync flag is updated atomically to `SyncState.SYNCED`.
 
-#### Q24. How are Room schema migrations (`Migration(1, 2)`) tested to guarantee zero data loss during user app updates?
+#### Q25. How are Room schema migrations (`Migration(1, 2)`) tested to guarantee zero data loss during user app updates?
 - **Interviewer Perspective:** Assesses data persistence safety and update verification in production fintech apps.
 - **Answer:**
   Room migrations altering database schemas (e.g. adding columns, changing foreign keys, or creating tables) can crash the app on startup with `IllegalStateException` if the migration script does not match Room's generated schema hash, or worse, silently wipe user tables if fallback to destructive migration is enabled.
@@ -5276,7 +5553,7 @@ This section provides an **exhaustive repository of technical interview question
   }
   ```
 
-#### Q25. How does `SafeApiCall` encapsulate network failures, and why must HTTP status codes never throw unhandled exceptions?
+#### Q26. How does `SafeApiCall` encapsulate network failures, and why must HTTP status codes never throw unhandled exceptions?
 - **Interviewer Perspective:** Evaluates network resilience, error propagation, and API domain mapping.
 - **Answer:**
   Unhandled HTTP exceptions (e.g. 401 Unauthorized, 404 Not Found, 500 Internal Server Error) bubble up the call stack and crash the app if unhandled.
@@ -5290,7 +5567,7 @@ This section provides an **exhaustive repository of technical interview question
   - **Main-Safety:** Switches execution to `Dispatchers.IO` internally.
   - **Domain Mapping:** ViewModels map `HttpError(401)` to an automatic session-lock event, `HttpError(429)` to a retry-countdown banner, and `NetworkError` to an offline cached view without crashing.
 
-#### Q26. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine?
+#### Q27. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine?
 - **Interviewer Perspective:** Evaluates app lifecycle governance, backend API deprecation handling, and store distribution policies.
 - **Answer:**
   When a critical security vulnerability is patched (e.g. key rotation or API contract overhaul), running outdated APK versions in the wild poses severe fraud and compliance risks.
@@ -5300,7 +5577,7 @@ This section provides an **exhaustive repository of technical interview question
   - If `localVersion < minimumSupportedVersion`, navigation is intercepted and routed to [`ForceUpdateScreen`](feature/update/src/main/kotlin/com/ledger/personal/feature/update/ui/ForceUpdateScreen.kt).
   - The screen is **completely non-dismissible** (no back button, no dismiss action) and displays a primary action linking directly to the Google Play Store via `market://details?id=...`. The user is blocked from accessing any local ledger records until the updated binary is installed.
 
-#### Q27. What is the production Staged Rollout Strategy and Automated Incident Rollback Playbook?
+#### Q28. What is the production Staged Rollout Strategy and Automated Incident Rollback Playbook?
 - **Interviewer Perspective:** Assesses operational engineering leadership, release risk management, and Google Play Vitals governance.
 - **Answer:**
   Releasing a new fintech build directly to 100% of users invites catastrophe if an unforeseen edge case crashes devices or corrupts local databases.

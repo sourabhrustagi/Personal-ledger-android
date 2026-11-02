@@ -94,3 +94,4 @@ class DecomposeHistoryComponentTest {
         assertNull(component.state.value.selectedTransaction)
     }
 }
+

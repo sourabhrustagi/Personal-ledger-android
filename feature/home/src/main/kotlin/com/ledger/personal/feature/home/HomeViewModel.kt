@@ -11,6 +11,8 @@ import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromotionsBackend
 import com.ledger.personal.domain.model.Transaction
 import com.ledger.personal.domain.repository.TransactionRepository
+import com.ledger.personal.feature.home.model.DayGroup
+import com.ledger.personal.feature.home.model.HomeUiState
 import com.ledger.personal.domain.sync.SyncCoordinator
 import com.ledger.personal.domain.sync.SyncPhase
 import com.ledger.personal.domain.usecase.GetTransactionsUseCase
@@ -32,28 +34,6 @@ const val INCOME_CATEGORY = LedgerConstants.CATEGORY_SALARY
 
 /** Reports whether this is credit. */
 fun Transaction.isCredit(): Boolean = category == INCOME_CATEGORY
-
-/** Day group. */
-data class DayGroup(val label: String, val items: List<Transaction>)
-
-/** Values rendered by the home screen. */
-data class HomeUiState(
-    val loading: Boolean = true,
-    val query: String = "",
-    val category: String? = null,
-    val categories: List<String> = emptyList(),
-    val groups: List<DayGroup> = emptyList(),
-    val monthInMinor: Long = 0,
-    val monthOutMinor: Long = 0,
-    val sync: SyncPhase = SyncPhase.IDLE,
-    val pendingDelete: Transaction? = null,
-    val total: Int = 0,
-    val tabs: List<HomeTab> = essentialTabs,
-    val sections: List<HomeSection> = emptyList(),
-    val layoutReady: Boolean = false,
-    val layoutMessage: String? = null,
-    val promotions: List<PromoOffer> = emptyList(),
-)
 
 private const val RECENT_LIMIT = LedgerConstants.DEFAULT_RECENT_LIMIT
 

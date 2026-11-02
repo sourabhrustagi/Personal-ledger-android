@@ -84,3 +84,4 @@ class MavericksHistoryViewModelTest {
         assertNull(viewModel.stateFlow.value.selectedTransaction)
     }
 }
+

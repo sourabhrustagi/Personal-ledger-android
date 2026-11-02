@@ -63,3 +63,4 @@ inline fun <reified T : ScreenModel> rememberScreenModel(
     tag: String? = null,
     crossinline factory: @DisallowComposableCalls () -> T,
 ): T = remember(tag) { factory() }
+

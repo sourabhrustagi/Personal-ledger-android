@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledger.personal.domain.board.PromoTab
 import com.ledger.personal.domain.usecase.GetPromotionsUseCase
+import com.ledger.personal.feature.promotions.model.PromotionsUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,12 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
-
-/** UI State for the Promotions screen. */
-data class PromotionsUiState(
-    val shelves: List<PromoTab> = emptyList(),
-    val selected: String = "",
-)
 
 /** Promotions view model, consuming [GetPromotionsUseCase]. */
 @HiltViewModel

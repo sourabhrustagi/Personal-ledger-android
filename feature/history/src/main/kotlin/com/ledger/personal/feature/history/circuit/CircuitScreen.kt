@@ -32,3 +32,4 @@ interface CircuitUi<UiState : CircuitUiState> {
     @Composable
     fun Content(state: UiState, modifier: Modifier)
 }
+

@@ -14,3 +14,4 @@ enum class HistoryFilterCategory(val label: String) {
         val ALL_CATEGORIES = entries.toList()
     }
 }
+

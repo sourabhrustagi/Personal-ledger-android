@@ -19,3 +19,4 @@ data class MoleculeHistoryState(
             transactions.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
 }
+

@@ -3,7 +3,7 @@ package com.ledger.personal.feature.home.model
 import com.ledger.personal.domain.board.HomeSection
 import com.ledger.personal.domain.board.HomeTab
 import com.ledger.personal.domain.board.PromoOffer
-import com.ledger.personal.domain.model.SyncPhase
+import com.ledger.personal.domain.sync.SyncPhase
 import com.ledger.personal.domain.model.Transaction
 
 /** Home and main product tabs stay reachable when the dashboard cannot be loaded. */
@@ -32,3 +32,4 @@ data class HomeUiState(
     val layoutMessage: String? = null,
     val promotions: List<PromoOffer> = emptyList(),
 )
+

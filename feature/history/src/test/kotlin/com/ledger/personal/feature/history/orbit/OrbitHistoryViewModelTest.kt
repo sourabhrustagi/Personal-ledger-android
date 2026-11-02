@@ -81,3 +81,4 @@ class OrbitHistoryViewModelTest {
         assertNull(viewModel.container.stateFlow.value.selectedTransaction)
     }
 }
+

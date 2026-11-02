@@ -5,3 +5,4 @@ sealed interface OrbitHistorySideEffect {
     data class ShowToast(val message: String) : OrbitHistorySideEffect
     data class TransactionClicked(val id: String) : OrbitHistorySideEffect
 }
+

@@ -8,3 +8,4 @@ data class SessionState(
     val revealBalances: Boolean = false,
     val signInMessage: String? = null,
 )
+

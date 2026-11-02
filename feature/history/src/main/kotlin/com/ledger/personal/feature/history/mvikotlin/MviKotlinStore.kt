@@ -96,3 +96,4 @@ class DefaultStore<Intent : Any, Action : Any, Message : Any, State : Any, Label
         scope.cancel()
     }
 }
+

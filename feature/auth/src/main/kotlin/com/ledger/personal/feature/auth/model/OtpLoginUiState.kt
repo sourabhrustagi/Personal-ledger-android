@@ -5,3 +5,4 @@ data class OtpLoginUiState(
     val phone: String,
     val demoOtp: Boolean = false,
 )
+

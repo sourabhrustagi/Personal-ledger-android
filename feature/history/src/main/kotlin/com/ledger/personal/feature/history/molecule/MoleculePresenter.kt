@@ -20,3 +20,4 @@ class MoleculePresenterScope<EVENT : Any> {
 @Composable
 fun <EVENT : Any> rememberMoleculeScope(): MoleculePresenterScope<EVENT> =
     remember { MoleculePresenterScope() }
+

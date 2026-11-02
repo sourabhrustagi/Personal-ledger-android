@@ -28,3 +28,4 @@ fun Transaction.toItem(): HistoryTransactionItem = HistoryTransactionItem(
     description = description,
     timestampEpochMs = timestampEpochMs,
 )
+

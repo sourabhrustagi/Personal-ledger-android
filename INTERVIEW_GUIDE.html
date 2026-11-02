@@ -472,7 +472,7 @@
       </div>
 
       <div class="stats-bar">
-        <div class="stat-pill">Total Questions: <strong>43 Exhaustive Topics</strong></div>
+        <div class="stat-pill">Total Questions: <strong>44 Exhaustive Topics</strong></div>
         <div class="stat-pill">Architecture: <strong>3-Tier Multi-Module</strong></div>
         <div class="stat-pill">UI: <strong>100% Jetpack Compose M3</strong></div>
         <div class="stat-pill">Persistence: <strong>Room (Offline-First)</strong></div>
@@ -486,7 +486,7 @@
           <input type="text" id="searchInput" class="search-input" placeholder="Search questions (e.g. CancellationException, Double-Entry, Room, Remember, Keystore, a11y, Effects)..." oninput="filterCards()">
         </div>
         <div class="category-pills">
-          <button class="cat-btn active" onclick="setCategory('all', this)">All Topics (43)</button>
+          <button class="cat-btn active" onclick="setCategory('all', this)">All Topics (44)</button>
           <button class="cat-btn" onclick="setCategory('Architecture', this)">Architecture & Modules</button>
           <button class="cat-btn" onclick="setCategory('Coroutines', this)">Coroutines & Flows</button>
           <button class="cat-btn" onclick="setCategory('Financial Math', this)">Financial Invariants</button>
@@ -1129,6 +1129,40 @@ Box(Modifier.drawBehind { drawRect(color = dynamicColorState.value) })</code></p
     </div>
 
     <!-- QUESTION 23 -->
+    <div class="qa-card" data-category="Compose & UI">
+      <div class="qa-header" onclick="toggleCard(this)">
+        <div class="qa-title-group">
+          <div class="qa-meta">
+            <span class="topic-tag">Compose & UI</span>
+            <span class="difficulty-tag diff-deep">Deep Dive</span>
+          </div>
+          <div class="qa-question">23. What was the `@Model` annotation in early Jetpack Compose, why was it deprecated and completely removed, and what is the modern production architecture replacing it?</div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="qa-body">
+        <div class="qa-answer">
+          <p>In pre-1.0 developer previews of Jetpack Compose (2019–2020), <code>@Model</code> (<code>androidx.compose.Model</code>) was a compiler plugin annotation designed to make Kotlin classes automatically observable without boilerplate.</p>
+          <p><strong>1. Under the Hood (Compiler Bytecode Magic):</strong> The Compose compiler plugin intercepted <code>@Model</code> classes at compile time and synthesized private <code>MutableState&lt;T&gt;</code> backing fields for every <code>var</code> property, secretly rewriting getters to call <code>Snapshot.readObserver()</code> and setters to call <code>Snapshot.writeObserver()</code>.</p>
+          <p><strong>2. Why Google Deprecated and Completely Removed It:</strong></p>
+          <ul>
+            <li><strong>Excessive Bytecode Magic:</strong> It hid memory allocations and snapshot mechanics behind a mutable POJO, causing confusing stack traces and difficult debugging.</li>
+            <li><strong>Violation of Unidirectional Data Flow (UDF):</strong> Developers passed mutable <code>@Model</code> instances down to child composables, allowing child views to mutate parent state in-place—reintroducing two-way data binding and "spaghetti state."</li>
+            <li><strong>Recomposition Ambiguity:</strong> Granularity across nested objects was unpredictable, often triggering whole-screen recompositions or missing granular updates.</li>
+            <li><strong>Zero Process Death Compatibility:</strong> Plain heap allocations could not serialize into <code>Bundle</code> or integrate with <code>SavedStateRegistry</code> / <code>rememberSaveable</code>.</li>
+            <li><strong>Clash with Kotlin Idioms:</strong> Idiomatic Kotlin emphasizes immutable data classes (<code>val</code>), copying (<code>copy()</code>), and pure functional state streams (<code>StateFlow</code>).</li>
+          </ul>
+          <p><strong>3. The Modern Production Replacements:</strong></p>
+          <ul>
+            <li><strong>Local UI State:</strong> <code>var state by rememberSaveable { mutableStateOf(...) }</code> with primitive specializations (<code>mutableIntStateOf</code>).</li>
+            <li><strong>Component State Holders:</strong> <code>@Stable</code> classes with encapsulated <code>private set</code> and custom <code>Saver</code> (e.g. <code>ModernInputState</code> in <code>:core:designsystem</code>).</li>
+            <li><strong>Screen / Business Logic:</strong> ViewModels exposing read-only <code>StateFlow&lt;UiState&gt;</code> with atomic transitions (<code>MutableStateFlow.update { it.copy(...) }</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTION 24 -->
     <div class="qa-card" data-category="Room & Sync">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1136,7 +1170,7 @@ Box(Modifier.drawBehind { drawRect(color = dynamicColorState.value) })</code></p
             <span class="topic-tag">Room & Sync</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">23. How does LedgerOne implement an Offline-First architecture with Room and WorkManager?</div>
+          <div class="qa-question">24. How does LedgerOne implement an Offline-First architecture with Room and WorkManager?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1152,7 +1186,7 @@ Box(Modifier.drawBehind { drawRect(color = dynamicColorState.value) })</code></p
       </div>
     </div>
 
-    <!-- QUESTION 24 -->
+    <!-- QUESTION 25 -->
     <div class="qa-card" data-category="Room & Sync">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1160,7 +1194,7 @@ Box(Modifier.drawBehind { drawRect(color = dynamicColorState.value) })</code></p
             <span class="topic-tag">Room & Sync</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">24. How are Room schema migrations (`Migration(1, 2)`) tested to guarantee zero data loss during user app updates?</div>
+          <div class="qa-question">25. How are Room schema migrations (`Migration(1, 2)`) tested to guarantee zero data loss during user app updates?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1184,7 +1218,7 @@ fun migrate1To2() {
       </div>
     </div>
 
-    <!-- QUESTION 25 -->
+    <!-- QUESTION 26 -->
     <div class="qa-card" data-category="Room & Sync">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1192,7 +1226,7 @@ fun migrate1To2() {
             <span class="topic-tag">Room & Sync</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">25. How does `SafeApiCall` encapsulate network failures, and why must HTTP status codes never throw unhandled exceptions?</div>
+          <div class="qa-question">26. How does `SafeApiCall` encapsulate network failures, and why must HTTP status codes never throw unhandled exceptions?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1209,7 +1243,7 @@ fun migrate1To2() {
       </div>
     </div>
 
-    <!-- QUESTION 26 -->
+    <!-- QUESTION 27 -->
     <div class="qa-card" data-category="Room & Sync">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1217,7 +1251,7 @@ fun migrate1To2() {
             <span class="topic-tag">Room & Sync</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">26. How does Hilt achieve build-flavor dependency injection (`prod` vs `mock`) using `@Binds` and `@InstallIn`?</div>
+          <div class="qa-question">27. How does Hilt achieve build-flavor dependency injection (`prod` vs `mock`) using `@Binds` and `@InstallIn`?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1233,7 +1267,7 @@ fun migrate1To2() {
       </div>
     </div>
 
-    <!-- QUESTION 27 -->
+    <!-- QUESTION 28 -->
     <div class="qa-card" data-category="Accessibility">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1241,7 +1275,7 @@ fun migrate1To2() {
             <span class="topic-tag">Accessibility</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">27. How is accessibility (a11y) handled for masked balances in `MaskedAmount.kt`?</div>
+          <div class="qa-question">28. How is accessibility (a11y) handled for masked balances in `MaskedAmount.kt`?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1270,7 +1304,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 28 -->
+    <!-- QUESTION 29 -->
     <div class="qa-card" data-category="Accessibility">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1278,7 +1312,7 @@ IconButton(
             <span class="topic-tag">Accessibility</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">28. Why does LedgerOne use OpenType tabular numerals (`tnum`) for currency displays?</div>
+          <div class="qa-question">29. Why does LedgerOne use OpenType tabular numerals (`tnum`) for currency displays?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1290,7 +1324,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 29 -->
+    <!-- QUESTION 30 -->
     <div class="qa-card" data-category="Accessibility">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1298,7 +1332,7 @@ IconButton(
             <span class="topic-tag">Accessibility</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">29. What are Android's minimum touch target standards, and how are they enforced in LedgerOne?</div>
+          <div class="qa-question">30. What are Android's minimum touch target standards, and how are they enforced in LedgerOne?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1315,7 +1349,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 30 -->
+    <!-- QUESTION 31 -->
     <div class="qa-card" data-category="Accessibility">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1323,7 +1357,7 @@ IconButton(
             <span class="topic-tag">Accessibility</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">30. How does LedgerOne implement Android 13+ Per-App Languages and multilingual Hindi localization?</div>
+          <div class="qa-question">31. How does LedgerOne implement Android 13+ Per-App Languages and multilingual Hindi localization?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1338,7 +1372,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 31 -->
+    <!-- QUESTION 32 -->
     <div class="qa-card" data-category="Compose & UI">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1346,7 +1380,7 @@ IconButton(
             <span class="topic-tag">Compose & UI</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">31. How does LedgerOne adapt layouts across Compact, Medium, and Expanded Window Size Classes on foldables and tablets?</div>
+          <div class="qa-question">32. How does LedgerOne adapt layouts across Compact, Medium, and Expanded Window Size Classes on foldables and tablets?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1361,7 +1395,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 32 -->
+    <!-- QUESTION 33 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1369,7 +1403,7 @@ IconButton(
             <span class="topic-tag">Testing & DevOps</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">32. Explain the 70/20/10 Testing Pyramid and how Compose UI Semantics tests operate in LedgerOne.</div>
+          <div class="qa-question">33. Explain the 70/20/10 Testing Pyramid and how Compose UI Semantics tests operate in LedgerOne.</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1384,7 +1418,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 33 -->
+    <!-- QUESTION 34 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1392,7 +1426,7 @@ IconButton(
             <span class="topic-tag">Testing & DevOps</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">33. What is the production Staged Rollout Strategy and Automated Incident Rollback Playbook?</div>
+          <div class="qa-question">34. What is the production Staged Rollout Strategy and Automated Incident Rollback Playbook?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1413,7 +1447,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 34 -->
+    <!-- QUESTION 35 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1421,7 +1455,7 @@ IconButton(
             <span class="topic-tag">Testing & DevOps</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">34. How do you incrementally migrate legacy XML & DataBinding layouts to Jetpack Compose using `ComposeView`?</div>
+          <div class="qa-question">35. How do you incrementally migrate legacy XML & DataBinding layouts to Jetpack Compose using `ComposeView`?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1442,7 +1476,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 35 -->
+    <!-- QUESTION 36 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1450,7 +1484,7 @@ IconButton(
             <span class="topic-tag">Testing & DevOps</span>
             <span class="difficulty-tag diff-deep">Deep Dive</span>
           </div>
-          <div class="qa-question">35. How do you profile and measure Compose performance using Compose Compiler Metrics and Macrobenchmark?</div>
+          <div class="qa-question">36. How do you profile and measure Compose performance using Compose Compiler Metrics and Macrobenchmark?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1466,7 +1500,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 36 -->
+    <!-- QUESTION 37 -->
     <div class="qa-card" data-category="Architecture">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1474,7 +1508,7 @@ IconButton(
             <span class="topic-tag">Architecture & Hardware</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">36. How does LedgerOne's QR scanner module (`:feature:scan`) achieve zero-latency QR code detection without dropping UI frames or locking camera hardware?</div>
+          <div class="qa-question">37. How does LedgerOne's QR scanner module (`:feature:scan`) achieve zero-latency QR code detection without dropping UI frames or locking camera hardware?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1491,7 +1525,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 37 -->
+    <!-- QUESTION 38 -->
     <div class="qa-card" data-category="Payments & Security">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1499,7 +1533,7 @@ IconButton(
             <span class="topic-tag">Hardware Security</span>
             <span class="difficulty-tag diff-deep">Deep Dive</span>
           </div>
-          <div class="qa-question">37. How does LedgerOne integrate `BiometricPrompt` with hardware-backed Keystore `CryptoObject` to authorize high-value transactions securely?</div>
+          <div class="qa-question">38. How does LedgerOne integrate `BiometricPrompt` with hardware-backed Keystore `CryptoObject` to authorize high-value transactions securely?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1516,7 +1550,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 38 -->
+    <!-- QUESTION 39 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1524,7 +1558,7 @@ IconButton(
             <span class="topic-tag">Diagnostics & Tooling</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">38. How are memory leaks and network traffic inspected in LedgerOne without degrading production APK performance or exposing sensitive PII?</div>
+          <div class="qa-question">39. How are memory leaks and network traffic inspected in LedgerOne without degrading production APK performance or exposing sensitive PII?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1540,7 +1574,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 39 -->
+    <!-- QUESTION 40 -->
     <div class="qa-card" data-category="Payments & Security">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1548,7 +1582,7 @@ IconButton(
             <span class="topic-tag">Cryptographic Security</span>
             <span class="difficulty-tag diff-deep">Deep Dive</span>
           </div>
-          <div class="qa-question">39. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage during database column encryption?</div>
+          <div class="qa-question">40. Why is Nonce / IV reuse in AES-GCM encryption catastrophic, and how does LedgerOne prevent keystream leakage during database column encryption?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1567,7 +1601,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 40 -->
+    <!-- QUESTION 41 -->
     <div class="qa-card" data-category="Architecture">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1575,7 +1609,7 @@ IconButton(
             <span class="topic-tag">Staff Engineering & Leadership</span>
             <span class="difficulty-tag diff-deep">Deep Dive</span>
           </div>
-          <div class="qa-question">40. Describe how you handle high-pressure business/product requests that introduce severe architectural and security risks (The "Zero-Friction Offline Auto-Pay" trade-off).</div>
+          <div class="qa-question">41. Describe how you handle high-pressure business/product requests that introduce severe architectural and security risks (The "Zero-Friction Offline Auto-Pay" trade-off).</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1598,7 +1632,7 @@ IconButton(
       </div>
     </div>
 
-    <!-- QUESTION 41 -->
+    <!-- QUESTION 42 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1606,7 +1640,7 @@ IconButton(
             <span class="topic-tag">Testing & Quality</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">41. How do you test asynchronous Kotlin Flows and state transitions deterministically without using flaky `Thread.sleep()` or arbitrary coroutine `delay()`?</div>
+          <div class="qa-question">42. How do you test asynchronous Kotlin Flows and state transitions deterministically without using flaky `Thread.sleep()` or arbitrary coroutine `delay()`?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1641,7 +1675,7 @@ fun `transfers flow transitions from Loading to Success with transaction items`(
       </div>
     </div>
 
-    <!-- QUESTION 42 -->
+    <!-- QUESTION 43 -->
     <div class="qa-card" data-category="Testing & DevOps">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1649,7 +1683,7 @@ fun `transfers flow transitions from Loading to Success with transaction items`(
             <span class="topic-tag">Static Analysis & CI</span>
             <span class="difficulty-tag diff-core">Core</span>
           </div>
-          <div class="qa-question">42. How does LedgerOne enforce architectural modularity, Kotlin idioms, and prevent secret leaks before code is merged?</div>
+          <div class="qa-question">43. How does LedgerOne enforce architectural modularity, Kotlin idioms, and prevent secret leaks before code is merged?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
@@ -1666,7 +1700,7 @@ fun `transfers flow transitions from Loading to Success with transaction items`(
       </div>
     </div>
 
-    <!-- QUESTION 43 -->
+    <!-- QUESTION 44 -->
     <div class="qa-card" data-category="Architecture">
       <div class="qa-header" onclick="toggleCard(this)">
         <div class="qa-title-group">
@@ -1674,7 +1708,7 @@ fun `transfers flow transitions from Loading to Success with transaction items`(
             <span class="topic-tag">App Distribution & Updates</span>
             <span class="difficulty-tag diff-adv">Advanced</span>
           </div>
-          <div class="qa-question">43. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine (`:feature:update`)?</div>
+          <div class="qa-question">44. How does LedgerOne handle mandatory security patches and breaking API migrations using the Force Update Engine (`:feature:update`)?</div>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>

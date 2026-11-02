@@ -19,3 +19,4 @@ data class MviKotlinHistoryState(
             transactions.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
 }
+

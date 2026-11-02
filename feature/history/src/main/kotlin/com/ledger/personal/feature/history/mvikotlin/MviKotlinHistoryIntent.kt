@@ -28,3 +28,4 @@ sealed interface MviKotlinHistoryMessage {
 sealed interface MviKotlinHistoryLabel {
     data class Toast(val message: String) : MviKotlinHistoryLabel
 }
+

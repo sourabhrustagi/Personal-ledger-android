@@ -19,3 +19,4 @@ data class OrbitHistoryState(
             transactions.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
 }
+

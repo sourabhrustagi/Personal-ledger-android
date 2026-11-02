@@ -17,11 +17,11 @@ import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.feature.auth.login.LoginViewModel
 import com.ledger.personal.feature.auth.login.OtpLoginScreen
-import com.ledger.personal.feature.auth.login.OtpLoginUiState
+import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.feature.auth.onboarding.OnboardingFlow
 import com.ledger.personal.feature.auth.onboarding.OnboardingViewModel
+import com.ledger.personal.feature.update.model.ForceUpdateUiState
 import com.ledger.personal.feature.update.ui.ForceUpdateScreen
-import com.ledger.personal.feature.update.ui.ForceUpdateUiState
 import com.ledger.personal.feature.update.ui.SoftUpdateDialog
 import com.ledger.personal.ui.navigation.LedgerNavHost
 import com.ledger.personal.ui.theme.LedgerOneTheme

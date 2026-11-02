@@ -75,3 +75,4 @@ abstract class MavericksViewModel<S : MavericksState>(
         }
     }
 }
+

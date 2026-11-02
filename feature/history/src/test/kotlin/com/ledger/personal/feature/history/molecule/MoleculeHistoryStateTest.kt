@@ -46,3 +46,4 @@ class MoleculeHistoryStateTest {
         assertNull(dismissed.selectedTransaction)
     }
 }
+

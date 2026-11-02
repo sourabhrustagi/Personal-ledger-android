@@ -41,3 +41,4 @@ class CircuitHistoryStateTest {
         assertEquals("tx-1", state.filteredTransactions[0].id)
     }
 }
+

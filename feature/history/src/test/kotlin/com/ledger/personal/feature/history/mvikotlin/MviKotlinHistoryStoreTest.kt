@@ -85,3 +85,4 @@ class MviKotlinHistoryStoreTest {
         assertNull(store.stateFlow.value.selectedTransaction)
     }
 }
+

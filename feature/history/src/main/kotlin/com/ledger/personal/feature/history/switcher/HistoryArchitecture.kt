@@ -81,3 +81,4 @@ enum class HistoryArchitecture(
         val ALL = entries.toList()
     }
 }
+

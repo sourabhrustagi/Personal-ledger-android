@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ledger.personal.domain.board.PromoOffer
 import com.ledger.personal.domain.board.PromoTab
+import com.ledger.personal.feature.promotions.model.PromotionsUiState
 import com.ledger.personal.ui.components.FeatureScaffold
 import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.theme.AppStrings

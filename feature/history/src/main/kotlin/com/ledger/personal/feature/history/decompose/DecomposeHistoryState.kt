@@ -19,3 +19,4 @@ data class DecomposeHistoryState(
             transactions.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
 }
+

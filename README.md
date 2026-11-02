@@ -2732,71 +2732,583 @@ feature/history/src/main/kotlin/com/ledger/personal/feature/history/
 
 ### 3. Deep Dive into the 8 State Management Architectures
 
+Below is an exhaustive, production-grade architectural breakdown of each framework implemented in `:feature:history`, covering their origin, core problem solved, under-the-hood coroutine mechanics, data flow diagrams, concrete codebase implementations, and trade-offs.
+
+---
+
 #### A. Standard Android ViewModel + Paging (Google / AndroidX)
-- **Philosophy:** Google's canonical architecture recommendations combining `androidx.lifecycle.ViewModel` with `PagingData` streams.
-- **Mechanics:** 
-  - `LedgerHistoryViewModel` injects `GetPagedTransactionsUseCase` and calls `.cachedIn(viewModelScope)`.
-  - The UI consumes `viewModel.pages.collectAsLazyPagingItems()` to render infinite virtualized scrolling.
-- **When to Use:** Standard Android-only applications requiring robust paginated lists, automated placeholder insertion, and simple lifecycle scoping.
+
+##### 1. Origin & Core Problem Solved
+Google introduced `androidx.lifecycle.ViewModel` in 2017 to solve Android's configuration change problem: when a user rotates their device, the `Activity` is completely destroyed and recreated, wiping all in-memory UI state unless preserved. The `ViewModel` survives configuration changes by attaching its lifecycle to the `ViewModelStoreOwner` on the JVM heap.
+
+When combined with **Paging 3**, it solves the problem of displaying unbounded database records (e.g. hundreds of thousands of transaction audit logs) without causing Out-Of-Memory (OOM) errors or UI stutter.
+
+##### 2. Architectural Data Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as LedgerHistoryScreen
+    participant VM as LedgerHistoryViewModel
+    participant UC as GetPagedTransactionsUseCase
+    participant DB as Room Database / PagingSource
+
+    UI->>VM: Collect viewModel.pages.collectAsLazyPagingItems()
+    VM->>UC: invoke() -> repository.pages()
+    UC->>DB: Query PagingSource(pageSize = 20)
+    DB-->>VM: Flow<PagingData<Transaction>> cached in viewModelScope
+    VM-->>UI: Emits PagingData window
+    UI->>UI: LazyColumn renders items with itemKey & itemContentType
+```
+
+##### 3. Implementation in `:feature:history`
+In [`LedgerHistoryViewModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/LedgerHistoryViewModel.kt):
+```kotlin
+@HiltViewModel
+class LedgerHistoryViewModel @Inject constructor(
+    getPagedTransactionsUseCase: GetPagedTransactionsUseCase,
+    val repository: TransactionRepository,
+) : ViewModel() {
+    val pages: Flow<PagingData<Transaction>> =
+        getPagedTransactionsUseCase().cachedIn(viewModelScope)
+}
+```
+
+In [`LedgerHistoryScreen.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/LedgerHistoryScreen.kt):
+```kotlin
+val pages = viewModel.pages.collectAsLazyPagingItems()
+LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    items(
+        count = pages.itemCount,
+        key = pages.itemKey { it.id },
+        contentType = pages.itemContentType { "passbook_row" },
+    ) { index ->
+        val row = pages[index] ?: return@items
+        HistoryTransactionRow(item = row.toItem(), onClick = { ... })
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Official Google baseline; automated item diffing on background threads; automated placeholder allocation; built-in error and append states (`pages.loadState.append`).
+- **Disadvantages:** Hard-coupled to `androidx.lifecycle` (cannot easily be shared across Kotlin Multiplatform iOS/Desktop targets); PagingData is a cold stream that cannot easily be mutated in-memory (e.g. local category filtering requires rebuilding the entire PagingSource query).
+
+---
 
 #### B. Orbit MVI (Orbit MVI Community)
-- **Philosophy:** Pragmatic coroutine-based MVI that keeps ViewModel semantics while providing strict Unidirectional Data Flow.
-- **Mechanics:**
-  - ViewModels implement `ContainerHost<STATE, SIDE_EFFECT>`.
-  - Operations execute inside `intent { ... }` blocks.
-  - State mutations must call `reduce { state.copy(...) }`.
-  - One-off events (snackbars, navigation) use `postSideEffect(effect)`.
-- **When to Use:** Teams desiring MVI purity without the heavy boilerplate of multi-class reducers or executors.
+
+##### 1. Origin & Core Problem Solved
+Early MVI libraries in Android (such as Mosby or RxMVI) required immense boilerplate: creating 6–8 distinct classes for every screen (Intents, Actions, Results, Reducers, ViewState, ViewEffects, Middlewares). 
+
+The **Orbit MVI** community created a lightweight, coroutine-native MVI framework centered on the concept of a **`ContainerHost`**. Orbit allows developers to keep familiar ViewModel semantics while guaranteeing strict Unidirectional Data Flow (UDF), thread-safe state reduction, and reliable one-off side effects.
+
+##### 2. Architectural Data Flow
+```mermaid
+flowchart TD
+    UI["OrbitHistoryContent (Compose UI)"]
+    Intent["intent { ... } Coroutine Builder"]
+    Reducer["reduce { state.copy(...) }\n(Protected by Mutex)"]
+    Container["OrbitContainer\n• StateFlow<OrbitHistoryState>\n• Channel<OrbitHistorySideEffect>"]
+    SideEffect["postSideEffect(Effect)"]
+    
+    UI -->|User clicks filter chip| Intent
+    Intent --> Reducer
+    Reducer --> Container
+    Container -->|stateFlow emits| UI
+    Intent --> SideEffect
+    SideEffect --> Container
+    Container -->|sideEffectFlow emits| UI
+```
+
+##### 3. Implementation in `:feature:history:orbit`
+In [`OrbitContainer.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/orbit/OrbitContainer.kt):
+```kotlin
+interface Container<STATE : Any, SIDE_EFFECT : Any> {
+    val stateFlow: StateFlow<STATE>
+    val sideEffectFlow: Flow<SIDE_EFFECT>
+    val scope: CoroutineScope
+    suspend fun reduce(reducer: (STATE) -> STATE)
+    suspend fun postSideEffect(sideEffect: SIDE_EFFECT)
+}
+
+interface ContainerHost<STATE : Any, SIDE_EFFECT : Any> {
+    val container: Container<STATE, SIDE_EFFECT>
+}
+```
+
+In [`OrbitHistoryViewModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/orbit/OrbitHistoryViewModel.kt):
+```kotlin
+@HiltViewModel
+class OrbitHistoryViewModel @Inject constructor(
+    private val repository: TransactionRepository,
+) : ViewModel(), ContainerHost<OrbitHistoryState, OrbitHistorySideEffect> {
+
+    override val container: Container<OrbitHistoryState, OrbitHistorySideEffect> =
+        OrbitContainer(OrbitHistoryState(isLoading = true), viewModelScope)
+
+    fun selectCategory(category: String?) = intent {
+        reduce { it.copy(selectedCategory = category) }
+    }
+
+    fun selectTransaction(item: HistoryTransactionItem?) = intent {
+        reduce { it.copy(selectedTransaction = item) }
+        if (item != null) {
+            postSideEffect(OrbitHistorySideEffect.TransactionClicked(item.id))
+        }
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Minimal boilerplate compared to classic MVI; side effects are buffered in a coroutine `Channel` (preventing lost events during screen rotation); state updates inside `reduce` are thread-safe.
+- **Disadvantages:** Intent lambdas run inside coroutines, requiring test dispatchers in unit tests; slightly higher learning curve than plain MVVM.
+
+---
 
 #### C. Molecule (CashApp / Jake Wharton)
-- **Philosophy:** Uses the Jetpack Compose compiler runtime off-screen to generate reactive state streams.
-- **Mechanics:**
-  - The presenter is literally a `@Composable` function: `moleculeHistoryPresenter(repository, events)`.
-  - Inside the presenter, standard Compose primitives (`remember`, `mutableStateOf`, `LaunchedEffect`) drive state transitions.
-  - The UI pushes events into a `Flow<MoleculeHistoryEvent>`, and the presenter re-runs to emit new state.
-- **When to Use:** Complex state machines with multi-input dependencies where declarative Compose code is significantly cleaner than reactive Flow operators (`combine`, `flatMapLatest`).
+
+##### 1. Origin & Core Problem Solved
+In standard Android MVVM, managing multi-variable reactive state in ViewModels often devolves into "Reactive Spaghetti": chaining multiple `Flow` streams with `combine`, `flatMapLatest`, `distinctUntilChanged`, `debounce`, and `stateIn`.
+
+**Jake Wharton** at CashApp realized that the **Jetpack Compose compiler and runtime** are not merely for drawing pixels—they form a world-class, battle-tested, general-purpose **reactive state calculation engine**. Molecule allows developers to write a `@Composable` function to define their state machine off-screen, completely replacing complex reactive flow operators with declarative Compose snapshot state (`remember`, `mutableStateOf`, `LaunchedEffect`).
+
+##### 2. Architectural Data Flow
+```mermaid
+flowchart LR
+    subgraph UI ["Compose UI Layer"]
+        Screen["MoleculeHistoryContent"]
+    end
+
+    subgraph Scope ["Molecule Scope"]
+        Events["MutableSharedFlow<MoleculeHistoryEvent>"]
+    end
+
+    subgraph Presenter ["Molecule Presenter (@Composable)"]
+        direction TB
+        State1["var selectedCategory by remember { mutableStateOf(null) }"]
+        State2["LaunchedEffect(events) { events.collectLatest { ... } }"]
+        State3["LaunchedEffect(repository) { observeTransactions() }"]
+        StateOut["MoleculeHistoryState(...)"]
+    end
+
+    Screen -->|User selects category| Events
+    Events -->|events: Flow<Event>| State2
+    State2 --> State1
+    State1 --> StateOut
+    StateOut -->|StateFlow / Snapshot State| Screen
+```
+
+##### 3. Implementation in `:feature:history:molecule`
+In [`MoleculeHistoryPresenter.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/molecule/MoleculeHistoryPresenter.kt):
+```kotlin
+@Composable
+fun moleculeHistoryPresenter(
+    repository: TransactionRepository,
+    events: Flow<MoleculeHistoryEvent>,
+): MoleculeHistoryState {
+    var isLoading by remember { mutableStateOf(true) }
+    var transactions by remember { mutableStateOf<List<HistoryTransactionItem>>(emptyList()) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedTransaction by remember { mutableStateOf<HistoryTransactionItem?>(null) }
+
+    LaunchedEffect(repository) {
+        repository.observeTransactions().collect { domainItems ->
+            transactions = domainItems.map { it.toItem() }
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(events) {
+        events.collectLatest { event ->
+            when (event) {
+                is MoleculeHistoryEvent.SelectCategory -> selectedCategory = event.category
+                is MoleculeHistoryEvent.SelectTransaction -> selectedTransaction = event.transaction
+                is MoleculeHistoryEvent.DismissDetail -> selectedTransaction = null
+                is MoleculeHistoryEvent.Refresh -> { ... }
+            }
+        }
+    }
+
+    return MoleculeHistoryState(
+        isLoading = isLoading,
+        transactions = transactions,
+        selectedCategory = selectedCategory,
+        selectedTransaction = selectedTransaction,
+    )
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Eliminates reactive stream wrestling; UI state logic is readable, linear, and declarative; leverages standard Compose knowledge in presenter code.
+- **Disadvantages:** Unit testing requires a Compose runtime runner or Molecule test harness; presenters cannot easily be invoked from non-Compose environments.
+
+---
 
 #### D. Circuit (Slack Technologies)
-- **Philosophy:** Slack's architecture built from the ground up for Jetpack Compose, emphasizing radical decoupling and testability.
-- **Mechanics:**
-  - Presenters and UIs are completely separate classes implementing `CircuitPresenter` and `CircuitUi`.
-  - **The Circuit Invariant:** State objects implement `CircuitUiState` and *contain their own event sink callback*: `val eventSink: (CircuitHistoryEvent) -> Unit`.
-  - The UI does not know the presenter exists; it simply reads state and calls `state.eventSink(event)`.
-- **When to Use:** Large multi-module Compose applications requiring decoupled UI and presenter code, easy screen navigation, and snapshot-level UI testing.
+
+##### 1. Origin & Core Problem Solved
+Slack Engineering discovered that in large multi-module Compose applications, ViewModels create tight coupling and massive testing friction. Screens require dozens of callback lambdas (`onItemClick`, `onBack`, `onFilterChanged`, `onRefresh`), cluttering function signatures.
+
+Slack created **Circuit** with a revolutionary architectural invariant: **The state object embeds its own event handler closure**:
+$$\text{CircuitUiState} \implies \text{val eventSink: (CircuitEvent) -> Unit}$$
+
+By embedding `eventSink` directly into the immutable state, the UI composable needs **only one parameter**: `state`. The UI does not know or care how the presenter is implemented, enabling instantaneous UI snapshot testing and perfect presenter decoupling.
+
+##### 2. Architectural Data Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as CircuitHistoryUi (Content)
+    participant State as CircuitHistoryUiState
+    participant Sink as eventSink: (CircuitHistoryEvent) -> Unit
+    participant Presenter as CircuitHistoryPresenter
+
+    Presenter->>State: present() generates state with embedded eventSink
+    State-->>UI: Delivered to Content(state)
+    UI->>Sink: state.eventSink(ChangeFilter("Food"))
+    Sink->>Presenter: Invokes internal closure mutation
+    Presenter->>State: Recomposition produces updated CircuitHistoryUiState
+    State-->>UI: UI re-renders with filtered items
+```
+
+##### 3. Implementation in `:feature:history:circuit`
+In [`CircuitScreen.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/circuit/CircuitScreen.kt) & [`CircuitHistoryState.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/circuit/CircuitHistoryState.kt):
+```kotlin
+interface CircuitUiState
+interface CircuitPresenter<UiState : CircuitUiState> {
+    @Composable fun present(): UiState
+}
+interface CircuitUi<UiState : CircuitUiState> {
+    @Composable fun Content(state: UiState, modifier: Modifier)
+}
+
+data class CircuitHistoryUiState(
+    val isLoading: Boolean = false,
+    val transactions: List<HistoryTransactionItem> = emptyList(),
+    val selectedCategory: String? = null,
+    val selectedTransaction: HistoryTransactionItem? = null,
+    val eventSink: (CircuitHistoryEvent) -> Unit,
+) : CircuitUiState
+```
+
+In [`CircuitHistoryPresenter.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/circuit/CircuitHistoryPresenter.kt):
+```kotlin
+class CircuitHistoryPresenter(
+    private val repository: TransactionRepository,
+) : CircuitPresenter<CircuitHistoryUiState> {
+
+    @Composable
+    override fun present(): CircuitHistoryUiState {
+        var selectedCategory by remember { mutableStateOf<String?>(null) }
+        // ...
+        return CircuitHistoryUiState(
+            selectedCategory = selectedCategory,
+            eventSink = { event ->
+                when (event) {
+                    is CircuitHistoryEvent.ChangeFilter -> selectedCategory = event.category
+                    is CircuitHistoryEvent.SelectTransaction -> selectedTransaction = event.transaction
+                    is CircuitHistoryEvent.DismissDetail -> selectedTransaction = null
+                    is CircuitHistoryEvent.Refresh -> { ... }
+                }
+            }
+        )
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Unbeatable UI decoupling; composables have a clean 1-parameter signature (`state: UiState`); UI snapshot tests simply pass a fake state with `eventSink = {}`; seamless screen-to-screen navigation via `CircuitScreen`.
+- **Disadvantages:** Event sink lambda closures are regenerated on recomposition unless carefully remembered; presenter code requires Compose runtime.
+
+---
 
 #### E. Decompose (Arkadii Ivanov)
-- **Philosophy:** Component-based architecture for Kotlin Multiplatform completely decoupled from Android `ViewModel`, Activity lifecycles, or Jetpack Compose.
-- **Mechanics:**
-  - Logic is encapsulated inside a tree of components (`DecomposeHistoryComponent`) created with a `ComponentContext`.
-  - State is exposed as an observable `Value<State>`, bridged to Compose via `subscribeAsState()`.
-  - Retained state instances (`InstanceKeeper`) survive Android Activity recreation without needing `ViewModelProvider`.
-- **When to Use:** Kotlin Multiplatform (KMP) codebases sharing business logic and navigation across Android, iOS, Desktop, and Web.
+
+##### 1. Origin & Core Problem Solved
+Android's `ViewModel` and Jetpack Compose navigation are fundamentally tied to Android platform lifecycles. They do not work natively on iOS, Desktop (JVM), or Web (Wasm/JS). Furthermore, Android's navigation mechanisms frequently suffer from state loss during complex nested backstacks or split-screen tablet configurations.
+
+**Arkadii Ivanov** designed **Decompose** as a pure Kotlin Multiplatform **Component Tree Architecture**. Decompose completely decouples business components from Android ViewModels and Compose, using an inversion-of-control container called `ComponentContext` to manage lifecycle, instance retention, and state preservation.
+
+##### 2. Architectural Data Flow
+```mermaid
+flowchart TD
+    subgraph Context ["Arkadii Ivanov ComponentContext"]
+        LC["Lifecycle (Multiplatform)"]
+        IK["InstanceKeeper (Survives Config Change)"]
+        SK["StateKeeper (Survives Process Death)"]
+        BH["BackHandler (Hardware / Gesture Back)"]
+    end
+
+    Component["DefaultDecomposeHistoryComponent\n(Pure Kotlin Component Class)"]
+    ValueState["Value<DecomposeHistoryState>\n(Observable Decompose Primitive)"]
+    Bridge["Value<T>.subscribeAsState()\n(Compose Bridge)"]
+    UI["DecomposeHistoryContent (Composable)"]
+
+    Context --- Component
+    Component -->|Owns & Mutates| ValueState
+    ValueState --> Bridge
+    Bridge -->|Recomposes on mutation| UI
+    UI -->|Calls component methods| Component
+```
+
+##### 3. Implementation in `:feature:history:decompose`
+In [`DecomposeComponentContext.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/decompose/DecomposeComponentContext.kt):
+```kotlin
+interface Value<out T : Any> {
+    val value: T
+    fun subscribe(observer: (T) -> Unit): DecomposeCancellation
+}
+
+@Composable
+fun <T : Any> Value<T>.subscribeAsState(): State<T> {
+    val state = remember(this) { mutableStateOf(value) }
+    DisposableEffect(this) {
+        val cancellation = subscribe { state.value = it }
+        onDispose { cancellation.cancel() }
+    }
+    return state
+}
+```
+
+In [`DecomposeHistoryComponent.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/decompose/DecomposeHistoryComponent.kt):
+```kotlin
+class DefaultDecomposeHistoryComponent(
+    val componentContext: ComponentContext,
+    private val repository: TransactionRepository,
+    private val coroutineScope: CoroutineScope,
+) : DecomposeHistoryComponent {
+
+    private val _state = MutableValue(DecomposeHistoryState(isLoading = true))
+    override val state: Value<DecomposeHistoryState> = _state
+
+    override fun onCategorySelected(category: String?) {
+        _state.value = _state.value.copy(selectedCategory = category)
+    }
+
+    override fun onTransactionClicked(transaction: HistoryTransactionItem?) {
+        _state.value = _state.value.copy(selectedTransaction = transaction)
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** 100% Kotlin Multiplatform (first-class support for Android, iOS, Desktop, Web); zero dependency on `androidx.lifecycle.ViewModel`; components can be tested without Robolectric or Android mocks; hierarchy supports nested child components with isolated backstacks.
+- **Disadvantages:** Introduces a distinct mental model and custom reactive primitive (`Value<T>`) alongside Kotlin's standard `StateFlow`.
+
+---
 
 #### F. MVIKotlin (Arkadii Ivanov)
-- **Philosophy:** Total separation of concerns into single-responsibility units: Intent $\to$ Executor $\to$ Message $\to$ Reducer $\to$ State & Label.
-- **Mechanics:**
-  - **Intent:** What the user intended to do (from UI).
-  - **Action:** Internal bootstrap trigger.
-  - **Executor:** Handles coroutines, database queries, and dispatches pure **Messages** and **Labels**.
-  - **Reducer:** Pure, synchronous function `(State, Message) -> State`.
-  - **Label:** Side effects dispatched to observers.
-- **When to Use:** Mission-critical financial transaction flows requiring absolute mathematical determinism, full unit-test coverage of business logic without coroutine mocks, and time-travel debugging.
+
+##### 1. Origin & Core Problem Solved
+In mission-critical banking and financial ledger applications, UI bugs often stem from non-deterministic state mutations: two coroutines updating state simultaneously, race conditions, or unrecorded state side-effects.
+
+**Arkadii Ivanov** authored **MVIKotlin** to provide the industry's most mathematically rigorous, reproducible, and testable implementation of MVI. MVIKotlin separates concerns into distinct, single-responsibility contracts:
+$$\text{Intent} \longrightarrow \text{Executor} \xrightarrow{\text{Message}} \text{Pure Reducer} \longrightarrow \text{State}$$
+
+Critically, the **Executor cannot touch the State directly**—it can only execute async logic and emit `Message` objects. The **Reducer is a pure synchronous mathematical function** `(State, Message) -> State`.
+
+##### 2. Architectural Data Flow
+```mermaid
+flowchart TD
+    UI["MviKotlinHistoryContent (UI)"]
+    Store["MviKotlin Store"]
+    Bootstrapper["Bootstrapper (dispatches Action.Init)"]
+    Executor["Executor\n• Launches Coroutines\n• Queries Repository\n• Dispatches Messages & Labels"]
+    Reducer["Pure Synchronous Reducer\n(State, Message) -> State\n• Zero Coroutines\n• Zero Side Effects"]
+    State["StateFlow<MviKotlinHistoryState>"]
+    Label["Flow<MviKotlinHistoryLabel>\n(One-off Toast Events)"]
+
+    UI -->|store.accept(Intent)| Executor
+    Bootstrapper -->|Action.Init| Executor
+    Executor -->|dispatchMessage(Message)| Reducer
+    Executor -->|publishLabel(Label)| Label
+    Reducer -->|Emits New State| State
+    State -->|collectAsState()| UI
+    Label -->|collectLatest| UI
+```
+
+##### 3. Implementation in `:feature:history:mvikotlin`
+In [`MviKotlinHistoryIntent.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/mvikotlin/MviKotlinHistoryIntent.kt):
+```kotlin
+sealed interface MviKotlinHistoryIntent {
+    data class ChangeCategory(val category: String?) : MviKotlinHistoryIntent
+    data class SelectTransaction(val transaction: HistoryTransactionItem?) : MviKotlinHistoryIntent
+    data object DismissDetail : MviKotlinHistoryIntent
+    data object Refresh : MviKotlinHistoryIntent
+}
+
+sealed interface MviKotlinHistoryMessage {
+    data class SetLoading(val isLoading: Boolean) : MviKotlinHistoryMessage
+    data class SetTransactions(val items: List<HistoryTransactionItem>) : MviKotlinHistoryMessage
+    data class SetCategory(val category: String?) : MviKotlinHistoryMessage
+    data class SetSelected(val transaction: HistoryTransactionItem?) : MviKotlinHistoryMessage
+    data class SetError(val errorMessage: String?) : MviKotlinHistoryMessage
+}
+```
+
+In [`MviKotlinHistoryStore.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/mvikotlin/MviKotlinHistoryStore.kt):
+```kotlin
+val reducer = Reducer<MviKotlinHistoryState, MviKotlinHistoryMessage> { state, message ->
+    when (message) {
+        is MviKotlinHistoryMessage.SetLoading -> state.copy(isLoading = message.isLoading)
+        is MviKotlinHistoryMessage.SetTransactions -> state.copy(transactions = message.items, errorMessage = null)
+        is MviKotlinHistoryMessage.SetCategory -> state.copy(selectedCategory = message.category)
+        is MviKotlinHistoryMessage.SetSelected -> state.copy(selectedTransaction = message.transaction)
+        is MviKotlinHistoryMessage.SetError -> state.copy(errorMessage = message.errorMessage)
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Mathematical determinism; unit testing the Reducer requires zero mocks, zero coroutines, and zero dispatchers; 100% time-travel debugging and session flight-recorder replay ready; pure Kotlin with zero Android dependencies.
+- **Disadvantages:** Highest boilerplate weight among all architectures (requires explicit Intents, Actions, Messages, Reducers, and Labels).
+
+---
 
 #### G. Voyager ScreenModel (Adriel Café)
-- **Philosophy:** Multiplatform navigation and state management library designed specifically for Compose Multiplatform.
-- **Mechanics:**
-  - Replaces `androidx.lifecycle.ViewModel` with `ScreenModel` and `StateScreenModel<State>`.
-  - Provides `screenModelScope` tied to screen lifecycle.
-  - Updates state via `updateState { ... }`.
-- **When to Use:** Lightweight Compose Multiplatform applications requiring screen-scoped state management without AndroidX lifecycle dependencies.
+
+##### 1. Origin & Core Problem Solved
+Compose Multiplatform applications require a simple, lightweight way to retain state across screen transitions without importing the heavy AndroidX `lifecycle-viewmodel` library.
+
+**Adriel Café** created **Voyager**, featuring **`ScreenModel`** and **`StateScreenModel<T>`**. Unlike Android's `ViewModel`, Voyager's `ScreenModel` is an interface and lightweight class integrated directly into Voyager's multiplatform screen backstack, providing an internal `screenModelScope` tied to the screen's lifecycle.
+
+##### 2. Architectural Data Flow
+```mermaid
+flowchart LR
+    Screen["Voyager Screen Destination"]
+    Model["VoyagerHistoryScreenModel\n: StateScreenModel<VoyagerHistoryState>"]
+    Scope["screenModelScope\n(SupervisorJob + Dispatchers.Main)"]
+    StateFlow["StateFlow<VoyagerHistoryState>"]
+    UI["VoyagerHistoryContent"]
+
+    Screen -->|rememberScreenModel| Model
+    Model -->|Launches Repository Jobs| Scope
+    Model -->|updateState { copy(...) }| StateFlow
+    StateFlow -->|collectAsState()| UI
+    UI -->|Calls selectCategory()| Model
+```
+
+##### 3. Implementation in `:feature:history:voyager`
+In [`VoyagerScreenModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/voyager/VoyagerScreenModel.kt):
+```kotlin
+abstract class StateScreenModel<STATE : Any>(initialState: STATE) : ScreenModel() {
+    protected val mutableState: MutableStateFlow<STATE> = MutableStateFlow(initialState)
+    val state: StateFlow<STATE> = mutableState.asStateFlow()
+
+    protected fun updateState(updater: (STATE) -> STATE) {
+        mutableState.update(updater)
+    }
+}
+```
+
+In [`VoyagerHistoryScreenModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/voyager/VoyagerHistoryScreenModel.kt):
+```kotlin
+class VoyagerHistoryScreenModel(
+    private val repository: TransactionRepository,
+) : StateScreenModel<VoyagerHistoryState>(VoyagerHistoryState(isLoading = true)) {
+
+    fun selectCategory(category: String?) {
+        updateState { it.copy(selectedCategory = category) }
+    }
+
+    fun selectTransaction(transaction: HistoryTransactionItem?) {
+        updateState { it.copy(selectedTransaction = transaction) }
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Lightweight; multiplatform-friendly; zero AndroidX framework baggage; intuitive API mirroring `MutableStateFlow.update`.
+- **Disadvantages:** Less built-in tooling for complex nested navigation hierarchies compared to Decompose; requires manual setup when not using the full Voyager navigation library.
+
+---
 
 #### H. Mavericks / MvRx (Airbnb)
-- **Philosophy:** Airbnb's battle-tested state machine architecture modeling asynchronous requests with explicit state wrappers.
-- **Mechanics:**
-  - State fields wrapping asynchronous data use `Async<T>`: `Uninitialized`, `Loading`, `Success(value)`, `Fail(error)`.
-  - Coroutines or Flows execute via `.execute { copy(transactions = it) }`, which automatically transitions state through `Loading` $\to$ `Success` / `Fail`.
-  - State is mutated atomically via `setState { copy(...) }` and inspected synchronously via `withState(viewModel) { state -> ... }`.
-- **When to Use:** Data-dense apps with numerous asynchronous network and database requests where manual tracking of `isLoading`, `error`, and `data` properties creates error-prone boilerplate.
+
+##### 1. Origin & Core Problem Solved
+At enterprise scale, Airbnb engineers found that typical Android ViewModels were plagued by asynchronous state tracking boilerplate. A single screen querying 3 API endpoints required 6 to 9 mutable variables:
+```kotlin
+// ❌ Error-Prone Anti-Pattern in Standard MVVM
+var isUserLoading: Boolean = false
+var userError: Throwable? = null
+var userData: User? = null
+var isTransactionsLoading: Boolean = false
+var transactionsError: Throwable? = null
+// ...
+```
+This leads to impossible state bugs (e.g. `isUserLoading = true` while `userError != null`).
+
+Airbnb created **Mavericks (MvRx)** to model all asynchronous operations with a sealed class: **`Async<T>`**:
+- `Uninitialized`: Request has not yet been executed.
+- `Loading<T>`: Request is currently executing (can optionally retain previous cached data).
+- `Success<T>`: Request succeeded with value.
+- `Fail<T>`: Request failed with exception.
+
+Mavericks provides an `.execute()` operator on Flows and suspend lambdas that automatically updates state through this lifecycle, combined with atomic `setState { copy(...) }` mutations.
+
+##### 2. Architectural Data Flow
+```mermaid
+stateDiagram-v2
+    [*] --> Uninitialized: ViewModel initialized
+    Uninitialized --> Loading: execute { repository.getTransactions() }
+    Loading --> Success: Repository returns Result.success
+    Loading --> Fail: Repository throws Exception
+    Success --> Loading: User pulls to refresh
+    Fail --> Loading: User taps retry button
+```
+
+##### 3. Implementation in `:feature:history:mavericks`
+In [`MavericksViewModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/mavericks/MavericksViewModel.kt):
+```kotlin
+sealed class Async<out T>(open val value: T? = null) {
+    data object Uninitialized : Async<Nothing>()
+    data class Loading<out T>(override val value: T? = null) : Async<T>(value)
+    data class Success<out T>(override val value: T) : Async<T>(value)
+    data class Fail<out T>(val error: Throwable, override val value: T? = null) : Async<T>(value)
+
+    operator fun invoke(): T? = value
+}
+
+abstract class MavericksViewModel<S : MavericksState>(
+    initialState: S,
+    protected val viewModelScope: CoroutineScope,
+) {
+    fun setState(reducer: S.() -> S) { _stateFlow.update { it.reducer() } }
+
+    fun <T> Flow<T>.execute(reducer: S.(Async<T>) -> S): Job {
+        setState { reducer(Async.Loading(value = null)) }
+        return viewModelScope.launch {
+            this@execute
+                .catch { cause -> setState { reducer(Async.Fail(cause)) } }
+                .collect { item -> setState { reducer(Async.Success(item)) } }
+        }
+    }
+}
+```
+
+In [`MavericksHistoryViewModel.kt`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/feature/history/src/main/kotlin/com/ledger/personal/feature/history/mavericks/MavericksHistoryViewModel.kt):
+```kotlin
+class MavericksHistoryViewModel(
+    private val repository: TransactionRepository,
+    scope: CoroutineScope,
+) : MavericksViewModel<MavericksHistoryState>(
+    initialState = MavericksHistoryState(),
+    viewModelScope = scope,
+) {
+    init {
+        repository.observeTransactions()
+            .map { list -> list.map { it.toItem() } }
+            .execute { asyncList -> copy(transactions = asyncList) }
+    }
+
+    fun selectCategory(category: String?) {
+        setState { copy(selectedCategory = category) }
+    }
+}
+```
+
+##### 4. Architectural Trade-offs
+- **Advantages:** Completely eliminates invalid state combinations and boolean loading flags; `.execute` dramatically reduces async coroutine boilerplate; supports synchronous state inspection with `withState`.
+- **Disadvantages:** Tailored heavily to Android; historically required reflection for state initialization in its original RxJava form; less widespread in Kotlin Multiplatform.
 
 ---
 

@@ -80,3 +80,4 @@ class VoyagerHistoryScreenModelTest {
         assertNull(model.state.value.selectedTransaction)
     }
 }
+

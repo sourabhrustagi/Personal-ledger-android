@@ -82,3 +82,4 @@ fun <STATE : Any, SIDE_EFFECT : Any> ContainerHost<STATE, SIDE_EFFECT>.intent(
         }
     }
 }
+

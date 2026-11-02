@@ -2,6 +2,7 @@
 
 package com.ledger.personal.feature.update.ui
 
+import com.ledger.personal.feature.update.model.ForceUpdateUiState
 import com.ledger.personal.feature.update.util.PlayStore
 
 import androidx.compose.foundation.layout.Arrangement
@@ -38,8 +39,8 @@ import com.ledger.personal.ui.components.IconBadge
 import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.StatusBanner
 
-/** UI state for the force update screen. */
-data class ForceUpdateUiState(val versionName: String = "")
+/** Alias for backward compatibility. */
+typealias ForceUpdateUiState = com.ledger.personal.feature.update.model.ForceUpdateUiState
 
 /** Blocks the app until this version is updated from the store. */
 @Composable

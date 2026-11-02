@@ -24,15 +24,6 @@ import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.components.HubFlags
 import javax.inject.Inject
 
-/** Session state. */
-data class SessionState(
-    val unlocked: Boolean = false,
-    val failedAttempts: Int = 0,
-    val lockedUntilMs: Long = 0L,
-    val revealBalances: Boolean = false,
-    val signInMessage: String? = null,
-)
-
 /** Alias for backward compatibility. */
 typealias OtpUiState = com.ledger.personal.feature.auth.model.OtpUiState
 

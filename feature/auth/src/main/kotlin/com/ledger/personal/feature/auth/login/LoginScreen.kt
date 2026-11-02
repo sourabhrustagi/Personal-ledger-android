@@ -1,6 +1,7 @@
 package com.ledger.personal.feature.auth.login
 
 import com.ledger.personal.feature.auth.model.AppConstants
+import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.feature.auth.model.OtpUiState
 
 import androidx.compose.foundation.layout.Arrangement
@@ -44,11 +45,8 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.theme.colorScheme
 import com.ledger.personal.ui.theme.typography
 
-/** State for OTP login screen. */
-data class OtpLoginUiState(
-    val phone: String,
-    val demoOtp: Boolean = false,
-)
+/** Alias for backward compatibility. */
+typealias OtpLoginUiState = com.ledger.personal.feature.auth.model.OtpLoginUiState
 
 /** Shows the OTP login screen for returning users with landscape scrollability and StateFlow countdown. */
 @Composable

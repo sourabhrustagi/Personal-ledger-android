@@ -35,3 +35,4 @@ fun HistoryTransactionRow(
         trailingColor = colorScheme.onSurface,
     )
 }
+

@@ -1,5 +1,6 @@
 package com.ledger.personal.feature.scan.ui
 
+import com.ledger.personal.feature.scan.model.ScanUiState
 import com.ledger.personal.feature.scan.model.UpiTarget
 import com.ledger.personal.feature.scan.model.parseUpi
 import android.Manifest
@@ -31,14 +32,6 @@ import com.ledger.personal.ui.components.PrimaryButton
 import com.ledger.personal.ui.components.StatusBanner
 import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.theme.colorScheme
-
-/** UI state for the scan screen. */
-data class ScanUiState(
-    val liveCamera: Boolean = false,
-    val cameraGranted: Boolean = false,
-    val invalid: Boolean = false,
-    val manual: String = "",
-)
 
 /** Shows the scan screen. */
 @Composable

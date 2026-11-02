@@ -4,3 +4,4 @@ import com.ledger.personal.domain.model.Transaction
 
 /** Day group. */
 data class DayGroup(val label: String, val items: List<Transaction>)
+

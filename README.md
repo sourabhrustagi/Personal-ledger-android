@@ -47,28 +47,36 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [5. Current Architectural Limitations, Trade-offs & Flaws](#5-current-architectural-limitations-trade-offs--flaws)
   - [6. Architectural Transformation: Feature Modularization & Standalone Mock Environments](#6-architectural-transformation-feature-modularization--standalone-mock-environments)
 - [ViewModels](#view-models)
-- [State Management: `remember`, `rememberSaveable` & Architecture](#state-management-remember-remembersaveable--app-state-architecture)
-  - [1. Understanding `mutableStateOf` (Compose Snapshot State)](#1-understanding-mutablestateof-compose-snapshot-state)
-    - [Flutter vs. Android Compose: How the UI is Notified of State Changes](#flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes)
-  - [2. What Was `@Model`? (Historical Evolution, Deprecation & The Modern Replacement)](#what-was-model-historical-evolution-deprecation--the-modern-replacement)
+- [State Management: The 4 Core Architectural Pillars in Jetpack Compose](#state-management-remember-remembersaveable--app-state-architecture)
+  - [1. Pillar 1: Compose Snapshot State Engine (`mutableStateOf`, `remember`, `rememberSaveable`, `derivedStateOf`)](#1-understanding-mutablestateof-compose-snapshot-state)
+    - [A. How `mutableStateOf` Triggers Recomposition](#a-how-mutablestateof-triggers-recomposition)
+    - [B. Direct Assignment (`=`) vs. Property Delegation (`by`)](#b-syntax-direct-assignment--vs-property-delegation-by)
+    - [C. Why `mutableStateOf` Must Be Paired with `remember` or `rememberSaveable`](#c-why-mutablestateof-must-be-paired-with-remember-or-remembersaveable)
+    - [D. Primitive Specializations (Zero Auto-Boxing Overhead)](#d-primitive-specializations-zero-auto-boxing-overhead)
+    - [E. Mutation Policies (`SnapshotMutationPolicy`)](#e-mutation-policies-snapshotmutationpolicy)
+    - [F. `derivedStateOf`: Calculation Optimization & Invalidation Dampening](#f-derivedstateof-calculation-optimization--invalidation-dampening)
+    - [G. Flutter vs. Android Compose: How the UI is Notified of State Changes](#flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes)
+  - [2. Historical Context: What Was `@Model` and Why Was It Removed?](#what-was-model-historical-evolution-deprecation--the-modern-replacement)
     - [A. The Historical Pre-1.0 `@Model` Pattern](#a-the-historical-pre-10-model-pattern)
     - [B. Under the Hood: What the Compose Compiler Plugin Synthesized](#b-under-the-hood-what-the-compose-compiler-plugin-synthesized)
     - [C. Why Google Deprecated and Completely Removed `@Model`](#c-why-google-deprecated-and-completely-removed-model)
     - [D. How Modern Jetpack Compose Replaced `@Model` (3 Production Architectural Patterns)](#d-how-modern-jetpack-compose-replaced-model-3-production-architectural-patterns)
     - [E. Architectural Comparison Matrix: `@Model` vs. Modern Primitives](#e-architectural-comparison-matrix-model-vs-modern-primitives)
-  - [3. `remember` vs `rememberSaveable`](#2-remember-vs-remembersaveable)
+  - [3. Deep Dive: `remember` vs `rememberSaveable` & Custom Savers](#2-remember-vs-remembersaveable)
     - [Why `rememberSaveable` is Critical at the Compose Level](#why-remembersaveable-is-critical-at-the-compose-level)
-  - [4. Real-World Uses of `rememberSaveable`](#3-real-world-uses-of-remembersaveable-in-ledgerone)
-  - [5. Screen & Business State: `ViewModel` + `StateFlow`](#4-screen--business-state-viewmodel--stateflow)
-  - [6. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
+  - [4. Real-World Uses of `rememberSaveable` in LedgerOne](#3-real-world-uses-of-remembersaveable-in-ledgerone)
+  - [5. Pillar 2: Plain `@Stable` State Holder Classes (Component-Level Encapsulation)](#pillar-2-plain-stable-state-holder-classes)
+  - [6. Pillar 3: `CompositionLocal` Architecture (`CompositionLocalProvider`, `compositionLocalOf`, `staticCompositionLocalOf`)](#pillar-3-compositionlocal-architecture)
+  - [7. Pillar 4: Jetpack `ViewModel` + Kotlin `StateFlow` (+ `SavedStateHandle`)](#4-screen--business-state-viewmodel--stateflow)
+  - [8. Architectural Patterns Used Across the Project](#5-architectural-patterns-used-across-the-project)
     - [State Hoisting (Unidirectional Data Flow)](#a-state-hoisting-unidirectional-data-flow)
     - [`collectAsStateWithLifecycle()` vs `collectAsState()`](#b-collectasstatewithlifecycle-vs-collectasstate)
     - [Edge-to-Edge Insets (`safeDrawingPadding`)](#c-edge-to-edge-window-inset-management-safedrawingpadding)
     - [Column & Row Arrangements vs Alignments](#d-layout-flow-main-axis-arrangements-vs-cross-axis-alignments-in-column--row)
     - [Proportional Sizing & Space Distribution (`Modifier.weight`)](#e-proportional-sizing--space-distribution-modifierweight)
-  - [7. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
-  - [8. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
-  - [9. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
+  - [9. Application State Mechanism Comparison Matrix](#6-application-state-mechanism-comparison-matrix)
+  - [10. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens](#7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens)
+  - [11. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes](#8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes)
 - [Jetpack Compose Effects & Lifecycle Side-Effect Handling](#jetpack-compose-effects--lifecycle-side-effect-handling)
   - [1. `DisposableEffect` (Cleanup-Aware Side Effects)](#1-disposableeffect-cleanup-aware-side-effects)
   - [2. `LaunchedEffect` (Coroutine-Scoped Side Effects)](#2-launchedeffect-coroutine-scoped-side-effects)
@@ -1090,7 +1098,50 @@ To eliminate Garbage Collection churn and heap allocations caused by Java primit
 
 ---
 
-#### F. <a id="flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes"></a>Flutter vs. Android Compose: How the UI is Notified of State Changes
+#### F. `derivedStateOf`: Calculation Optimization & Invalidation Dampening
+
+While `mutableStateOf` tracks direct state mutations, **`derivedStateOf`** is designed for **invalidation dampening**: deriving a new state value from one or more snapshot state objects, where the input state changes at a much higher frequency than the output.
+
+##### 1. The High-Frequency Invalidation Problem
+In scrolling feeds (such as [`LedgerHistoryScreen`](feature/history/src/main/kotlin/com/ledger/personal/feature/history/LedgerHistoryScreen.kt) and transaction history), `LazyListState.firstVisibleItemScrollOffset` changes on **every single pixel of movement** (60–120 updates per second). 
+
+If a composable reads `firstVisibleItemScrollOffset` directly to determine whether a "Scroll to Top" button should appear:
+```kotlin
+// ❌ RECOMPOSITION SPIKE: Reads high-frequency state directly in composition!
+val showScrollToTop = listState.firstVisibleItemIndex > 0 // Re-runs on EVERY pixel scroll!
+if (showScrollToTop) {
+    ScrollToTopFab(onClick = { ... })
+}
+```
+Every pixel scrolled forces the entire composable scope to re-evaluate, causing frame drops and severe scroll stutter.
+
+##### 2. How `derivedStateOf` Dampens Invalidation
+`derivedStateOf` acts as a reactive buffer. It observes the inner snapshot reads, executes the calculation, but **only notifies the Compose runtime when the calculated output value actually changes** (e.g. when `showScrollToTop` flips from `false` to `true`):
+
+```kotlin
+// ✅ OPTIMAL: derivedStateOf dampens 120Hz pixel stream into a single boolean flip!
+val showScrollToTop by remember {
+    derivedStateOf { listState.firstVisibleItemIndex > 0 }
+}
+
+if (showScrollToTop) {
+    ScrollToTopFab(onClick = { ... }) // Recomposes ONLY once when crossing index 0!
+}
+```
+
+##### 3. `remember(key)` vs. `derivedStateOf` (When to Use Which)
+
+| Dimension | `remember(key1, key2) { ... }` | `derivedStateOf { ... }` |
+|---|---|---|
+| **Trigger Mechanism** | Re-executes when the `key` references change across recompositions. | Re-executes when **any snapshot state read inside the lambda** changes. |
+| **Recomposition Impact** | Marks the composable dirty whenever the enclosing scope recomposes and keys differ. | **Dampens recomposition**: Does NOT trigger recomposition unless the calculated result changes. |
+| **Input vs. Output Frequency** | **Equal Frequency:** Input changes at the same rate as output needs to update. | **High Input / Low Output Frequency:** Input changes constantly (pixels, ms, sensor), output rarely (boolean, tier, threshold). |
+| **Cost** | Minimal: Single memory allocation in slot table. | Moderate: Allocates a snapshot observer node and mutation tracking listener. |
+| **Anti-Pattern Warning** | Forgetting keys causes cached stale computations. | ❌ Wrapping simple calculations where input changes at the same rate as output (e.g. `derivedStateOf { "$firstName $lastName" }` is a waste of memory; use `remember(firstName, lastName)` instead!). |
+
+---
+
+#### G. <a id="flutter-vs-android-compose-how-the-ui-is-notified-of-state-changes"></a>Flutter vs. Android Compose: How the UI is Notified of State Changes
 
 Developers coming from **Flutter** are accustomed to imperatively notifying the framework when state changes using `notifyListeners()` (in `ChangeNotifier` / Provider / Riverpod) or `setState(() { ... })` in a `StatefulWidget`.
 
@@ -1786,16 +1837,325 @@ fun rememberScrollState(initial: Int = 0): ScrollState {
 
 ---
 
-### <a id="4-screen--business-state-viewmodel--stateflow"></a><a id="4-screen-business-state-viewmodel-stateflow"></a>5. Screen & Business State: `ViewModel` + `StateFlow`
+### <a id="pillar-2-plain-stable-state-holder-classes"></a>5. Pillar 2: Plain `@Stable` State Holder Classes (Component-Level Encapsulation)
 
-While `rememberSaveable` handles screen-level UI state, domain logic and async data are owned by Hilt-injected `ViewModel`s:
-- **`StateFlow` for UI State:** ViewModels expose a single, immutable `StateFlow<UiState>` using `stateIn(SharingStarted.WhileSubscribed(5_000))`. The 5-second timeout keeps the upstream flow active across brief configuration changes without restarting expensive Room queries.
-- **Atomic State Updates:** Mutations apply atomically using `MutableStateFlow.update { it.copy(...) }`, eliminating race conditions between concurrent coroutines.
-- **`SavedStateHandle` for Process Death:** Navigation arguments are retrieved from `SavedStateHandle`, ensuring the screen can re-fetch its data even after Android kills the process in the background.
+When a composable's logic grows to encompass multiple interrelated state properties, complex input sanitization, or controller behavior (such as transfer calculator inputs, multi-stage forms, or custom animations), inlining numerous `remember { mutableStateOf(...) }` calls inside the Composable function body quickly causes clutter and violates the **Single Responsibility Principle (SRP)**.
+
+To maintain clean separation between UI layout and UI logic, Jetpack Compose uses **Plain State Holder Classes** (such as `ScrollState`, `LazyListState`, `ModalBottomSheetState`, and LedgerOne's [`ModernInputState`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/components/ModernStateHolder.kt)).
 
 ---
 
-### <a id="5-architectural-patterns-used-across-the-project"></a>6. Architectural Patterns Used Across the Project
+#### A. The `@Stable` Contract & Compose Compiler Skippability
+The `@Stable` annotation applied to a state holder class informs the Compose Compiler of a strict stability contract:
+1. **Consistency:** The result of `.equals()` will always return the same result for the same two instances.
+2. **Observable Public Mutations:** When a public property of the class changes, the Compose runtime snapshot system will be properly notified.
+3. **Stable Members:** All public properties are themselves stable types or Compose snapshot states (`MutableState<T>`).
+
+**The Performance Impact (Skippability):**
+When a composable function receives a `@Stable` class instance as a parameter, the Compose Compiler marks that Composable as **skippable**. During recomposition, if the instance reference has not changed, Compose skips executing the composable entirely, avoiding wasteful layout passes.
+
+---
+
+#### B. The 4 Architectural Rules of a Modern State Holder Class
+
+```kotlin
+// Production Implementation in LedgerOne: ModernStateHolder.kt
+@Stable
+class ModernInputState(
+    initialAmount: String = "",
+    initialNote: String = "",
+) {
+    // 1. Encapsulated Mutable Snapshot State (Private Set)
+    // External composables CANNOT arbitrarily mutate state from the outside!
+    var amountInput by mutableStateOf(initialAmount)
+        private set
+
+    var noteInput by mutableStateOf(initialNote)
+        private set
+
+    // 2. Computed Read-Only Domain Invariants
+    val amountMinor: Long
+        get() = parseMinor(amountInput) ?: 0L
+
+    val isValid: Boolean
+        get() = amountMinor > 0L
+
+    // 3. Intention-Revealing Event Methods (Enforcing Validation Rules)
+    fun onAmountChange(value: String) {
+        if (amountRegex.matches(value)) {
+            amountInput = value
+        }
+    }
+
+    fun onNoteChange(value: String) {
+        if (value.length <= MAX_NOTE_LENGTH) {
+            noteInput = value
+        }
+    }
+
+    fun clear() {
+        amountInput = ""
+        noteInput = ""
+    }
+
+    companion object {
+        private const val MAX_NOTE_LENGTH = 50
+        private val amountRegex = Regex("^\\d{0,9}(\\.\\d{0,2})?$")
+
+        // 4. Custom Saver Serialization (Guarantees Process-Death Survival)
+        val Saver: Saver<ModernInputState, Any> = listSaver(
+            save = { listOf(it.amountInput, it.noteInput) },
+            restore = { ModernInputState(it[0], it[1]) },
+        )
+    }
+}
+
+// 5. Composable Factory Function with rememberSaveable
+@Composable
+fun rememberModernInputState(
+    initialAmount: String = "",
+    initialNote: String = "",
+): ModernInputState = rememberSaveable(saver = ModernInputState.Saver) {
+    ModernInputState(initialAmount, initialNote)
+}
+```
+
+---
+
+#### C. State Holder Class vs. Jetpack ViewModel
+
+| Characteristic | Plain `@Stable` State Holder Class | Jetpack `ViewModel` |
+|---|---|---|
+| **Primary Responsibility** | **UI Logic & Local State:** Form input sanitization, scroll tracking, animation coordination, dialog toggles | **Business Logic & Domain Access:** Room database queries, Retrofit API calls, WorkManager coordination, session locks |
+| **Lifecycle Scope** | Tied to the **Composition lifecycle** (created and remembered within composable trees) | Tied to **`ViewModelStoreOwner`** (Activity / NavBackStackEntry); survives configuration changes |
+| **Android Framework Coupling** | Uses Compose primitives (`mutableStateOf`, `Saver`, `@Stable`) | Pure Kotlin Coroutines (`StateFlow`, `viewModelScope`); 0 Compose UI dependencies |
+| **Process Death Survival** | Via **`rememberSaveable(saver = CustomSaver)`** | Via **`SavedStateHandle`** |
+| **Unit Testing Strategy** | Pure JVM test (e.g. [`ModernStateHolderTest.kt`](core/designsystem/src/test/kotlin/com/ledger/personal/ui/components/ModernStateHolderTest.kt)) | Pure JVM test with `StandardTestDispatcher` and `Turbine` |
+
+---
+
+### <a id="pillar-3-compositionlocal-architecture"></a>6. Pillar 3: `CompositionLocal` Architecture (`CompositionLocalProvider`, `compositionLocalOf`, `staticCompositionLocalOf`)
+
+In deeply nested UI component trees, passing design tokens (colors, typography, spacing), context handles, or accessibility configurations through every intermediate composable function is an anti-pattern known as **"prop drilling"**. 
+
+**`CompositionLocal`** provides a mechanism for passing data down through the Composition tree **implicitly** (ambiently), making data accessible to any child composable without declaring it as an explicit parameter.
+
+```mermaid
+flowchart TD
+    subgraph Root ["Root Provider"]
+        P["CompositionLocalProvider(LocalLedgerColors provides DarkColors)"]
+    end
+
+    subgraph Tree ["Composable Tree"]
+        C1["AppScaffold"]
+        C2["NavigationHost"]
+        C3["WalletScreen"]
+        C4["BalanceCard"]
+        C5["LedgerOneText (Reads LocalLedgerColors.current)"]
+    end
+
+    P --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    P -.->|Implicit Ambient Access\n(Zero Parameter Drilling!)| C5
+```
+
+---
+
+#### A. `compositionLocalOf` vs. `staticCompositionLocalOf`: Invalidation Scope
+
+Compose provides two distinct factories for creating a `CompositionLocal`. Choosing the wrong factory can lead to severe recomposition performance bottlenecks:
+
+| Dimension | `compositionLocalOf` (Dynamic) | `staticCompositionLocalOf` (Static) |
+|---|---|---|
+| **Read Tracking** | **Yes:** Compose tracks every specific composable reading `.current` in the Composition Slot Table. | **No:** Skips slot table read-tracking overhead entirely. |
+| **Invalidation Scope** | **Fine-Grained:** When the provided value changes, **only the specific composables that actually read `.current`** are recomposed. | **Coarse-Grained:** When the provided value changes, **the entire composable subtree beneath the provider** is recomposed from scratch! |
+| **Runtime Overhead** | Higher memory and CPU overhead to maintain reader subscription graphs. | Zero read-tracking overhead; reads are as cheap as a direct property access. |
+| **Optimal Use Case** | Values that **change frequently** during runtime (e.g., dynamic animated colors, scroll offsets, gesture states). | Values that **rarely or never change** (e.g., Theme design tokens, typography styles, spacing constants, layout direction). |
+
+---
+
+#### B. Production Implementation in LedgerOne (`Theme.kt`)
+
+LedgerOne configures its domain financial colors using `staticCompositionLocalOf` because theme color sets change only when the user explicitly toggles dark mode:
+
+```kotlin
+// 1. Definition in :core:designsystem (Theme.kt)
+val LocalLedgerColors = staticCompositionLocalOf<LedgerColors> {
+    error("No LedgerColors provided. Wrap UI hierarchy in PersonalLedgerTheme.")
+}
+
+// 2. Provisioning in the Theme Composable
+@Composable
+fun PersonalLedgerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
+    val colors = if (darkTheme) DarkLedgerColors else LightLedgerColors
+
+    CompositionLocalProvider(
+        LocalLedgerColors provides colors,
+    ) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+            typography = AppTypography,
+            content = content
+        )
+    }
+}
+
+// 3. Ambient Consumption Anywhere in Descendant Trees
+@Composable
+fun FinancialBadge(isCredit: Boolean) {
+    // Reads directly from ambient without receiving colors as a parameter!
+    val domainColors = LocalLedgerColors.current
+    val badgeColor = if (isCredit) domainColors.creditGreen else domainColors.debitRed
+
+    Box(modifier = Modifier.background(badgeColor))
+}
+```
+
+---
+
+#### C. Local Sub-Tree Overriding (`CompositionLocalProvider`)
+`CompositionLocalProvider` allows scoped overriding of ambient values for a specific subtree without affecting parent or sibling composables. For example, rendering an inverted dark card inside a light-themed screen:
+
+```kotlin
+// Scoped Subtree Overriding
+Card(modifier = Modifier.fillMaxWidth()) {
+    // Force dark colors locally for this specific high-contrast card:
+    CompositionLocalProvider(LocalLedgerColors provides DarkLedgerColors) {
+        CardContent() // All children read DarkLedgerColors!
+    }
+}
+```
+
+---
+
+#### D. Governance & Architectural Anti-Patterns
+
+- ✅ **DO USE `CompositionLocal` FOR:**
+  - Truly ambient cross-cutting infrastructure: Theming palettes, typography scales, spacing dimensions, layout directions (LTR/RTL), analytics loggers.
+  - Platform standards: `LocalContext`, `LocalDensity`, `LocalFocusManager`, `LocalSoftwareKeyboardController`.
+- ❌ **NEVER USE `CompositionLocal` FOR:**
+  - **Passing Business Domain Models (`LocalUser`, `LocalTransactions`):** Creates invisible dependencies, couples unrelated components, makes composables unpredictable, and completely breaks Android Studio `@PreviewLightDark`.
+  - **Passing `ViewModel` Instances:** ViewModels should be injected at the top-level screen destination via `hiltViewModel()` and hoisted downward via explicit parameters and event lambdas.
+
+---
+
+### <a id="4-screen--business-state-viewmodel--stateflow"></a><a id="4-screen-business-state-viewmodel-stateflow"></a>7. Pillar 4: Jetpack `ViewModel` + Kotlin `StateFlow` (+ `SavedStateHandle`)
+
+The fourth and highest state pillar is the **Jetpack `ViewModel` combined with Kotlin `StateFlow`**. It serves as the single source of truth for screen-level business logic, Room SQLite database streams, and asynchronous network operations.
+
+```mermaid
+flowchart LR
+    subgraph Data ["Data Layer (Cold Flows)"]
+        Room[("Room SQLite")] -->|Flow<List<Transaction>>| Repo["Repository"]
+        Retrofit["Retrofit API"] -->|suspend safeApiCall()| Repo
+    end
+
+    subgraph VM ["ViewModel (State Engine)"]
+        Repo -->|combine & map| SF["MutableStateFlow<UiState>"]
+        SSH["SavedStateHandle (Process Death)"] --> SF
+        SF -->|stateIn(WhileSubscribed(5_000))| ReadOnlySF["StateFlow<UiState>"]
+    end
+
+    subgraph UI ["Compose UI Layer"]
+        ReadOnlySF -->|collectAsStateWithLifecycle()| Screen["Composable Screen"]
+        Screen -->|User Events (onTransfer)| VM
+    end
+```
+
+---
+
+#### A. Why `StateFlow<UiState>` Over `LiveData` or Compose `mutableStateOf` in ViewModels
+
+1. **Kotlin Coroutines Native:** `StateFlow` is part of `kotlinx.coroutines`. It requires zero Android framework dependencies (`android.*`), allowing 100% pure JVM unit testing of ViewModels without Robolectric or Android mocks.
+2. **Conflation & Guaranteed Current Value:** `StateFlow` is conflated (slow collectors skip intermediate values and always receive the newest emission) and always has an immediate, non-null `.value`.
+3. **Atomic State Updates:** Unlike `LiveData.postValue()` (which can drop values under rapid successive updates) or plain `var`, `StateFlow` supports atomic compare-and-set updates:
+   ```kotlin
+   // Guaranteed atomic thread-safe mutation
+   _uiState.update { currentState ->
+       currentState.copy(isLoading = true, errorMessage = null)
+   }
+   ```
+
+---
+
+#### B. The 5-Second Configuration Window: `SharingStarted.WhileSubscribed(5_000)`
+
+When converting cold database flows to hot state in ViewModels, LedgerOne uses `stateIn` with a critical 5,000ms stop timeout:
+
+```kotlin
+// Production Pattern in HomeViewModel.kt and PromotionsViewModel.kt
+val uiState: StateFlow<HomeUiState> = combine(
+    transactionsFlow,
+    syncPhaseFlow,
+    activeTabFlow
+) { txs, sync, tab ->
+    HomeUiState(transactions = txs, sync = sync, activeTab = tab)
+}.stateIn(
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = HomeUiState(loading = true)
+)
+```
+
+##### Why 5,000ms?
+1. **Device Rotation Survival:** When a user rotates their device, Android destroys the Activity and recreates it in **50–200ms**. With `WhileSubscribed(5_000)`, the upstream flow stays alive across the rotation window, avoiding expensive database requeries and visual UI flicker.
+2. **Background Battery Preservation:** If the user minimizes the app or switches to another app for **more than 5 seconds**, all downstream UI collectors are cancelled. The upstream Room query stops executing in the background, preserving CPU and battery.
+
+---
+
+#### C. Consuming State in Compose: `collectAsStateWithLifecycle()` vs. `collectAsState()`
+
+```kotlin
+@Composable
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+    // ✅ RECOMMENDED: Lifecycle-aware flow collection
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // ...
+}
+```
+
+- **The Problem with `collectAsState()`:** Plain `collectAsState()` collects from the `StateFlow` as long as the composable is part of the composition—even when the Activity is in `onStop()` (app is minimized or screen is locked). This causes background coroutines to process off-screen UI updates and drains battery.
+- **The Solution with `collectAsStateWithLifecycle()`:** Automatically pauses flow collection when the host `Lifecycle` drops below `Lifecycle.State.STARTED` (when the app is backgrounded), and resumes collection when the user returns to the foreground.
+
+---
+
+#### D. Surviving Low-Memory Process Death: `SavedStateHandle`
+
+While ViewModels survive configuration changes (screen rotations), **they DO NOT survive OS-initiated process death**. When Android runs low on RAM in the background, the OS terminates the app process. When the user returns, Android recreates the process, but the ViewModel's RAM is wiped.
+
+To guarantee zero data loss, LedgerOne injects **`SavedStateHandle`** into ViewModels:
+
+```kotlin
+@HiltViewModel
+class WalletViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
+    private val repository: WalletRepository,
+) : ViewModel() {
+
+    // 1. Automatically restores navigation parameters across process death:
+    private val recipientId: String = checkNotNull(savedStateHandle["recipientId"])
+
+    // 2. Survives process death as a reactive StateFlow:
+    val noteQuery: StateFlow<String> = savedStateHandle.getStateFlow(
+        key = "transfer_note",
+        initialValue = ""
+    )
+
+    fun onNoteChanged(newNote: String) {
+        savedStateHandle["transfer_note"] = newNote // Persisted to OS Bundle!
+    }
+}
+```
+
+---
+
+### <a id="5-architectural-patterns-used-across-the-project"></a>8. Architectural Patterns Used Across the Project
 
 #### <a id="a-state-hoisting-unidirectional-data-flow"></a>A. State Hoisting (Unidirectional Data Flow)
 In Compose screens, stateful containers are separated from stateless presentation components:
@@ -2008,12 +2368,15 @@ If the passbook only has 1 or 2 items, `fill = false` prevents `SectionCard` fro
 
 ---
 
-### <a id="6-application-state-mechanism-comparison-matrix"></a>7. Application State Mechanism Comparison Matrix
+### <a id="6-application-state-mechanism-comparison-matrix"></a>9. Application State Mechanism Comparison Matrix
 
 | State Tool | Storage Location | Survives Recomposition? | Survives Screen Rotation? | Survives Process Death? | Survives Phone Reboot? | Primary Application Use Case |
 |---|---|---|---|---|---|---|
-| **`remember`** | Composition Memory | **Yes** | ❌ No | ❌ No | ❌ No | Ephemeral UI: animation clocks, transient gestures |
+| **`remember`** | Composition Slot Table | **Yes** | ❌ No | ❌ No | ❌ No | Ephemeral UI: animation clocks, transient gestures, list state keys |
 | **`rememberSaveable`** | `SavedStateRegistry` (Bundle) | **Yes** | **Yes** | **Yes** | ❌ No | Form text fields, wizard step index, dialog/sheet open state |
+| **`derivedStateOf`** | Snapshot Observation Node | **Yes** | ❌ No | ❌ No | ❌ No | Invalidation dampening (e.g. scroll offset pixel updates -> boolean toggle) |
+| **`Plain @Stable State Holder`** | Composition / Bundle (via `Saver`) | **Yes** | **Yes** (with `Saver`) | **Yes** (with `Saver`) | ❌ No | Complex UI-level controllers, multi-field input forms ([`ModernInputState`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/components/ModernStateHolder.kt)) |
+| **`CompositionLocal`** | Composition Hierarchy Context | **Yes** | Dependent on provided value | Dependent on provided value | ❌ No | Cross-cutting ambient tokens: themes ([`LocalLedgerColors`](core/designsystem/src/main/kotlin/com/ledger/personal/ui/theme/Theme.kt)), typography, system locals |
 | **`rememberScrollState`** | `SavedStateRegistry` (`ScrollState.Saver`) | **Yes** | **Yes** | **Yes** | ❌ No | Viewport scroll position in `Column`/`Row`, form keyboard adaptation |
 | **`ViewModel` (`StateFlow`)** | `ViewModelStore` (Heap) | **Yes** | **Yes** | ❌ No | ❌ No | Business logic, fetched accounts, live calculations, search queries |
 | **`SavedStateHandle`** | `SavedStateRegistry` + ViewModel | **Yes** | **Yes** | **Yes** | ❌ No | Navigation parameters (`transactionId`), search criteria across process death |
@@ -2022,7 +2385,7 @@ If the passbook only has 1 or 2 items, `fill = false` prevents `SectionCard` fro
 
 ---
 
-### <a id="7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens"></a>8. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens
+### <a id="7-screen-rotation--landscape-handling-how-data-is-handled-across-various-screens"></a>10. Screen Rotation & Landscape Handling: How Data Is Handled Across Various Screens
 
 #### A. Architecture of Configuration Changes in Jetpack Compose
 When an Android device is rotated between portrait and landscape:
@@ -2181,7 +2544,7 @@ Top-level application container managing navigation backstacks and global alerts
 
 ---
 
-### <a id="8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes"></a>9. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes
+### <a id="8-tablet--large-screen-compatibility-adaptive-layouts-across-window-size-classes"></a>11. Tablet & Large Screen Compatibility: Adaptive Layouts Across Window Size Classes
 
 #### A. Ergonomic Challenges on Expanded & Large Displays
 Tablets (e.g. Pixel Tablet, Samsung Galaxy Tab S, 10–13" foldables, and Chromebooks) operate with Window Size Classes characterized by widths $\ge 600\text{dp}$ (Medium) and $\ge 840\text{dp}$ (Expanded).

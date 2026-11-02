@@ -9,3 +9,4 @@ sealed interface CircuitHistoryEvent {
     data object DismissDetail : CircuitHistoryEvent
     data object Refresh : CircuitHistoryEvent
 }
+

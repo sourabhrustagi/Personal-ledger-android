@@ -21,7 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.feature.auth.login.LoginViewModel
 import com.ledger.personal.feature.auth.login.OtpLoginScreen
-import com.ledger.personal.feature.auth.login.OtpLoginUiState
+import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.feature.auth.onboarding.OnboardingFlow
 import com.ledger.personal.feature.auth.onboarding.OnboardingViewModel
 import com.ledger.personal.mock.MockValues

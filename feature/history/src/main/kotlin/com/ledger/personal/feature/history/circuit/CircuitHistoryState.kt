@@ -23,3 +23,4 @@ data class CircuitHistoryUiState(
             transactions.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
 }
+

@@ -1,6 +1,6 @@
 package com.ledger.personal.feature.auth.login
 
-import com.ledger.personal.feature.auth.model.AppConstants
+import com.ledger.personal.feature.auth.AppConstants
 import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.feature.auth.model.OtpUiState
 

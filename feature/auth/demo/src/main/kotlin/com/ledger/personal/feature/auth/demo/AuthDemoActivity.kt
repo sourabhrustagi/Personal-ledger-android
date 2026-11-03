@@ -20,8 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.feature.auth.login.LoginViewModel
-import com.ledger.personal.feature.auth.login.OtpLoginScreen
-import com.ledger.personal.feature.auth.model.OtpLoginUiState
+import com.ledger.personal.feature.auth.login.LoginScreen
 import com.ledger.personal.feature.auth.onboarding.OnboardingFlow
 import com.ledger.personal.feature.auth.onboarding.OnboardingViewModel
 import com.ledger.personal.mock.MockValues
@@ -90,25 +89,12 @@ fun AuthDemoScreen(
                 }
                 1 -> {
                     val loginVm: LoginViewModel = hiltViewModel()
-                    val resendCountdown by loginVm.resendCountdown.collectAsStateWithLifecycle()
-                    OtpLoginScreen(
-                        uiState = OtpLoginUiState(
-                            phone = MockValues.DEFAULT_PHONE,
-                            demoOtp = true,
-                        ),
-                        resendCountdown = resendCountdown,
-                        onResend = loginVm::startResendTimer,
-                        onVerifyOtp = { code, onResult ->
-                            loginVm.verifyOtp(code) { success ->
-                                onResult(success)
-                                if (success) onAuthSuccess("Login successful!")
-                            }
-                        },
-                        onReset = {
-                            loginVm.signOutEverywhere {
-                                onAuthSuccess("Reset completed")
-                            }
-                        },
+                    LoginScreen(
+                        phone = MockValues.DEFAULT_PHONE,
+                        demoOtp = true,
+                        onUnlocked = { onAuthSuccess("Login successful!") },
+                        onReset = { onAuthSuccess("Reset completed") },
+                        viewModel = loginVm,
                     )
                 }
             }

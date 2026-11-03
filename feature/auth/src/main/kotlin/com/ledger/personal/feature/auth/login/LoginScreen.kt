@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.feature.auth.AppConstants
-import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.IconBadge
@@ -45,14 +44,7 @@ import com.ledger.personal.ui.theme.PersonalLedgerTheme
 import com.ledger.personal.ui.theme.colorScheme
 import com.ledger.personal.ui.theme.typography
 
-/** Alias for backward compatibility. */
-typealias OtpLoginUiState = com.ledger.personal.feature.auth.model.OtpLoginUiState
-
-/**
- * 1. Stateful entry point for [LoginScreen].
- * Injects [LoginViewModel], observes countdown state with lifecycle awareness,
- * and handles unlock / sign-out side effects.
- */
+/** Shows the OTP login screen for returning users with landscape scrollability and StateFlow countdown. */
 @Composable
 fun LoginScreen(
     phone: String,
@@ -62,40 +54,6 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val resendCountdown by viewModel.resendCountdown.collectAsStateWithLifecycle()
-    LoginScreen(
-        uiState = OtpLoginUiState(
-            phone = phone,
-            demoOtp = demoOtp,
-        ),
-        resendCountdown = resendCountdown,
-        onResend = viewModel::startResendTimer,
-        onVerifyOtp = { code, onResult ->
-            viewModel.verifyOtp(code) { success ->
-                onResult(success)
-                if (success) onUnlocked()
-            }
-        },
-        onReset = {
-            viewModel.signOutEverywhere(onReset)
-        },
-    )
-}
-
-/**
- * 2. Stateless presentation composable for [LoginScreen].
- * Renders OTP input, resend timer, error banner, and switch account dialog.
- * Decoupled from ViewModel for easy testing and previews.
- */
-@Composable
-fun LoginScreen(
-    uiState: OtpLoginUiState,
-    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
-    onResend: () -> Unit = {},
-    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
-    onReset: () -> Unit,
-) {
-    val phone = uiState.phone
-    val demoOtp = uiState.demoOtp
     var code by rememberSaveable { mutableStateOf("") }
     var wrong by rememberSaveable { mutableStateOf(false) }
     var checking by rememberSaveable { mutableStateOf(false) }
@@ -144,7 +102,7 @@ fun LoginScreen(
                         color = colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    TextLink("Resend code", onResend)
+                    TextLink("Resend code", onClick = { viewModel.startResendTimer() })
                 }
                 Spacer(Modifier.height(16.dp))
                 if (checking) {
@@ -161,16 +119,17 @@ fun LoginScreen(
                         "Verify and sign in",
                         onClick = {
                             checking = true
-                            onVerifyOtp(code) { ok ->
+                            viewModel.verifyOtp(code) { success ->
                                 checking = false
-                                wrong = !ok
+                                wrong = !success
+                                if (success) onUnlocked()
                             }
                         },
                         enabled = code.length == AppConstants.OTP_CODE_LENGTH,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                TextLink("Sign in with another number", { confirmReset = true })
+                TextLink("Sign in with another number", onClick = { confirmReset = true })
             }
         }
     }
@@ -179,73 +138,30 @@ fun LoginScreen(
             onDismissRequest = { confirmReset = false },
             title = { Text("Switch account?") },
             text = { Text("You'll be taken to the phone verification screen to sign in with a different mobile number.") },
-            confirmButton = { TextButton(onClick = onReset) { Text("Switch") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmReset = false
+                    viewModel.signOutEverywhere(onReset)
+                }) {
+                    Text("Switch")
+                }
+            },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
         )
     }
 }
 
-/** Overload accepting individual parameters delegating to [OtpLoginUiState]. */
-@Composable
-fun LoginScreen(
-    phone: String,
-    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
-    onReset: () -> Unit,
-    demoOtp: Boolean = false,
-    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
-    onResend: () -> Unit = {},
-) = LoginScreen(
-    uiState = OtpLoginUiState(phone = phone, demoOtp = demoOtp),
-    resendCountdown = resendCountdown,
-    onResend = onResend,
-    onVerifyOtp = onVerifyOtp,
-    onReset = onReset,
-)
-
-/** Backward-compatible overload for [OtpLoginScreen] delegating to [LoginScreen]. */
-@Composable
-fun OtpLoginScreen(
-    uiState: OtpLoginUiState,
-    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
-    onResend: () -> Unit = {},
-    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
-    onReset: () -> Unit,
-) = LoginScreen(
-    uiState = uiState,
-    resendCountdown = resendCountdown,
-    onResend = onResend,
-    onVerifyOtp = onVerifyOtp,
-    onReset = onReset,
-)
-
-/** Backward-compatible overload for [OtpLoginScreen] delegating to [LoginScreen]. */
-@Composable
-fun OtpLoginScreen(
-    phone: String,
-    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
-    onReset: () -> Unit,
-    demoOtp: Boolean = false,
-    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
-    onResend: () -> Unit = {},
-) = LoginScreen(
-    phone = phone,
-    onVerifyOtp = onVerifyOtp,
-    onReset = onReset,
-    demoOtp = demoOtp,
-    resendCountdown = resendCountdown,
-    onResend = onResend,
-)
-
+@Suppress("ViewModelConstructorInComposable")
 @PreviewLightDark
 @Composable
 private fun LoginPreview() {
     PersonalLedgerTheme {
         LoginScreen(
             phone = MockValues.DEFAULT_PHONE,
-            onVerifyOtp = { _, done -> done(true) },
+            onUnlocked = {},
             onReset = {},
             demoOtp = true,
+            viewModel = LoginViewModel(),
         )
     }
 }
-

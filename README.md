@@ -143,6 +143,8 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [9. Observability, Memory Diagnostics & Traffic Inspection](#9-observability-memory-diagnostics--traffic-inspection)
   - [10. Testing Pyramid, Verification & Build Tooling](#10-testing-pyramid-verification--build-tooling)
   - [Comprehensive Architectural Trade-Off Matrix](#comprehensive-architectural-trade-off-matrix)
+  - [Gradle Dependency Resolution: Multi-Module Deduplication & Build Speed](#gradle-dependency-resolution-multi-module-deduplication--build-speed)
+  - [ProGuard & R8 Optimization Engine: Code Shrinking, Obfuscation & Resource Stripping](#proguard--r8-optimization-engine-code-shrinking-obfuscation--resource-stripping)
 - [Tests and Checks](#tests-and-checks)
 - [Release, App Testing & Distribution](#release-app-testing--distribution)
   - [Testing Builds via Firebase App Distribution](#testing-builds-via-firebase-app-distribution)
@@ -168,6 +170,7 @@ By default the app runs fully offline on built-in demo data, so you can clone it
   - [Category 4: Financial Engineering & Accounting Invariants](#category-4-financial-engineering--accounting-invariants)
   - [Category 5: Enterprise Security, Cryptography & Fraud Prevention](#category-5-enterprise-security-cryptography--fraud-prevention)
   - [Category 6: Offline-First Synchronization, Testing & Production Operations](#category-6-offline-first-synchronization-testing--production-operations)
+  - [Category 7: Build Systems, Dependency Management & ProGuard/R8](#category-7-build-systems-dependency-management--proguardr8)
 
 ---
 
@@ -5147,8 +5150,358 @@ The following table summarizes why each core dependency was chosen over its indu
 
 ---
 
-## <a id="tests-and-checks"></a>Tests and checks
+### <a id="gradle-dependency-resolution-multi-module-deduplication--build-speed"></a>Gradle Dependency Resolution: Multi-Module Deduplication & Build Speed
 
+In enterprise multi-module Android architectures such as LedgerOne (comprising 11 modules: `:app`, `:core:model`, `:core:designsystem`, `:core:database`, `:core:network`, `:core:ui`, `:core:mock`, `:core:testing`, `:feature:auth`, `:feature:ledger`, `:feature:wallet`, `:feature:scan`, `:feature:history`, and companion `:demo` apps), multiple modules routinely declare dependencies on identical third-party libraries (e.g., `kotlinx-coroutines-android`, `lifecycle-runtime-compose`, `hilt-android`, `compose-material3`).
+
+A frequent architectural question is: **"If 10 different modules each declare `implementation(libs.kotlinx.coroutines.android)`, why doesn't Gradle re-download, re-compile, and re-dex Coroutines 10 times, ballooning clean build times?"**
+
+Android Gradle Plugin (AGP) and the Gradle Build Tool utilize a multi-tier dependency resolution, caching, and compile-avoidance pipeline that guarantees duplicate dependencies incur zero redundant compilation overhead.
+
+```mermaid
+flowchart TD
+    subgraph MultiModuleDeclarations ["1. Multi-Module Declarations"]
+        M_APP[":app<br/>implementation(coroutines)"]
+        M_AUTH[":feature:auth<br/>implementation(coroutines)"]
+        M_LEDGER[":feature:ledger<br/>implementation(coroutines)"]
+        M_DB[":core:database<br/>implementation(coroutines)"]
+    end
+
+    subgraph DependencyResolutionEngine ["2. Unified DAG Resolution & Conflict Engine"]
+        DAG["Global Directed Acyclic Graph (DAG)<br/>Single Resolution per Variant"]
+        BOM["Compose BOM / Version Catalog<br/>Strict Version Matrix Lock"]
+        CONFLICT["Conflict Resolver<br/>Highest Version Selection (1.9.0 vs 1.8.0)"]
+    end
+
+    subgraph GlobalCaches ["3. Global Artifact & Transform Caches"]
+        ARTIFACT_CACHE["Global Repository Cache (~/.gradle/caches/modules-2/)<br/>SHA-256 Keyed JAR/AAR Downloaded ONCE"]
+        TRANSFORM_CACHE["Artifact Transforms Cache (~/.gradle/caches/transforms/)<br/>AAR Unzipped & Desugared ONCE"]
+    end
+
+    subgraph CompileAvoidancePipeline ["4. Compile Avoidance & Dexing Pipeline"]
+        ABI["ABI Jar Generation<br/>Private Changes Do NOT Invalidate Downstream"]
+        DEX_BUILDER["dexBuilder (Incremental DEX Cache)<br/>External Dependencies Dexed ONCE"]
+        DEX_MERGE["dexMerging<br/>Fast Merging of Pre-Dexed Archives"]
+    end
+
+    M_APP --> DAG
+    M_AUTH --> DAG
+    M_LEDGER --> DAG
+    M_DB --> DAG
+
+    DAG --> BOM
+    DAG --> CONFLICT
+    CONFLICT --> ARTIFACT_CACHE
+    ARTIFACT_CACHE --> TRANSFORM_CACHE
+    TRANSFORM_CACHE --> ABI
+    ABI --> DEX_BUILDER
+    DEX_BUILDER --> DEX_MERGE
+```
+
+---
+
+#### 1. Unified Directed Acyclic Graph (DAG) Resolution & Conflict Management
+
+When Gradle executes, it does not treat each module's dependencies in isolation. Instead, it constructs a unified **Directed Acyclic Graph (DAG)** of all transitive dependencies for each build variant configuration (`compileClasspath`, `runtimeClasspath`):
+
+##### A. Single Resolution per Configuration
+- Even if 10 feature and core modules request `libs.kotlinx.coroutines.android`, Gradle's configuration phase analyzes the dependency coordinates once per root project evaluation.
+- It computes a single canonical dependency graph node representing that library.
+
+##### B. Conflict Resolution Strategy: "Highest Version Wins"
+- When transitive dependencies request conflicting versions of the same artifact (e.g., Module A transitively pulls `core-ktx:1.12.0` while Module B requests `core-ktx:1.18.0`), Gradle's default conflict resolution selects the **highest compatible version (`1.18.0`)**.
+- The lower version (`1.12.0`) is evicted completely from the runtime classpath graph, preventing duplicate library classes from competing at runtime.
+- For strict environments, teams can enforce fail-fast rules:
+  ```kotlin
+  configurations.all {
+      resolutionStrategy {
+          failOnVersionConflict()
+          preferProjectModules()
+      }
+  }
+  ```
+
+##### C. Bill of Materials (BOM) Platform Enforcement
+- In LedgerOne, the Compose dependencies are governed via the **Compose BOM (`libs.androidx.compose.bom`)**:
+  ```kotlin
+  val composeBom = platform(libs.androidx.compose.bom)
+  implementation(composeBom)
+  implementation(libs.androidx.compose.ui)
+  implementation(libs.androidx.compose.material3)
+  ```
+- The BOM defines an immutable dependency alignment matrix. No individual module specifies a version for `compose.ui` or `compose.material3`. Gradle forces all modules to resolve to the exact version snapshot defined by the BOM, completely eliminating diamond version mismatches across modules.
+
+---
+
+#### 2. The Global Repository & Artifact Transform Cache
+
+To prevent network and disk thrashing:
+
+1. **Global Immutable Repository Cache (`~/.gradle/caches/modules-2/files-2.1/`):**
+   - When an external library (`retrofit:2.11.0.jar`) is downloaded from Maven Central, it is verified against cryptographic SHA-256 checksums and stored in Gradle's global user home directory cache.
+   - It is never re-downloaded for subsequent modules, other Android projects on the same machine, or parallel Gradle daemon workers.
+2. **Artifact Transforms (`~/.gradle/caches/transforms-*`):**
+   - Android libraries (`.aar`) are archive files containing `classes.jar`, JNI native `.so` binaries, resources, and an `AndroidManifest.xml`.
+   - The Android Gradle Plugin runs an **Artifact Transform** pipeline once per artifact version:
+     - Extracts the inner `classes.jar` and public header symbols.
+     - Parses and processes the manifest.
+     - Performs **Java 8+ API desugaring** (backporting `java.time.*` and streams for older Android API levels).
+   - This transformation is saved in the global transform cache. If 8 modules consume `androidx.biometric:biometric.aar`, AGP transforms the AAR **once** and links the transformed directory directly to each module's compile classpath.
+
+---
+
+#### 3. Compile Avoidance via ABI Jars (`implementation` vs. `api`)
+
+The primary mechanism keeping multi-module compile times near-instantaneous is Gradle's **Compile Avoidance Engine**, governed by dependency scoping:
+
+| Dependency Scope | Leaked to Downstream Consumers? | Downstream Recompiled on Internal Body Change? | Use Case in Modular Architecture |
+|---|---|---|---|
+| **`implementation`** | ❌ **No (Hidden from consumer classpath)** | ❌ **No (Compile Avoidance Active)** | **Default for 99% of dependencies.** Used across all `:feature:*` and `:core:*` modules. |
+| **`api`** | ✅ **Yes (Exported transitively)** | ⚠️ **Yes (Triggers cascading rebuilds)** | Reserved only for foundational utility bridges or umbrella API modules. |
+
+##### How ABI Jars Prevent Compilation Cascades
+When `:feature:auth` declares:
+```kotlin
+implementation(project(":core:database"))
+```
+1. Gradle compiles `:core:database` from source and generates an **ABI (Application Binary Interface) Jar**.
+2. The ABI jar contains **only public signatures, interfaces, and constants**—all private method bodies, local variables, and internal classes are completely stripped out.
+3. If an engineer modifies an SQL query or internal method implementation inside `:core:database`:
+   - The compiled bytecode changes, but the **public ABI hash remains completely unchanged**.
+   - Gradle inspects `:feature:auth`'s `compileClasspath`, notes that `:core:database`'s public ABI signature did not change, and marks `:feature:auth:compileDebugKotlin` as `UP-TO-DATE`!
+   - **Zero cascading recompilation occurs** across downstream feature modules!
+
+---
+
+#### 4. Incremental Dexing (`dexBuilder`) & Fast Dex Merging (`dexMerging`)
+
+In the final compilation step, Java bytecode (`.class`) must be translated into Android Dalvik Executable format (`.dex`):
+
+- **Incremental Library Dexing (`dexBuilder`):**
+  - AGP runs `dexBuilder` on each external library JAR/AAR individually, converting it into a pre-dexed `.dex` archive stored in the project build cache (`app/build/intermediates/project_dex_archive/`).
+  - Because third-party dependencies do not change between incremental code edits, their DEX files are **never re-computed**.
+- **Dex Merging (`dexMerging`):**
+  - When an engineer modifies a single Kotlin composable in `:feature:auth`, AGP only executes `kotlinc` on that modified file, runs `dexBuilder` on that single class, and then executes `dexMerging` to concatenate the newly generated app DEX slice with the cached pre-dexed library slices.
+  - The process takes **1–3 seconds** instead of minutes.
+
+---
+
+#### 5. Packaging & Classpath Deduplication (Preventing DEX Clashes)
+
+When the APK or AAB is packaged, Gradle ensures duplicate files across dependencies do not corrupt the archive:
+
+1. **Duplicate Classes Check (D8/R8):**
+   - If two different libraries accidentally package the exact same fully qualified class (e.g. `com.example.common.Utils` present in both `lib-a.jar` and `lib-b.jar`), D8/R8 immediately halts compilation with:
+     ```
+     Duplicate class com.example.common.Utils found in modules jetified-lib-a.jar and jetified-lib-b.jar
+     ```
+   - This prevents runtime `ClassCastException` and non-deterministic classloader crashes.
+2. **Duplicate Resource & License Exclusions:**
+   - Many open-source libraries bundle identical license and notice files inside `META-INF/` (e.g., `META-INF/AL2.0`, `META-INF/LGPL2.1`, `META-INF/INDEX.LIST`).
+   - In LedgerOne's [`app/build.gradle.kts`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/app/build.gradle.kts), packaging conflict resolution is explicitly declared:
+     ```kotlin
+     packaging {
+         resources {
+             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+         }
+     }
+     ```
+   - AGP discards duplicate metadata files during APK packaging, producing a clean, collision-free binary.
+
+---
+
+### <a id="proguard--r8-optimization-engine-code-shrinking-obfuscation--resource-stripping"></a>ProGuard & R8 Optimization Engine: Code Shrinking, Obfuscation & Resource Stripping
+
+Production financial applications must be compact, performant, and tamper-resistant. In LedgerOne, production release variants (`prodRelease`, `stagingRelease`) enable Google's **R8 Optimizer Engine**:
+
+```kotlin
+// app/build.gradle.kts
+buildTypes {
+    release {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro",
+        )
+    }
+}
+```
+
+---
+
+#### 1. Architectural Evolution: ProGuard vs. R8
+
+Historically, Android relied on a multi-stage toolchain where ProGuard operated as a standalone pre-processor before the DEX compiler:
+
+```
+[Legacy Toolchain]
+Java/Kotlin Source ──► javac/kotlinc ──► .class Bytecode ──► ProGuard (Shrink, Optimize, Obfuscate) ──► Optimized .class ──► dx/D8 ──► .dex
+
+[Modern AGP R8 Pipeline (Unified Single Pass)]
+Java/Kotlin Source ──► javac/kotlinc ──► .class Bytecode ──────────────────────────────► R8 (Shrink, Optimize, Obfuscate, Dex) ──► .dex
+```
+
+##### Why R8 Outperforms Legacy ProGuard
+1. **Single-Pass Integration:** ProGuard had to read, transform, and write intermediate `.class` files to disk, which were then immediately read, parsed, and translated into `.dex` by `dx` or `D8`. R8 performs shrinking, optimization, obfuscation, and direct `.dex` bytecode translation in a **single in-memory pass**, cutting release build times by 40–60%.
+2. **Kotlin-Aware Whole-Program Analysis:** R8 understands Kotlin metadata, inline functions, and coroutine state machines natively, enabling cross-class inlining and dead branch pruning that ProGuard could not perform.
+
+---
+
+#### 2. The 4 Core Execution Phases of R8
+
+When `isMinifyEnabled = true` is activated, R8 processes the application through four sequential phases:
+
+```mermaid
+flowchart LR
+    A["1. Shrinking<br/>(Tree Shaking)"] --> B["2. Optimization<br/>(Bytecode Rewriting)"]
+    B --> C["3. Obfuscation<br/>(Name Mangling)"]
+    C --> D["4. Direct Dexing<br/>(.dex Generation)"]
+```
+
+##### Phase 1: Shrinking (Dead Code Elimination / Tree Shaking)
+- **Root Entry Points:** R8 begins by identifying all entry points ("Roots") that must be preserved:
+  - All Android components declared in the merged `AndroidManifest.xml` (`Activity`, `Service`, `BroadcastReceiver`, `ContentProvider`, custom `Application`).
+  - Classes and methods annotated with `@Keep` or explicitly declared via `-keep` rules in `proguard-rules.pro`.
+- **Transitive Reachability Traversal:** R8 builds a comprehensive call graph originating from the roots. Any class, interface, method, or field that cannot be reached through static execution paths is **permanently deleted**.
+- **Impact:** Entire unused features, third-party library classes (e.g. unused Retrofit converters, unused OkHttp protocols), and orphaned utility classes are stripped from the final binary, often reducing method counts by 40–70%.
+
+##### Phase 2: Optimization (Bytecode Level Rewriting)
+R8 rewrites bytecode to improve runtime efficiency and reduce size:
+1. **Method Inlining:** Small methods, simple getters/setters, and single-caller functions are inlined directly into their call sites. This eliminates method invocation stack frames and reduces total DEX method count.
+2. **Class Merging:**
+   - *Vertical Class Merging:* If an interface or abstract class has only a single concrete implementer throughout the entire app, R8 merges the interface into the concrete class, deleting the redundant interface type.
+   - *Horizontal Class Merging:* Identical companion objects, synthetic lambda classes, or utility holders are merged into shared structures.
+3. **Dead Branch Pruning & Constant Propagation:**
+   - Statically evaluates compile-time constants. For example, in LedgerOne release builds:
+     ```kotlin
+     if (BuildConfig.ENABLE_HTTP_LOGGING) {
+         addInterceptor(HttpLoggingInterceptor())
+     }
+     ```
+     Because `ENABLE_HTTP_LOGGING = false` in `release`, R8 evaluates `if (false)` at compile time and completely deletes the entire logging block, preventing `HttpLoggingInterceptor` from being included in the release binary.
+4. **Parameter & Return Value Removal:** Strips parameters and return values that are never read by any caller.
+5. **Devirtualization:** Replaces expensive virtual method invocations (`invokevirtual`) with direct invocations (`invokespecial`) when R8 proves that no subclass overrides the method.
+
+##### Phase 3: Obfuscation (Identifier Mangling & Anti-Reverse Engineering)
+- Human-readable class names, package names, method names, and field identifiers are renamed to short, non-descriptive tokens (`a`, `b.c`, `d()`):
+  ```kotlin
+  // Original Source
+  com.ledger.personal.domain.model.Transaction.amountInCents -> Long
+  
+  // Obfuscated Release Bytecode
+  a.b.c.a.d -> Long
+  ```
+- **Size Reduction:** Greatly reduces the size of the DEX string pool, type identifier tables, and method reference arrays.
+- **Security & IP Protection:** If an attacker attempts to decompile the APK using tools like `jadx`, `apktool`, or `cfr`, the code is stripped of semantic meaning, making proprietary financial algorithms, anti-fraud heuristics, and cryptographic workflows vastly harder to reverse engineer.
+- **De-Obfuscation via `mapping.txt`:**
+  - R8 outputs a `mapping.txt` file into `app/build/outputs/mapping/release/`.
+  - When production crashes occur in the wild, Firebase Crashlytics or Google Play Console uses `mapping.txt` via the **ReTrace** engine to translate obfuscated stack traces back to original human-readable Kotlin filenames and line numbers:
+    ```
+    at a.b.c.a.d(Unknown Source:12) ──► at com.ledger.personal.domain.model.Transaction.getAmountInCents(Transaction.kt:42)
+    ```
+
+##### Phase 4: Direct Dexing & Multidex Splitting
+- Instead of writing out intermediary Java `.class` files, R8 emits Dalvik Executable instructions directly into `classes.dex`, `classes2.dex`, etc.
+- It automatically optimizes class distribution across DEX files, placing critical startup classes into the primary `classes.dex` to ensure optimal app launch performance (TTID - Time to Initial Display).
+
+---
+
+#### 3. Consumer ProGuard Rules (`consumer-rules.pro`) in Multi-Module Libraries
+
+In a modular architecture, keeping all ProGuard rules inside the root `app/proguard-rules.pro` violates feature encapsulation and creates maintenance bottlenecks.
+
+Android Gradle Plugin solves this via **Consumer ProGuard Files**:
+- Any library module (`:core:database`, `:core:network`, `:feature:auth`) can declare:
+  ```kotlin
+  // core/network/build.gradle.kts
+  android {
+      defaultConfig {
+          consumerProguardFiles("consumer-rules.pro")
+      }
+  }
+  ```
+- **Automatic Rule Merging:** When `:app` compiles a release build (`isMinifyEnabled = true`), AGP extracts the `consumer-rules.pro` from every transitively included AAR/module and merges them directly into the master R8 pipeline alongside `app/proguard-rules.pro`.
+- **Benefit:** When a developer adds or refactors network DTOs or Room DAOs inside `:core:*`, they maintain the keep rules locally inside that library module without touching `:app`.
+
+---
+
+#### 4. Handling Reflection, Serialization & Common R8 Pitfalls
+
+Because R8 relies on static reachability analysis, **runtime reflection** is R8's primary failure mode. If code inspects class metadata dynamically via strings (`Class.forName("com.ledger.personal.User")`), R8 cannot know that class is needed and will either delete it (Shrinking) or rename it (Obfuscation), resulting in fatal runtime `ClassNotFoundException` or `NoSuchMethodException`.
+
+To manage this, [`app/proguard-rules.pro`](file:///Users/sourabh/Documents/ai%20architect/week%201/Personal%20ledger/app/proguard-rules.pro) declares targeted rule directives:
+
+```proguard
+# 1. Preserve Annotations and Generic Signatures for Serialization
+-keepattributes *Annotation*,InnerClasses,Signature
+
+# 2. Kotlinx Serialization (Keep generated serializer instances and annotated fields)
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+-keepclassmembers class * implements kotlinx.serialization.KSerializer {
+    public static final ** INSTANCE;
+}
+-keep,allowobfuscation,allowshrinking class kotlinx.serialization.** { *; }
+
+# 3. Retrofit & OkHttp Service Interfaces
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-keepclassmembers,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# 4. Hilt & Dagger Injected Members
+-keepclassmembers class * {
+    @javax.inject.* *;
+    @dagger.* *;
+}
+
+# 5. Timber: Strip Debug Logging Bytecode from Release Binary
+-assumenosideeffects class timber.log.Timber {
+    public static *** v(...);
+    public static *** d(...);
+}
+```
+
+##### Breakdown of ProGuard Directives:
+- **`-keepattributes Signature`:** Preserves generic type parameters in bytecode. Essential for Retrofit (e.g. `Response<List<TransactionDto>>`) and Moshi/Kotlinx Serialization, which inspect generic types at runtime.
+- **`-keepclassmembers`:** Tells R8: *"If the class is kept, preserve these specific members (e.g. fields annotated with `@SerialName` or Dagger `@Inject`), but feel free to obfuscate the class name itself."* This preserves serialization keys while maximizing obfuscation.
+- **`-allowobfuscation, allowshrinking`:** Instructs R8 that a class can be renamed and shrunk if unused, but its structural integrity must be retained if referenced.
+- **`-assumenosideeffects`:** Instructs the optimizer that calls to `Timber.d(...)` or `Timber.v(...)` produce zero observable side-effects. R8 **completely removes the call instructions from the bytecode**, ensuring debug log strings and memory allocations never execute in production.
+- **`@Keep` Annotation (`androidx.annotation.Keep`):** An inline code annotation that automatically prevents R8 from shrinking or obfuscating the annotated class, method, or field without editing `proguard-rules.pro`.
+
+---
+
+#### 5. Resource Shrinking (`isShrinkResources = true`)
+
+Enabling `isShrinkResources = true` activates a post-R8 optimization pass executed by AGP and **AAPT2 (Android Asset Packaging Tool 2)**:
+
+```
+[R8 Bytecode Pass] ──► Removes Unused Kotlin/Java Classes ──► classes.dex
+                                                                  │
+                                                                  ▼
+[Resource Shrinker] ◄── Analyzes R.class usage in classes.dex ────┘
+         │
+         ▼
+Replaces Unused Drawables/XML with 0-byte Placeholders ──► resources.arsc & APK Bundle
+```
+
+1. **How It Operates:**
+   - R8 first prunes unused code (e.g., stripping an unused `ReceiptScannerActivity`).
+   - The resource shrinker then analyzes the remaining `classes.dex` files to identify which resource IDs (`R.drawable.*`, `R.layout.*`, `R.string.*`) are actually referenced in bytecode.
+   - Any resource file in `res/` that is never referenced by active code or other resources is deemed dead.
+2. **Replacement with 0-Byte Dummies:**
+   - Rather than rewriting the resource table structure (which could break internal XML offsets), the resource shrinker replaces the contents of dead PNGs, SVGs, or XML layouts with a **minimal 0-byte or 1-pixel dummy file**.
+   - The resource entry remains in `resources.arsc` with minimal footprint, but its heavy file payload is completely eliminated from the APK/AAB bundle.
+3. **Safe vs. Strict Mode:**
+   - By default, the resource shrinker operates in **Safe Mode**: if your code dynamically references resources via `getResources().getIdentifier("promo_" + id, "drawable", packageName)`, the shrinker detects string patterns and preserves all resources starting with `promo_`.
+   - To maximize savings, teams can enforce **Strict Mode** using `res/raw/keep.xml` (`<resources shrinkMode="strict" />`) and explicitly specify which dynamic resource names must be preserved.
+
+---
+
+## <a id="tests-and-checks"></a>Tests and checks
 ```bash
 ./gradlew testMockDebugUnitTest            # app unit tests (mock flavor)
 ./gradlew :core:model:test :core:mock:test :core:designsystem:testDebugUnitTest
@@ -6709,6 +7062,47 @@ This section provides an **exhaustive repository of technical interview question
 
 ---
 
+### <a id="category-7-build-systems-dependency-management--proguardr8"></a>Category 7: Build Systems, Dependency Management & ProGuard/R8
 
+#### Q29. How does Gradle handle duplicate or conflicting dependencies across multiple modules in Android, and what mechanisms prevent compile times from inflating?
+- **Interviewer Perspective:** Assesses advanced understanding of Gradle build architecture, DAG resolution, artifact caching, compile avoidance, and multi-module scaling in large engineering teams.
+- **Answer:**
+  In a multi-module architecture (e.g. LedgerOne's 11 modules), multiple modules frequently declare identical dependencies like `kotlinx-coroutines-android` or `hilt-android`.
+  
+  **How Gradle Resolves and Deduplicates Dependencies:**
+  1. **Global Directed Acyclic Graph (DAG):** During the configuration phase, Gradle constructs a unified dependency graph per variant configuration (`compileClasspath`, `runtimeClasspath`). It resolves identical library coordinates to a single graph node across all modules.
+  2. **Conflict Resolution ("Highest Version Selection"):** When transitive conflicts occur (e.g. `core-ktx:1.12.0` vs `core-ktx:1.18.0`), Gradle automatically evicts the lower version and aligns all consumers to the highest compatible version (`1.18.0`).
+  3. **Bill of Materials (BOM):** Using `platform(libs.androidx.compose.bom)` enforces an immutable version lock across all Compose UI artifacts (`ui`, `material3`, `foundation`) across all modules without manual version coordination.
+  
+  **Why Compile Time is NOT Inflated:**
+  - **Global Artifact Cache:** External dependencies are downloaded and verified against SHA-256 checksums once into `~/.gradle/caches/modules-2/files-2.1/`. They are never re-downloaded per module.
+  - **Artifact Transforms & Desugaring Cache:** AGP extracts AARs and performs Java 8+ API desugaring once into `~/.gradle/caches/transforms-*`, reusing transformed artifacts across all modules.
+  - **Compile Avoidance via `implementation` (ABI Jars):** `implementation` scopes dependencies to the declaring module's compilation classpath. Gradle compiles modules against stripped **ABI Jars** (containing only public signatures). If internal code or dependencies change inside `:core:database`, downstream modules (`:feature:ledger`) skip recompilation (`UP-TO-DATE`) because the public ABI remained identical.
+  - **Incremental Dexing (`dexBuilder`) & Merging (`dexMerging`):** Pre-dexes third-party libraries once into standalone `.dex` files. When app code changes, Gradle only dexes the modified app classes and merges them with pre-dexed library DEX caches in 1–2 seconds.
 
+#### Q30. How does the R8 / ProGuard engine work under the hood in an Android application, what is the role of `consumer-rules.pro`, and how do you debug obfuscation-related crashes?
+- **Interviewer Perspective:** Tests production release hardening, compiler pipeline internals, bytecode optimization, and root-cause analysis of obfuscation failures.
+- **Answer:**
+  In modern AGP, **R8** replaces the legacy multi-step ProGuard pipeline. Instead of writing intermediate `.class` files, R8 processes Java/Kotlin bytecode in a single in-memory pass directly into `.dex` files.
+  
+  **The 4 Core Execution Phases of R8:**
+  1. **Shrinking (Tree Shaking):** Identifies entry points ("Roots" from `AndroidManifest.xml`, `@Keep`, and `-keep` rules) and traverses the static reachability graph. Unreachable classes, methods, and fields are permanently discarded.
+  2. **Optimization:** Performs whole-program bytecode transformations:
+     - *Method inlining:* Inlines small or single-caller functions directly into call sites, reducing method count and call-stack overhead.
+     - *Class merging:* Vertically merges single-implementation interfaces into their concrete classes and horizontally merges auxiliary classes.
+     - *Dead branch pruning:* Statically evaluates compile-time constants (e.g. `if (BuildConfig.ENABLE_HTTP_LOGGING)` where false) and deletes entire unreachable logging branches.
+     - *Devirtualization:* Replaces virtual method dispatch with direct static calls when no subclass overrides exist.
+  3. **Obfuscation:** Renames classes, packages, and methods to short tokens (`a.b.c.a.d`), shrinking the DEX string pool and protecting financial logic against decompilation tools (`jadx`). Generates the de-obfuscation map `mapping.txt`.
+  4. **Direct Dexing:** Emits Dalvik Executable instructions directly into `classes.dex`, `classes2.dex`, optimizing Multidex boundaries for faster startup (TTID).
+  
+  **Role of `consumer-rules.pro` in Multi-Module Libraries:**
+  - Library modules (`:core:*`, `:feature:*`) publish rules via `consumerProguardFiles "consumer-rules.pro"`.
+  - When `:app` builds release (`isMinifyEnabled = true`), AGP automatically extracts and merges every library's `consumer-rules.pro` into the master R8 pipeline alongside `app/proguard-rules.pro`, preserving modular encapsulation.
+  
+  **Debugging Obfuscation Crashes:**
+  - **Root Cause:** Dynamic reflection (`Class.forName("...")`, Gson) or serialization lookups fail because R8 renamed or stripped the class/field.
+  - **Solution:** 
+    1. Inspect the stack trace and retrace it using `retrace.sh mapping.txt obfuscated_trace.txt`.
+    2. Add targeted `-keepclassmembers` or `-keepattributes Signature` rules (or adopt compile-time Kotlinx Serialization, which requires zero reflection keep rules).
+    3. Run `./gradlew assembleStagingRelease` in CI to catch missing rules before production deployment.
 

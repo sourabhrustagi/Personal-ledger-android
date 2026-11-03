@@ -1,9 +1,5 @@
 package com.ledger.personal.feature.auth.login
 
-import com.ledger.personal.feature.auth.AppConstants
-import com.ledger.personal.feature.auth.model.OtpLoginUiState
-import com.ledger.personal.feature.auth.model.OtpUiState
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ledger.personal.feature.auth.AppConstants
+import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.mock.MockValues
 import com.ledger.personal.ui.components.BannerTone
 import com.ledger.personal.ui.components.IconBadge
@@ -48,9 +48,46 @@ import com.ledger.personal.ui.theme.typography
 /** Alias for backward compatibility. */
 typealias OtpLoginUiState = com.ledger.personal.feature.auth.model.OtpLoginUiState
 
-/** Shows the OTP login screen for returning users with landscape scrollability and StateFlow countdown. */
+/**
+ * 1. Stateful entry point for [LoginScreen].
+ * Injects [LoginViewModel], observes countdown state with lifecycle awareness,
+ * and handles unlock / sign-out side effects.
+ */
 @Composable
-fun OtpLoginScreen(
+fun LoginScreen(
+    phone: String,
+    onUnlocked: () -> Unit,
+    onReset: () -> Unit,
+    demoOtp: Boolean = false,
+    viewModel: LoginViewModel = hiltViewModel(),
+) {
+    val resendCountdown by viewModel.resendCountdown.collectAsStateWithLifecycle()
+    LoginScreen(
+        uiState = OtpLoginUiState(
+            phone = phone,
+            demoOtp = demoOtp,
+        ),
+        resendCountdown = resendCountdown,
+        onResend = viewModel::startResendTimer,
+        onVerifyOtp = { code, onResult ->
+            viewModel.verifyOtp(code) { success ->
+                onResult(success)
+                if (success) onUnlocked()
+            }
+        },
+        onReset = {
+            viewModel.signOutEverywhere(onReset)
+        },
+    )
+}
+
+/**
+ * 2. Stateless presentation composable for [LoginScreen].
+ * Renders OTP input, resend timer, error banner, and switch account dialog.
+ * Decoupled from ViewModel for easy testing and previews.
+ */
+@Composable
+fun LoginScreen(
     uiState: OtpLoginUiState,
     resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
     onResend: () -> Unit = {},
@@ -150,14 +187,14 @@ fun OtpLoginScreen(
 
 /** Overload accepting individual parameters delegating to [OtpLoginUiState]. */
 @Composable
-fun OtpLoginScreen(
+fun LoginScreen(
     phone: String,
     onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
     onReset: () -> Unit,
     demoOtp: Boolean = false,
     resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
     onResend: () -> Unit = {},
-) = OtpLoginScreen(
+) = LoginScreen(
     uiState = OtpLoginUiState(phone = phone, demoOtp = demoOtp),
     resendCountdown = resendCountdown,
     onResend = onResend,
@@ -165,11 +202,45 @@ fun OtpLoginScreen(
     onReset = onReset,
 )
 
+/** Backward-compatible overload for [OtpLoginScreen] delegating to [LoginScreen]. */
+@Composable
+fun OtpLoginScreen(
+    uiState: OtpLoginUiState,
+    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
+    onResend: () -> Unit = {},
+    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
+    onReset: () -> Unit,
+) = LoginScreen(
+    uiState = uiState,
+    resendCountdown = resendCountdown,
+    onResend = onResend,
+    onVerifyOtp = onVerifyOtp,
+    onReset = onReset,
+)
+
+/** Backward-compatible overload for [OtpLoginScreen] delegating to [LoginScreen]. */
+@Composable
+fun OtpLoginScreen(
+    phone: String,
+    onVerifyOtp: (String, (Boolean) -> Unit) -> Unit,
+    onReset: () -> Unit,
+    demoOtp: Boolean = false,
+    resendCountdown: Int = AppConstants.OTP_RESEND_COOLDOWN_SECONDS,
+    onResend: () -> Unit = {},
+) = LoginScreen(
+    phone = phone,
+    onVerifyOtp = onVerifyOtp,
+    onReset = onReset,
+    demoOtp = demoOtp,
+    resendCountdown = resendCountdown,
+    onResend = onResend,
+)
+
 @PreviewLightDark
 @Composable
-private fun OtpLoginPreview() {
+private fun LoginPreview() {
     PersonalLedgerTheme {
-        OtpLoginScreen(
+        LoginScreen(
             phone = MockValues.DEFAULT_PHONE,
             onVerifyOtp = { _, done -> done(true) },
             onReset = {},
@@ -177,3 +248,4 @@ private fun OtpLoginPreview() {
         )
     }
 }
+

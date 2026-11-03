@@ -15,9 +15,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledger.personal.BuildConfig
 import com.ledger.personal.data.prefs.AppPrefs
 import com.ledger.personal.mock.MockValues
+import com.ledger.personal.feature.auth.login.LoginScreen
 import com.ledger.personal.feature.auth.login.LoginViewModel
-import com.ledger.personal.feature.auth.login.OtpLoginScreen
-import com.ledger.personal.feature.auth.model.OtpLoginUiState
 import com.ledger.personal.feature.auth.onboarding.OnboardingFlow
 import com.ledger.personal.feature.auth.onboarding.OnboardingViewModel
 import com.ledger.personal.feature.update.model.ForceUpdateUiState
@@ -81,23 +80,12 @@ private fun Locked(
     onReset: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
-    val resendCountdown by viewModel.resendCountdown.collectAsStateWithLifecycle()
-    OtpLoginScreen(
-        uiState = OtpLoginUiState(
-            phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
-            demoOtp = BuildConfig.FLAVOR == "mock",
-        ),
-        resendCountdown = resendCountdown,
-        onResend = viewModel::startResendTimer,
-        onVerifyOtp = { code, onResult ->
-            viewModel.verifyOtp(code) { success ->
-                onResult(success)
-                if (success) onUnlocked()
-            }
-        },
-        onReset = {
-            viewModel.signOutEverywhere(onReset)
-        },
+    LoginScreen(
+        phone = prefs.phone.ifBlank { MockValues.DEFAULT_PHONE },
+        demoOtp = BuildConfig.FLAVOR == "mock",
+        onUnlocked = onUnlocked,
+        onReset = onReset,
+        viewModel = viewModel,
     )
 }
 

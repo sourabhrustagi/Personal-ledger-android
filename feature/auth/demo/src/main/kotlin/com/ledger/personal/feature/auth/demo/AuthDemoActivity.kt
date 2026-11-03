@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ledger.personal.feature.auth.login.LoginViewModel
 import com.ledger.personal.feature.auth.login.LoginScreen
 import com.ledger.personal.feature.auth.onboarding.OnboardingFlow
 import com.ledger.personal.feature.auth.onboarding.OnboardingViewModel
@@ -88,13 +87,11 @@ fun AuthDemoScreen(
                     )
                 }
                 1 -> {
-                    val loginVm: LoginViewModel = hiltViewModel()
                     LoginScreen(
                         phone = MockValues.DEFAULT_PHONE,
                         demoOtp = true,
                         onUnlocked = { onAuthSuccess("Login successful!") },
                         onReset = { onAuthSuccess("Reset completed") },
-                        viewModel = loginVm,
                     )
                 }
             }
